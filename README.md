@@ -8,10 +8,6 @@ for HBM NTM `1.0.27 X5751`, and develops it into a larger missile-warfare mod
 with layered air defense, mobile radar and command vehicles, attack drones,
 new cruise missiles, and mobile artillery platforms.
 
-> **Release status:** public redistribution is pending confirmation of the
-> original WarTech redistribution/modification rights and verification of all
-> third-party model licenses. See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
-
 ## Main Features
 
 ### Restored WarTech systems
@@ -140,11 +136,6 @@ WarTech Reforged - неофициальное восстановление и м
 NTM `1.0.27 X5751` и превращает его в более крупный мод о ракетном вооружении,
 эшелонированной ПВО, мобильных радарах, командных машинах, ударных БПЛА и
 подвижной артиллерии.
-
-> **Статус релиза:** публичное распространение ожидает подтверждения прав на
-> переработку и распространение оригинального WarTech, а также проверки лицензий
-> всех сторонних 3D-моделей. Подробности находятся в
-> [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 
 ## Основные возможности
 
