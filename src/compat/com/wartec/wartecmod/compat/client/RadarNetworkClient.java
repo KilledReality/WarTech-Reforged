@@ -4,6 +4,8 @@ import com.wartec.wartecmod.compat.RadarNetworkContent;
 import com.wartec.wartecmod.entity.vehicle.EntityRadarTruck;
 import com.wartec.wartecmod.entity.vehicle.EntityS400Radar;
 import com.wartec.wartecmod.entity.vehicle.EntityCommandTruck;
+import com.wartec.wartecmod.entity.vehicle.EntityElectronicWarfareUnit;
+import com.wartec.wartecmod.entity.missile.EntityAntiRadiationMissile;
 import cpw.mods.fml.client.registry.RenderingRegistry;
 import net.minecraft.client.Minecraft;
 import net.minecraftforge.client.MinecraftForgeClient;
@@ -25,6 +27,18 @@ public final class RadarNetworkClient {
         RenderingRegistry.registerEntityRenderingHandler(EntityCommandTruck.class, commandRenderer);
         MinecraftForgeClient.registerItemRenderer(RadarNetworkContent.commandTruck,
                 new ItemRenderCommandTruck(commandRenderer));
+        RenderElectronicWarfareUnit ewRenderer = new RenderElectronicWarfareUnit();
+        RenderingRegistry.registerEntityRenderingHandler(EntityElectronicWarfareUnit.class,
+                ewRenderer);
+        MinecraftForgeClient.registerItemRenderer(RadarNetworkContent.electronicWarfareUnit,
+                new ItemRenderElectronicWarfareUnit(ewRenderer));
+        RenderAdvancedMissile armRenderer = new RenderAdvancedMissile(
+                "models/ew/agm88_harm.obj", "textures/models/ew/agm88_harm.png",
+                1.0F, 0.0F, 0.0F, 0.0F, 0.0F, true);
+        RenderingRegistry.registerEntityRenderingHandler(EntityAntiRadiationMissile.class,
+                armRenderer);
+        MinecraftForgeClient.registerItemRenderer(RadarNetworkContent.antiRadiationMissile,
+                new ItemRenderAdvancedMissile(armRenderer, 0.32F, 135.0F));
     }
 
     public static void openCommandGui(EntityCommandTruck command) {

@@ -135,11 +135,18 @@ public final class MissileTrackingService {
     public static int updateRadarSweep(World world, int radarId, double radarX, double radarY,
             double radarZ, double range, double ceiling) {
         return updateRadarSweep(world, radarId, radarX, radarY, radarZ,
-                range, ceiling, Integer.MAX_VALUE);
+                range, ceiling, Integer.MAX_VALUE, "", ElectronicWarfareService.BAND_X);
     }
 
     public static int updateRadarSweep(World world, int radarId, double radarX, double radarY,
             double radarZ, double range, double ceiling, int contactLimit) {
+        return updateRadarSweep(world, radarId, radarX, radarY, radarZ, range, ceiling,
+                contactLimit, "", ElectronicWarfareService.BAND_X);
+    }
+
+    public static int updateRadarSweep(World world, int radarId, double radarX, double radarY,
+            double radarZ, double range, double ceiling, int contactLimit,
+            String team, int frequencyBand) {
         if (world == null || world.field_72995_K || radarId <= 0) {
             return 0;
         }
@@ -156,14 +163,20 @@ public final class MissileTrackingService {
         radar.z = radarZ;
         radar.range = range;
         radar.ceiling = ceiling;
+        radar.team = team == null ? "" : team;
+        radar.frequencyBand = frequencyBand;
         radar.lastUpdate = now;
+        ElectronicWarfareService.updateEmitter(world, radarId, radarX, radarY, radarZ,
+                ElectronicWarfareService.EMITTER_RADAR, frequencyBand, radar.team);
+
+        ElectronicWarfareService.JammingResult jamming =
+                ElectronicWarfareService.getJamming(world, radarX, radarY, radarZ,
+                        frequencyBand, radar.team);
+        radar.jamming = jamming.noise;
 
         int contacts = 0;
         double rangeSquared = range * range;
         Integer radarKey = Integer.valueOf(radarId);
-        for (Track track : tracks.tracks.values()) {
-            track.radarSeen.remove(radarKey);
-        }
         for (Track track : tracks.tracks.values()) {
             Entity entity = track.entity;
             if (entity == null || entity.field_70128_L || getTargetTier(entity) == 0) {
@@ -172,14 +185,27 @@ public final class MissileTrackingService {
             double dx = entity.field_70165_t - radarX;
             double dy = entity.field_70163_u - radarY;
             double dz = entity.field_70161_v - radarZ;
-            if (contacts < contactLimit && dx * dx + dz * dz <= rangeSquared
-                    && dy >= -64.0D && dy <= ceiling) {
+            boolean inside = dx * dx + dz * dz <= rangeSquared
+                    && dy >= -64.0D && dy <= ceiling;
+            Float previous = track.radarQuality.get(radarKey);
+            double quality = previous == null ? 0.0D : previous.floatValue();
+            boolean detected = inside && (jamming.noise < 0.05D
+                    || world.field_73012_v.nextDouble() >= jamming.noise * 0.78D);
+            if (detected) {
+                quality = Math.min(1.0D, quality + 0.22D + (1.0D - jamming.noise) * 0.36D);
+            } else {
+                quality = Math.max(0.0D, quality - (inside ? 0.16D : 0.35D));
+            }
+            track.radarQuality.put(radarKey, Float.valueOf((float) quality));
+            if (contacts < contactLimit && quality >= 0.34D) {
                 track.radarSeen.put(radarKey, Long.valueOf(now));
                 ++contacts;
+            } else if (quality < 0.18D) {
+                track.radarSeen.remove(radarKey);
             }
         }
         expireRadars(tracks, now);
-        return contacts;
+        return Math.min(contactLimit, contacts + jamming.falseContacts);
     }
 
     public static void removeRadar(World world, int radarId) {
@@ -189,13 +215,20 @@ public final class MissileTrackingService {
         WorldTracks tracks = getWorldTracks(world);
         Integer key = Integer.valueOf(radarId);
         tracks.radars.remove(key);
+        ElectronicWarfareService.removeNode(world, radarId);
         for (Track track : tracks.tracks.values()) {
             track.radarSeen.remove(key);
+            track.radarQuality.remove(key);
         }
     }
 
     public static CommandSnapshot updateCommandPost(World world, int commandId,
             double x, double y, double z) {
+        return updateCommandPost(world, commandId, x, y, z, "");
+    }
+
+    public static CommandSnapshot updateCommandPost(World world, int commandId,
+            double x, double y, double z, String team) {
         if (world == null || world.field_72995_K || commandId <= 0) {
             return CommandSnapshot.EMPTY;
         }
@@ -212,6 +245,7 @@ public final class MissileTrackingService {
         command.x = x;
         command.y = y;
         command.z = z;
+        command.team = team == null ? "" : team;
         command.lastUpdate = now;
 
         int radars = 0;
@@ -235,8 +269,12 @@ public final class MissileTrackingService {
                 ++contacts;
             }
         }
+        int hostileEmitters = ElectronicWarfareService.updatePassiveSweep(world,
+                x, y, z, ElectronicWarfareService.ESM_RANGE, command.team);
+        int jammers = ElectronicWarfareService.countJammers(world,
+                x, y, z, COMMAND_RADAR_LINK_RANGE, command.team);
         return new CommandSnapshot(radars, launchers, contacts,
-                tracks.reservations.size());
+                tracks.reservations.size(), hostileEmitters, jammers);
     }
 
     public static void removeCommandPost(World world, int commandId) {
@@ -295,6 +333,7 @@ public final class MissileTrackingService {
     private static boolean isRadarLinkedToCommand(RadarStation radar,
             CommandStation command, long now) {
         return now - radar.lastUpdate <= RADAR_TIMEOUT
+                && NetworkTeamHelper.canShareNetwork(radar.team, command.team)
                 && distanceSquared(radar.x, radar.y, radar.z,
                         command.x, command.y, command.z)
                 <= COMMAND_RADAR_LINK_RANGE * COMMAND_RADAR_LINK_RANGE;
@@ -338,6 +377,7 @@ public final class MissileTrackingService {
                 iterator.remove();
                 for (Track track : tracks.tracks.values()) {
                     track.radarSeen.remove(radarId);
+                    track.radarQuality.remove(radarId);
                 }
             }
         }
@@ -740,6 +780,9 @@ public final class MissileTrackingService {
         double z;
         double range;
         double ceiling;
+        String team = "";
+        int frequencyBand;
+        double jamming;
         long lastUpdate;
 
         RadarStation(int entityId) {
@@ -752,6 +795,7 @@ public final class MissileTrackingService {
         double x;
         double y;
         double z;
+        String team = "";
         long lastUpdate;
 
         CommandStation(int entityId) {
@@ -773,18 +817,22 @@ public final class MissileTrackingService {
     }
 
     public static final class CommandSnapshot {
-        static final CommandSnapshot EMPTY = new CommandSnapshot(0, 0, 0, 0);
+        static final CommandSnapshot EMPTY = new CommandSnapshot(0, 0, 0, 0, 0, 0);
         public final int linkedRadars;
         public final int linkedLaunchers;
         public final int contacts;
         public final int assignedTargets;
+        public final int hostileEmitters;
+        public final int activeJammers;
 
         CommandSnapshot(int linkedRadars, int linkedLaunchers,
-                int contacts, int assignedTargets) {
+                int contacts, int assignedTargets, int hostileEmitters, int activeJammers) {
             this.linkedRadars = linkedRadars;
             this.linkedLaunchers = linkedLaunchers;
             this.contacts = contacts;
             this.assignedTargets = assignedTargets;
+            this.hostileEmitters = hostileEmitters;
+            this.activeJammers = activeJammers;
         }
     }
 
@@ -809,6 +857,7 @@ public final class MissileTrackingService {
         boolean explicitLaunch;
         final Map<Long, ThreatState> threatStates = new HashMap<Long, ThreatState>();
         final Map<Integer, Long> radarSeen = new HashMap<Integer, Long>();
+        final Map<Integer, Float> radarQuality = new HashMap<Integer, Float>();
 
         Track(Entity entity, long now) {
             this.entity = entity;

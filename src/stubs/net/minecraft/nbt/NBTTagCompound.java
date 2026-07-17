@@ -11,4 +11,10 @@ public class NBTTagCompound extends NBTBase {
     public boolean func_74764_b(String key) { return false; }
     public NBTTagCompound func_74775_l(String key) { return new NBTTagCompound(); }
     public NBTBase func_74737_b() { return new NBTTagCompound(); }
+    public void func_74774_a(String key, byte value) {}
+    public byte func_74771_c(String key) { return 0; }
+    public void func_74772_a(String key, long value) {}
+    public long func_74763_f(String key) { return 0L; }
+    public void func_74778_a(String key, String value) {}
+    public String func_74779_i(String key) { return ""; }
 }

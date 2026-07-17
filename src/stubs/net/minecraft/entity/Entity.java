@@ -53,4 +53,5 @@ public class Entity {
     public void func_70078_a(Entity entity) {}
     public void func_70099_a(ItemStack stack, float offset) {}
     public int func_145782_y() { return 0; }
+    public boolean func_70112_a(double distance) { return true; }
 }

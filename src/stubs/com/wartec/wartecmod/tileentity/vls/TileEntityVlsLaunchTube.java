@@ -11,6 +11,7 @@ public class TileEntityVlsLaunchTube extends TileEntity {
     public int state;
     public int openingAnimation;
     public int shoot;
+    public boolean open;
     public World field_145850_b;
     public int field_145851_c, field_145848_d, field_145849_e;
     public World wartecGetWorld() { return field_145850_b; }

@@ -24,6 +24,7 @@ public final class EntityS400Radar extends Entity {
     private static final int DW_POWER = 21;
     private static final double MAX_HEALTH = 600.0D;
     private double radarHealth = MAX_HEALTH;
+    private String ownerTeam = "";
 
     public EntityS400Radar(World world) {
         super(world);
@@ -56,6 +57,10 @@ public final class EntityS400Radar extends Entity {
         return field_70180_af.func_75679_c(DW_POWER);
     }
 
+    public void setOwnerTeam(String team) {
+        ownerTeam = team == null ? "" : team;
+    }
+
     @Override
     public void func_70071_h_() {
         super.func_70071_h_();
@@ -81,7 +86,8 @@ public final class EntityS400Radar extends Entity {
         if (field_70173_aa % 10 == Math.abs(func_145782_y()) % 10) {
             setContacts(MissileTrackingService.updateRadarSweep(field_70170_p,
                     func_145782_y(), field_70165_t, field_70163_u + 4.0D, field_70161_v,
-                    RADAR_RANGE, RADAR_CEILING, CONTACT_LIMIT));
+                    RADAR_RANGE, RADAR_CEILING, CONTACT_LIMIT, ownerTeam,
+                    com.wartec.wartecmod.compat.ElectronicWarfareService.BAND_L));
         }
     }
 
@@ -201,6 +207,7 @@ public final class EntityS400Radar extends Entity {
         tag.func_74757_a("Deployed", isDeployed());
         tag.func_74768_a("Power", getPower());
         tag.func_74780_a("RadarHealth", radarHealth);
+        tag.func_74778_a("RadarTeam", ownerTeam);
     }
 
     @Override
@@ -213,6 +220,7 @@ public final class EntityS400Radar extends Entity {
             radarHealth = Math.max(1.0D,
                     Math.min(MAX_HEALTH, tag.func_74769_h("RadarHealth")));
         }
+        ownerTeam = tag.func_74779_i("RadarTeam");
     }
 
     private static void tell(EntityPlayer player, String text) {

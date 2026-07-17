@@ -11,7 +11,7 @@ import cpw.mods.fml.common.event.FMLPreInitializationEvent;
 @Mod(
     modid = "wartecfix",
     name = "WarTech Reforged Compatibility",
-    version = "1.2.1-hbm5751",
+    version = "1.3.0-dev-hbm5751",
     dependencies = "required-after:hbm;after:wartecmod"
 )
 public final class WarTecBootstrap {

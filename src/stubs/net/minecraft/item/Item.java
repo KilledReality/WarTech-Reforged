@@ -15,6 +15,7 @@ public class Item {
     public Item func_77627_a(boolean subtypes) { return this; }
     public String func_77667_c(ItemStack stack) { return ""; }
     public void func_150895_a(Item item, CreativeTabs tab, List list) {}
+    public void func_77624_a(ItemStack stack, EntityPlayer player, List lines, boolean advanced) {}
     public boolean func_77648_a(ItemStack stack, EntityPlayer player, World world,
             int x, int y, int z, int side, float hitX, float hitY, float hitZ) { return false; }
 }

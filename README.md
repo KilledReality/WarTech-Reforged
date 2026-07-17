@@ -47,6 +47,22 @@ new cruise missiles, and mobile artillery platforms.
 - Failed interceptors leave in the target direction and can deviate, crash,
   explode, and ignite terrain instead of falling vertically onto their launcher.
 
+### Electronic warfare (development)
+
+- **Synytsia** electronic jammer with L, S, X, and wideband modes and a
+  350-block effective radius.
+- Jamming degrades radar track quality and detection probability and can create
+  false contacts instead of simply switching radars off.
+- Passive ESM array detects active radar, jammer, and decoy emissions up to
+  900 blocks without emitting a radar signal of its own.
+- Deployable radar decoy provides a false target for passive sensors and
+  anti-radiation seekers.
+- **AGM-88 HARM** searches for emitters within 1,200 blocks of the designated
+  point, supports home-on-jam, and remembers the last emitter position after a
+  radar shutdown with gradually increasing accuracy error.
+- New radar, command, and EW equipment stores scoreboard-team ownership for
+  basic IFF and friendly-jamming protection.
+
 ### Radar and command network
 
 - **Renault TRM mobile radar**: detection range up to 600 blocks and altitude up

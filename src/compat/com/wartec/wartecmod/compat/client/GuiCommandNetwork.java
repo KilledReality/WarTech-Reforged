@@ -14,8 +14,8 @@ public final class GuiCommandNetwork extends GuiScreen {
     public void func_73863_a(int mouseX, int mouseY, float partialTicks) {
         func_146276_q_();
         int left = field_146294_l / 2 - 112;
-        int top = field_146295_m / 2 - 82;
-        func_73734_a(left, top, left + 224, top + 164, 0xE0141A18);
+        int top = field_146295_m / 2 - 101;
+        func_73734_a(left, top, left + 224, top + 202, 0xE0141A18);
         func_73734_a(left + 3, top + 3, left + 221, top + 26, 0xFF26332E);
         func_73732_a(field_146289_q, "AIR DEFENSE COMMAND NETWORK",
                 field_146294_l / 2, top + 10, 0xFFD9E7DF);
@@ -29,14 +29,19 @@ public final class GuiCommandNetwork extends GuiScreen {
                 Integer.toString(command.getLinkedLaunchers()), 0xFFE8D475);
         drawLine(left, top, 95, "TRACKED TARGETS", Integer.toString(command.getContacts()),
                 command.getContacts() > 0 ? 0xFFFF776E : 0xFF9A9A9A);
-        drawLine(left, top, 114, "ACTIVE INTERCEPTS",
+        drawLine(left, top, 114, "HOSTILE EMITTERS",
+                Integer.toString(command.getHostileEmitters()), 0xFFFF8F70);
+        drawLine(left, top, 133, "HOSTILE JAMMERS",
+                Integer.toString(command.getActiveJammers()),
+                command.getActiveJammers() > 0 ? 0xFFFF5D8F : 0xFF9A9A9A);
+        drawLine(left, top, 152, "ACTIVE INTERCEPTS",
                 Integer.toString(command.getAssignedTargets()), 0xFFFFB45D);
         int percent = (int) (command.getPower() * 100L
                 / EntityCommandTruck.ENERGY_CAPACITY);
-        drawLine(left, top, 133, "POWER", percent + "%", powerColor);
+        drawLine(left, top, 171, "POWER", percent + "%", powerColor);
         func_73732_a(field_146289_q,
                 "Shift + RMB: retract | Battery: recharge",
-                field_146294_l / 2, top + 150, 0xFF8FA39A);
+                field_146294_l / 2, top + 188, 0xFF8FA39A);
         super.func_73863_a(mouseX, mouseY, partialTicks);
     }
 

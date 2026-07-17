@@ -16,6 +16,7 @@ public final class EntityRadarTruck extends Entity {
     private static final int DW_CONTACTS = 19;
     private static final double MAX_HEALTH = 300.0D;
     private double radarHealth = MAX_HEALTH;
+    private String ownerTeam = "";
 
     public EntityRadarTruck(World world) {
         super(world);
@@ -38,6 +39,10 @@ public final class EntityRadarTruck extends Entity {
         return field_70180_af.func_75679_c(DW_CONTACTS);
     }
 
+    public void setOwnerTeam(String team) {
+        ownerTeam = team == null ? "" : team;
+    }
+
     @Override
     public void func_70071_h_() {
         super.func_70071_h_();
@@ -58,7 +63,8 @@ public final class EntityRadarTruck extends Entity {
         if (field_70173_aa % 10 == Math.abs(func_145782_y()) % 10) {
             int contacts = MissileTrackingService.updateRadarSweep(field_70170_p,
                     func_145782_y(), field_70165_t, field_70163_u + 2.5D, field_70161_v,
-                    RADAR_RANGE, RADAR_CEILING);
+                    RADAR_RANGE, RADAR_CEILING, Integer.MAX_VALUE, ownerTeam,
+                    com.wartec.wartecmod.compat.ElectronicWarfareService.BAND_S);
             field_70180_af.func_75692_b(DW_CONTACTS, Integer.valueOf(contacts));
         }
     }
@@ -162,6 +168,7 @@ public final class EntityRadarTruck extends Entity {
     protected void func_70014_b(NBTTagCompound tag) {
         tag.func_74757_a("RadarActive", isRadarActive());
         tag.func_74780_a("RadarHealth", radarHealth);
+        tag.func_74778_a("RadarTeam", ownerTeam);
     }
 
     @Override
@@ -171,6 +178,7 @@ public final class EntityRadarTruck extends Entity {
         if (tag.func_74764_b("RadarHealth")) {
             radarHealth = Math.max(1.0D, Math.min(MAX_HEALTH, tag.func_74769_h("RadarHealth")));
         }
+        ownerTeam = tag.func_74779_i("RadarTeam");
     }
 
     private static void tell(EntityPlayer player, String text) {

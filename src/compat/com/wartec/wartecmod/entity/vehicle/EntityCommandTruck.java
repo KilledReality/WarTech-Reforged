@@ -22,6 +22,8 @@ public final class EntityCommandTruck extends Entity {
     private static final int DW_LAUNCHERS = 21;
     private static final int DW_CONTACTS = 22;
     private static final int DW_ASSIGNED = 23;
+    private static final int DW_EMITTERS = 24;
+    private static final int DW_JAMMERS = 25;
     private static final double MAX_HEALTH = 450.0D;
     private double vehicleHealth = MAX_HEALTH;
     private double driveSpeed;
@@ -31,6 +33,7 @@ public final class EntityCommandTruck extends Entity {
     private float clientTargetYaw;
     private float clientTargetPitch;
     private int clientInterpolationTicks;
+    private String ownerTeam = "";
 
     public EntityCommandTruck(World world) {
         super(world);
@@ -48,6 +51,8 @@ public final class EntityCommandTruck extends Entity {
         field_70180_af.func_75682_a(DW_LAUNCHERS, Integer.valueOf(0));
         field_70180_af.func_75682_a(DW_CONTACTS, Integer.valueOf(0));
         field_70180_af.func_75682_a(DW_ASSIGNED, Integer.valueOf(0));
+        field_70180_af.func_75682_a(DW_EMITTERS, Integer.valueOf(0));
+        field_70180_af.func_75682_a(DW_JAMMERS, Integer.valueOf(0));
     }
 
     public boolean isDeployed() {
@@ -78,6 +83,18 @@ public final class EntityCommandTruck extends Entity {
         return field_70180_af.func_75679_c(DW_ASSIGNED);
     }
 
+    public int getHostileEmitters() {
+        return field_70180_af.func_75679_c(DW_EMITTERS);
+    }
+
+    public int getActiveJammers() {
+        return field_70180_af.func_75679_c(DW_JAMMERS);
+    }
+
+    public void setOwnerTeam(String team) {
+        ownerTeam = team == null ? "" : team;
+    }
+
     @Override
     public void func_70071_h_() {
         super.func_70071_h_();
@@ -97,7 +114,7 @@ public final class EntityCommandTruck extends Entity {
                 if (field_70173_aa % 10 == Math.abs(func_145782_y()) % 10) {
                     applySnapshot(MissileTrackingService.updateCommandPost(field_70170_p,
                             func_145782_y(), field_70165_t, field_70163_u + 2.0D,
-                            field_70161_v));
+                            field_70161_v, ownerTeam));
                 }
             } else {
                 disconnectNetwork();
@@ -123,6 +140,8 @@ public final class EntityCommandTruck extends Entity {
         setWatcher(DW_LAUNCHERS, snapshot.linkedLaunchers);
         setWatcher(DW_CONTACTS, snapshot.contacts);
         setWatcher(DW_ASSIGNED, snapshot.assignedTargets);
+        setWatcher(DW_EMITTERS, snapshot.hostileEmitters);
+        setWatcher(DW_JAMMERS, snapshot.activeJammers);
     }
 
     private void disconnectNetwork() {
@@ -131,6 +150,8 @@ public final class EntityCommandTruck extends Entity {
         setWatcher(DW_LAUNCHERS, 0);
         setWatcher(DW_CONTACTS, 0);
         setWatcher(DW_ASSIGNED, 0);
+        setWatcher(DW_EMITTERS, 0);
+        setWatcher(DW_JAMMERS, 0);
     }
 
     private void setWatcher(int id, int value) {
@@ -331,6 +352,7 @@ public final class EntityCommandTruck extends Entity {
         tag.func_74757_a("Deployed", isDeployed());
         tag.func_74768_a("Power", getPower());
         tag.func_74780_a("VehicleHealth", vehicleHealth);
+        tag.func_74778_a("CommandTeam", ownerTeam);
     }
 
     @Override
@@ -343,6 +365,7 @@ public final class EntityCommandTruck extends Entity {
             vehicleHealth = Math.max(1.0D,
                     Math.min(MAX_HEALTH, tag.func_74769_h("VehicleHealth")));
         }
+        ownerTeam = tag.func_74779_i("CommandTeam");
     }
 
     private static void tell(EntityPlayer player, String text) {

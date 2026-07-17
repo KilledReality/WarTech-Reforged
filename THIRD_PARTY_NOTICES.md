@@ -67,6 +67,38 @@ WarTech Reforged currently targets HBM NTM `1.0.27 X5751` specifically.
 - License: Creative Commons Attribution (CC BY)
 - Changes: converted, optimized, and adapted as a mobile radar vehicle.
 
+### Electronic Warfare System Synytsia
+
+- Creator: Khata / Khatagames
+- Source: https://sketchfab.com/3d-models/electronic-warfare-system-synytsia-bd54fe1b2e9747ca887cf4a97577e13a
+- License: Creative Commons Attribution (CC BY)
+- Changes: converted, reoriented, material-atlased, scaled, and integrated as an
+  active electronic jammer.
+
+### BTS Antennas Asset (Parabolic & Sectoral)
+
+- Creator: Astroregal
+- Source: https://sketchfab.com/3d-models/bts-antennas-asset-parabolic-sectoral-5e7feb9be34f4a128b213b9d6d6069a7
+- License: Creative Commons Attribution (CC BY)
+- Changes: converted, combined, material-atlased, scaled, and integrated as a
+  passive ESM array.
+
+### CC0 Antenna
+
+- Creator: plaggy
+- Source: https://sketchfab.com/3d-models/cc0-antenna-6bc0ff4565db46ab8f7d229a5d272c12
+- License: CC0 / Public Domain
+- Changes: converted, reoriented, texture-reduced, scaled, and integrated as a
+  radar decoy emitter.
+
+### AGM-88 HARM
+
+- Creator: hayfertepur1982
+- Source: https://sketchfab.com/3d-models/agm-88-missile-065a61a8b6d349d3aed9c544e04f6bf2
+- License: Creative Commons Attribution (CC BY)
+- Changes: converted, reoriented, scaled, and integrated as an anti-radiation
+  missile.
+
 ## Restricted or Incomplete Attribution
 
 ### S-400 Triumf SAM system

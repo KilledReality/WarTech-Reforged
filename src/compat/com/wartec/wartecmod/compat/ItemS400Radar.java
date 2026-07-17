@@ -19,6 +19,7 @@ public final class ItemS400Radar extends Item {
             return true;
         }
         EntityS400Radar radar = new EntityS400Radar(world);
+        radar.setOwnerTeam(NetworkTeamHelper.getPlayerTeam(player));
         radar.func_70012_b(x + 0.5D, y + 1.05D, z + 0.5D,
                 Math.round(player.field_70177_z / 90.0F) * 90.0F, 0.0F);
         if (!world.func_72838_d(radar)) {

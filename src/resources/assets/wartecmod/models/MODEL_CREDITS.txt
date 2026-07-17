@@ -38,3 +38,23 @@ License: see the original Sketchfab download terms
 Ural-4320 command vehicle
 Source: user-provided Sketchfab package "Ural 4320"
 License: see the original Sketchfab download terms
+
+Electronic Warfare System Synytsia
+Creator: Khata / Khatagames
+Source: https://sketchfab.com/3d-models/electronic-warfare-system-synytsia-bd54fe1b2e9747ca887cf4a97577e13a
+License: Creative Commons Attribution (CC BY)
+
+BTS Antennas Asset (Parabolic & Sectoral)
+Creator: Astroregal
+Source: https://sketchfab.com/3d-models/bts-antennas-asset-parabolic-sectoral-5e7feb9be34f4a128b213b9d6d6069a7
+License: Creative Commons Attribution (CC BY)
+
+CC0 Antenna
+Creator: plaggy
+Source: https://sketchfab.com/3d-models/cc0-antenna-6bc0ff4565db46ab8f7d229a5d272c12
+License: CC0 / Public Domain
+
+AGM-88 HARM missile
+Creator: hayfertepur1982
+Source: https://sketchfab.com/3d-models/agm-88-missile-065a61a8b6d349d3aed9c544e04f6bf2
+License: Creative Commons Attribution (CC BY)
