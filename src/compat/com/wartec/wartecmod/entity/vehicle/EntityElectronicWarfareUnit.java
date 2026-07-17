@@ -1,6 +1,7 @@
 package com.wartec.wartecmod.entity.vehicle;
 
 import com.wartec.wartecmod.compat.ElectronicWarfareService;
+import com.wartec.wartecmod.compat.IAntiRadiationTarget;
 import com.wartec.wartecmod.compat.VehicleEnergyHelper;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.EntityPlayer;
@@ -11,7 +12,7 @@ import net.minecraft.util.ChatComponentText;
 import net.minecraft.util.DamageSource;
 import net.minecraft.world.World;
 
-public final class EntityElectronicWarfareUnit extends Entity {
+public final class EntityElectronicWarfareUnit extends Entity implements IAntiRadiationTarget {
     public static final int MODE_JAMMER = 0;
     public static final int MODE_ESM = 1;
     public static final int MODE_DECOY = 2;
@@ -193,6 +194,14 @@ public final class EntityElectronicWarfareUnit extends Entity {
         func_70106_y();
         field_70170_p.func_72885_a(this, field_70165_t, field_70163_u + 1.0D,
                 field_70161_v, getMode() == MODE_DECOY ? 2.0F : 3.5F, true, true);
+    }
+
+    @Override
+    public void wartecDestroyByAntiRadiationMissile() {
+        if (!field_70128_L && !field_70170_p.field_72995_K) {
+            ElectronicWarfareService.removeNode(field_70170_p, func_145782_y());
+            func_70106_y();
+        }
     }
 
     @Override

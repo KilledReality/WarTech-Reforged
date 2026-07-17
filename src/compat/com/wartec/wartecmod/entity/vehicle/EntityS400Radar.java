@@ -1,6 +1,7 @@
 package com.wartec.wartecmod.entity.vehicle;
 
 import com.wartec.wartecmod.compat.MissileTrackingService;
+import com.wartec.wartecmod.compat.IAntiRadiationTarget;
 import com.wartec.wartecmod.compat.RadarNetworkContent;
 import com.wartec.wartecmod.compat.VehicleEnergyHelper;
 import net.minecraft.entity.Entity;
@@ -12,7 +13,7 @@ import net.minecraft.util.ChatComponentText;
 import net.minecraft.util.DamageSource;
 import net.minecraft.world.World;
 
-public final class EntityS400Radar extends Entity {
+public final class EntityS400Radar extends Entity implements IAntiRadiationTarget {
     public static final double RADAR_RANGE = 1200.0D;
     public static final double RADAR_CEILING = 900.0D;
     public static final int CONTACT_LIMIT = 32;
@@ -180,7 +181,7 @@ public final class EntityS400Radar extends Entity {
             destroyRadar();
             return true;
         }
-        radarHealth -= Math.min(80.0D, amount);
+        radarHealth -= amount;
         if (radarHealth <= 0.0D) {
             destroyRadar();
         }
@@ -192,6 +193,14 @@ public final class EntityS400Radar extends Entity {
         func_70106_y();
         field_70170_p.func_72885_a(this, field_70165_t, field_70163_u + 2.0D,
                 field_70161_v, 5.0F, true, true);
+    }
+
+    @Override
+    public void wartecDestroyByAntiRadiationMissile() {
+        if (!field_70128_L && !field_70170_p.field_72995_K) {
+            MissileTrackingService.removeRadar(field_70170_p, func_145782_y());
+            func_70106_y();
+        }
     }
 
     @Override

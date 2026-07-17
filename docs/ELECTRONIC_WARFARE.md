@@ -35,6 +35,11 @@ sensors and anti-radiation weapons use a separate emitter picture.
 - Seeker search radius around the designated point: 1,200 blocks.
 - Selects active emitters and gives an active jammer a home-on-jam priority.
 - Continuously updates the impact point while the emitter remains active.
+- Uses a smooth boost, lofted cruise phase and terminal dive instead of the
+  generic randomized cruise-missile corridor.
+- A proximity-fuzed hit destroys radar trucks, S-400 radar vehicles, deployed
+  command posts, jammers and decoys. Heavy conventional damage can also destroy
+  radar and command vehicles normally.
 - If the emitter shuts down, the missile flies toward its last known position.
   After 1.5 seconds of silence, the probable impact error grows gradually to a
   maximum of 96 blocks.
@@ -58,6 +63,10 @@ private fallback identity. Old entities saved before this system have no owner
 until replaced and therefore remain neutral for compatibility.
 
 ## Command Post
+
+A deployed and powered command post emits an X-band command/datalink signal. It
+can therefore be detected by passive ESM and engaged by an anti-radiation
+missile. A retracted or unpowered command post is radio silent.
 
 The air-defense command interface now reports two additional values:
 

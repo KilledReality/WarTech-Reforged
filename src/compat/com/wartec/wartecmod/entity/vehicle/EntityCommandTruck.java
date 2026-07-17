@@ -3,6 +3,8 @@ package com.wartec.wartecmod.entity.vehicle;
 import com.wartec.wartecmod.compat.MissileTrackingService;
 import com.wartec.wartecmod.compat.MissileTrackingService.CommandSnapshot;
 import com.wartec.wartecmod.compat.VehicleEnergyHelper;
+import com.wartec.wartecmod.compat.ElectronicWarfareService;
+import com.wartec.wartecmod.compat.IAntiRadiationTarget;
 import java.lang.reflect.Method;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.EntityPlayer;
@@ -13,7 +15,7 @@ import net.minecraft.util.ChatComponentText;
 import net.minecraft.util.DamageSource;
 import net.minecraft.world.World;
 
-public final class EntityCommandTruck extends Entity {
+public final class EntityCommandTruck extends Entity implements IAntiRadiationTarget {
     public static final int ENERGY_CAPACITY = 2000000;
     private static final int ENERGY_USE = 40;
     private static final int DW_DEPLOYED = 18;
@@ -111,6 +113,10 @@ public final class EntityCommandTruck extends Entity {
             if (power >= ENERGY_USE) {
                 field_70180_af.func_75692_b(DW_POWER,
                         Integer.valueOf(power - ENERGY_USE));
+                ElectronicWarfareService.updateEmitter(field_70170_p, func_145782_y(),
+                        field_70165_t, field_70163_u + 2.0D, field_70161_v,
+                        ElectronicWarfareService.EMITTER_COMMAND,
+                        ElectronicWarfareService.BAND_X, ownerTeam);
                 if (field_70173_aa % 10 == Math.abs(func_145782_y()) % 10) {
                     applySnapshot(MissileTrackingService.updateCommandPost(field_70170_p,
                             func_145782_y(), field_70165_t, field_70163_u + 2.0D,
@@ -146,6 +152,7 @@ public final class EntityCommandTruck extends Entity {
 
     private void disconnectNetwork() {
         MissileTrackingService.removeCommandPost(field_70170_p, func_145782_y());
+        ElectronicWarfareService.removeNode(field_70170_p, func_145782_y());
         setWatcher(DW_RADARS, 0);
         setWatcher(DW_LAUNCHERS, 0);
         setWatcher(DW_CONTACTS, 0);
@@ -325,7 +332,7 @@ public final class EntityCommandTruck extends Entity {
             destroyVehicle();
             return true;
         }
-        vehicleHealth -= Math.min(70.0D, amount);
+        vehicleHealth -= amount;
         if (vehicleHealth <= 0.0D) {
             destroyVehicle();
         }
@@ -340,9 +347,18 @@ public final class EntityCommandTruck extends Entity {
     }
 
     @Override
+    public void wartecDestroyByAntiRadiationMissile() {
+        if (!field_70128_L && !field_70170_p.field_72995_K) {
+            disconnectNetwork();
+            func_70106_y();
+        }
+    }
+
+    @Override
     public void func_70106_y() {
         if (field_70170_p != null && !field_70170_p.field_72995_K) {
             MissileTrackingService.removeCommandPost(field_70170_p, func_145782_y());
+            ElectronicWarfareService.removeNode(field_70170_p, func_145782_y());
         }
         super.func_70106_y();
     }

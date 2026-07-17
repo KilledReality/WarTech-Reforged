@@ -2,6 +2,9 @@ import com.wartec.wartecmod.compat.ElectronicWarfareService;
 import com.wartec.wartecmod.compat.ElectronicWarfareService.EmitterTarget;
 import com.wartec.wartecmod.compat.ElectronicWarfareService.JammingResult;
 import com.wartec.wartecmod.entity.vehicle.EntityElectronicWarfareUnit;
+import com.wartec.wartecmod.entity.vehicle.EntityCommandTruck;
+import com.wartec.wartecmod.entity.vehicle.EntityRadarTruck;
+import com.wartec.wartecmod.entity.vehicle.EntityS400Radar;
 import java.util.ArrayList;
 import java.util.Random;
 import net.minecraft.world.World;
@@ -13,6 +16,17 @@ public final class SmokeElectronicWarfare {
         unit.setMode(EntityElectronicWarfareUnit.MODE_JAMMER);
         unit.setMode(EntityElectronicWarfareUnit.MODE_ESM);
         unit.setMode(EntityElectronicWarfareUnit.MODE_DECOY);
+
+        EntityRadarTruck radar = new EntityRadarTruck(world);
+        EntityS400Radar longRangeRadar = new EntityS400Radar(world);
+        EntityCommandTruck command = new EntityCommandTruck(world);
+        radar.wartecDestroyByAntiRadiationMissile();
+        longRangeRadar.wartecDestroyByAntiRadiationMissile();
+        command.wartecDestroyByAntiRadiationMissile();
+        unit.wartecDestroyByAntiRadiationMissile();
+        require(radar.field_70128_L && longRangeRadar.field_70128_L
+                && command.field_70128_L && unit.field_70128_L,
+                "anti-radiation hit must remove every electronic target");
 
         ElectronicWarfareService.updateEmitter(world, 1, 0.0D, 64.0D, 0.0D,
                 ElectronicWarfareService.EMITTER_RADAR,

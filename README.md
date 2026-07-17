@@ -59,7 +59,8 @@ new cruise missiles, and mobile artillery platforms.
   anti-radiation seekers.
 - **AGM-88 HARM** searches for emitters within 1,200 blocks of the designated
   point, supports home-on-jam, and remembers the last emitter position after a
-  radar shutdown with gradually increasing accuracy error.
+  radar shutdown with gradually increasing accuracy error. It follows a lofted
+  attack profile and destroys radar, EW, or active command vehicles on a close hit.
 - New radar, command, and EW equipment stores scoreboard-team ownership for
   basic IFF and friendly-jamming protection.
 

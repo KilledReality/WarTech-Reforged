@@ -15,6 +15,7 @@ public final class ElectronicWarfareService {
     public static final int EMITTER_RADAR = 0;
     public static final int EMITTER_JAMMER = 1;
     public static final int EMITTER_DECOY = 2;
+    public static final int EMITTER_COMMAND = 3;
     public static final double JAMMER_RANGE = 350.0D;
     public static final double ESM_RANGE = 900.0D;
     public static final double ARM_RANGE = 1200.0D;

@@ -5,6 +5,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.WeakHashMap;
+import com.wartec.wartecmod.entity.missile.EntityAntiRadiationMissile;
 import net.minecraft.entity.Entity;
 import net.minecraft.world.World;
 
@@ -23,7 +24,7 @@ public final class MissileRouteCompat {
     }
 
     public static void applyCruiseGuidance(Entity missile) {
-        if (!isServerMissile(missile)) {
+        if (!isServerMissile(missile) || missile instanceof EntityAntiRadiationMissile) {
             return;
         }
         CoordinateFields fields = getFields(missile.getClass());
