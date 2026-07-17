@@ -1,5 +1,7 @@
 # WarTech Reforged
 
+DISCORD: https://discord.gg/jZAfCe8Z2w
+
 WarTech Reforged is an unofficial restoration and expansion of the abandoned
 WarTech 1.1.1 addon for Minecraft 1.7.10 and HBM's Nuclear Tech Mod.
 
@@ -128,6 +130,8 @@ requirements. Full attribution and unresolved release requirements are listed in
 ---
 
 # WarTech Reforged на русском
+
+DISCORD: https://discord.gg/jZAfCe8Z2w
 
 WarTech Reforged - неофициальное восстановление и масштабное развитие
 заброшенного аддона WarTech 1.1.1 для Minecraft 1.7.10 и HBM's Nuclear Tech Mod.
