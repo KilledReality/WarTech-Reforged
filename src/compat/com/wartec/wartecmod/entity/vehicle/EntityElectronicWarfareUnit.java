@@ -43,6 +43,11 @@ public final class EntityElectronicWarfareUnit extends Entity {
     }
 
     public int getMode() {
+        // Entity#setPosition is invoked from the vanilla constructor before its
+        // DataWatcher is initialized. Our bounds hook must remain constructor-safe.
+        if (field_70180_af == null) {
+            return MODE_JAMMER;
+        }
         return field_70180_af.func_75683_a(DW_MODE);
     }
 

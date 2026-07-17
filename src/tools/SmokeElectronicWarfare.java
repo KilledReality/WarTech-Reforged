@@ -1,6 +1,7 @@
 import com.wartec.wartecmod.compat.ElectronicWarfareService;
 import com.wartec.wartecmod.compat.ElectronicWarfareService.EmitterTarget;
 import com.wartec.wartecmod.compat.ElectronicWarfareService.JammingResult;
+import com.wartec.wartecmod.entity.vehicle.EntityElectronicWarfareUnit;
 import java.util.ArrayList;
 import java.util.Random;
 import net.minecraft.world.World;
@@ -8,6 +9,11 @@ import net.minecraft.world.World;
 public final class SmokeElectronicWarfare {
     public static void main(String[] args) {
         TestWorld world = new TestWorld();
+        EntityElectronicWarfareUnit unit = new EntityElectronicWarfareUnit(world);
+        unit.setMode(EntityElectronicWarfareUnit.MODE_JAMMER);
+        unit.setMode(EntityElectronicWarfareUnit.MODE_ESM);
+        unit.setMode(EntityElectronicWarfareUnit.MODE_DECOY);
+
         ElectronicWarfareService.updateEmitter(world, 1, 0.0D, 64.0D, 0.0D,
                 ElectronicWarfareService.EMITTER_RADAR,
                 ElectronicWarfareService.BAND_S, "blue");
