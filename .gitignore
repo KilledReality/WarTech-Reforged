@@ -1,0 +1,35 @@
+# Build output and compiled binaries
+/build/
+*.class
+*.jar
+*.bak
+
+# Local crash reports and runtime logs
+crash*.txt
+crash-reports/
+logs/
+
+# Original/decompiled dependency working trees at the repository root
+/META-INF/
+/api/
+/assets/
+/cofh/
+/com/
+/mcmod.info
+/pack.mcmeta
+
+# Imported source model archives and conversion workspace
+/models_inbox/
+*.blend
+*.fbx
+*.glb
+*.gltf
+*.usd
+*.usdz
+
+# IDE and operating-system files
+.idea/
+.vscode/
+*.iml
+.DS_Store
+Thumbs.db

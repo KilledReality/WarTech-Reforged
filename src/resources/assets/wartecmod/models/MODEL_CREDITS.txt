@@ -1,0 +1,40 @@
+MIM-104 Patriot Surface-To-Air Missile (SAM)
+Creator: Muhamad Mirza Arrafi
+Source: https://sketchfab.com/3d-models/mim-104-patriot-surface-to-air-missile-sam-7a64d0af78514a159877edab1ab2bccb
+License: Creative Commons Attribution (CC BY)
+
+S-400 Triumf SAM system
+Creator: 42manako
+Source: Sketchfab, model title as listed above
+License: Creative Commons Attribution-NonCommercial (CC BY-NC)
+
+Storm Shadow Ukraine
+Creator: Viktor_ (Viktor.Zhuravlev)
+Source: https://sketchfab.com/3d-models/storm-shadow-ukraine-d1ad04ce964f46dd9cbac6a64cd19b1b
+License: Creative Commons Attribution (CC BY)
+
+Geranium-2
+Creator: Karosio
+Source: https://sketchfab.com/3d-models/geranium-2-8f12f601efe44a73b47e30a7077cf249
+License: Creative Commons Attribution-NonCommercial-ShareAlike (CC BY-NC-SA)
+
+Geran drone rail catapult
+Creator: WarTec HBM X5751 compatibility project
+License: Original project asset
+
+The models and textures remain subject to their respective licenses.
+HEMTT Lowpoly
+Creator: Calviking073
+Source: https://sketchfab.com/3d-models/hemtt-lowpoly-3a7c7f888dfe458a8274a300c8893f17
+License: Creative Commons Attribution (CC BY)
+
+Renault TRM Radar Truck by Muhamad Mirza Arrafi, licensed under CC Attribution.
+Source: https://sketchfab.com/3d-models/renault-trm-radar-truck-1ad95e5724624a3bba7d36a686817efc
+
+S-400 Triumf radar vehicle
+Source: user-provided Sketchfab package "S400 Trioumf Radar Bonus Free"
+License: see the original Sketchfab download terms
+
+Ural-4320 command vehicle
+Source: user-provided Sketchfab package "Ural 4320"
+License: see the original Sketchfab download terms
