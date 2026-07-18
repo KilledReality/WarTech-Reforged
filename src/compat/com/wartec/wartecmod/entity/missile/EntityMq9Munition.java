@@ -258,6 +258,9 @@ public final class EntityMq9Munition extends Entity
     @Override public int getBlipLevel() { return 1; }
     @Override public boolean func_70067_L() { return !field_70128_L; }
     @Override public float func_70111_Y() { return 0.2F; }
+    @Override public boolean func_70112_a(double distance) {
+        return distance < 262144.0D;
+    }
 
     private static int floor(double value) { return (int) Math.floor(value); }
     private static double blend(double current, double target, double amount) {

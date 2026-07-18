@@ -40,6 +40,8 @@ public final class EntityMq9Drone extends Entity
     private static final double MAX_MISSION_RANGE = 2400.0D;
     private static final double CRUISE_SPEED = 0.78D;
     private static final double MAX_HEALTH = 120.0D;
+    private static final double APPROACH_DISTANCE = 72.0D;
+    private static final double LANDING_AIM_DISTANCE = 12.0D;
 
     private static final int DW_STATE = 18;
     private static final int DW_POWER = 19;
@@ -68,6 +70,7 @@ public final class EntityMq9Drone extends Entity
     private boolean homeInitialized;
     private boolean weaponReleased;
     private int stateTicks;
+    private int landingPhase;
     private double clientTargetX;
     private double clientTargetY;
     private double clientTargetZ;
@@ -294,7 +297,8 @@ public final class EntityMq9Drone extends Entity
         double dx = homeX - field_70165_t;
         double dz = homeZ - field_70161_v;
         double distance = Math.sqrt(dx * dx + dz * dz);
-        if (distance < 105.0D) {
+        if (distance < 150.0D) {
+            landingPhase = 0;
             setState(STATE_LANDING);
             return;
         }
@@ -305,21 +309,52 @@ public final class EntityMq9Drone extends Entity
     }
 
     private void tickLanding() {
-        double dx = homeX - field_70165_t;
-        double dz = homeZ - field_70161_v;
-        double distance = Math.sqrt(dx * dx + dz * dz);
-        double desiredY = homeY + Math.max(0.25D, distance * 0.18D);
-        double speed = Math.max(0.18D, Math.min(0.52D, distance * 0.018D));
-        guideTo(homeX, desiredY, homeZ, speed, 0.14D, 0.16D);
-        if (distance < 2.2D && field_70163_u <= homeY + 1.0D) {
-            func_70107_b(homeX, homeY, homeZ);
-            field_70159_w = field_70181_x = field_70179_y = 0.0D;
-            field_70177_z = homeYaw;
-            field_70125_A = 0.0F;
-            weaponReleased = false;
-            setState(STATE_READY);
-            field_70170_p.func_72956_a(this, "random.anvil_land", 0.55F, 1.18F);
+        double yaw = Math.toRadians(homeYaw);
+        double forwardX = -Math.sin(yaw);
+        double forwardZ = Math.cos(yaw);
+        if (landingPhase == 0) {
+            double approachX = homeX - forwardX * APPROACH_DISTANCE;
+            double approachZ = homeZ - forwardZ * APPROACH_DISTANCE;
+            double dx = approachX - field_70165_t;
+            double dz = approachZ - field_70161_v;
+            double distance = Math.sqrt(dx * dx + dz * dz);
+            int terrain = field_70170_p.func_72976_f(floor(approachX), floor(approachZ));
+            double approachY = Math.max(homeY + 14.0D, terrain + 12.0D);
+            guideTo(approachX, approachY, approachZ, 0.56D, 0.075D, 0.10D);
+            if (distance < 8.0D && Math.abs(field_70163_u - approachY) < 5.0D) {
+                landingPhase = 1;
+            }
+            return;
         }
+
+        double relativeX = field_70165_t - homeX;
+        double relativeZ = field_70161_v - homeZ;
+        double along = relativeX * forwardX + relativeZ * forwardZ;
+        double cross = Math.abs(relativeX * -forwardZ + relativeZ * forwardX);
+        double remaining = Math.max(0.0D, -along);
+        double desiredY = homeY - 1.0D + Math.min(15.0D, remaining * 0.21D);
+        double speed = Math.max(0.32D, Math.min(0.50D, 0.32D + remaining * 0.0025D));
+        double aimX = homeX + forwardX * LANDING_AIM_DISTANCE;
+        double aimZ = homeZ + forwardZ * LANDING_AIM_DISTANCE;
+        guideTo(aimX, desiredY, aimZ, speed, 0.22D, 0.12D);
+
+        double homeDistance = Math.sqrt(relativeX * relativeX + relativeZ * relativeZ);
+        if (homeDistance < 3.5D && field_70163_u <= homeY + 0.9D) {
+            finishLanding();
+        } else if (along > 8.0D || cross > 28.0D) {
+            landingPhase = 0;
+        }
+    }
+
+    private void finishLanding() {
+        func_70107_b(homeX, homeY, homeZ);
+        field_70159_w = field_70181_x = field_70179_y = 0.0D;
+        field_70177_z = homeYaw;
+        field_70125_A = 0.0F;
+        weaponReleased = false;
+        landingPhase = 0;
+        setState(STATE_READY);
+        field_70170_p.func_72956_a(this, "random.anvil_land", 0.55F, 1.18F);
     }
 
     private void crashTick() {
@@ -439,6 +474,7 @@ public final class EntityMq9Drone extends Entity
         routeWave = (field_70170_p.field_73012_v.nextDouble() * 2.0D - 1.0D)
                 * Math.min(70.0D, Math.max(16.0D, range * 0.055D));
         weaponReleased = false;
+        landingPhase = 0;
         setPower(getPower() - LAUNCH_ENERGY);
         setState(STATE_TAKEOFF);
         MissileTrackingService.registerLaunch(this, homeX, homeY, homeZ,
@@ -609,6 +645,7 @@ public final class EntityMq9Drone extends Entity
         tag.func_74780_a("RouteWave", routeWave);
         tag.func_74780_a("VehicleHealth", vehicleHealth);
         tag.func_74757_a("WeaponReleased", weaponReleased);
+        tag.func_74768_a("LandingPhase", landingPhase);
         for (int i = 0; i < inventory.length; ++i) {
             if (inventory[i] == null) continue;
             NBTTagCompound item = new NBTTagCompound();
@@ -645,6 +682,7 @@ public final class EntityMq9Drone extends Entity
                 ? Math.max(1.0D, Math.min(MAX_HEALTH, tag.func_74769_h("VehicleHealth")))
                 : MAX_HEALTH;
         weaponReleased = tag.func_74767_n("WeaponReleased");
+        landingPhase = tag.func_74762_e("LandingPhase");
         homeInitialized = true;
         startX = floor(homeX);
         startZ = floor(homeZ);
@@ -709,6 +747,9 @@ public final class EntityMq9Drone extends Entity
     @Override public boolean func_70104_M() { return isReady(); }
     @Override public boolean func_70067_L() { return !field_70128_L; }
     @Override public float func_70111_Y() { return 0.45F; }
+    @Override public boolean func_70112_a(double distance) {
+        return distance < 262144.0D;
+    }
     @Override public AxisAlignedBB func_70046_E() { return field_70121_D; }
     @Override public AxisAlignedBB func_70114_g(Entity entity) {
         return isReady() ? entity.field_70121_D : null;
