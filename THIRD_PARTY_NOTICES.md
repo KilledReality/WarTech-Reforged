@@ -117,6 +117,37 @@ WarTech Reforged currently targets HBM NTM `1.0.27 X5751` specifically.
 - Changes: converted from FBX to OBJ, object groups preserved, texture reduced,
   scaled, cached, and integrated as a mobile air-defense unit.
 
+### MQ-9 Reaper Drone
+
+- Creator: The Aesthetic Modeler (@racingrevved)
+- Source: https://sketchfab.com/3d-models/mq-9-reaper-drone-game-ready-military-asset-a02057e7401a4f4ea130cb75cc73d8cb
+- License: Creative Commons Attribution (CC BY)
+- Changes: converted from Collada, source weapon meshes removed, selected parts
+  optimized, textures reduced, and integrated as a reusable strike UAV.
+
+### AGM-114 Hellfire
+
+- Creator: xephoney
+- Source: https://sketchfab.com/3d-models/hellfire-missile-208e1de6721e439cbb1666ec9a6517e5
+- License: Creative Commons Attribution (CC BY)
+- Changes: converted from FBX, scaled, cached, and integrated as MQ-9 ordnance.
+
+### GBU-12 Paveway II
+
+- Creator: NA3dmodel
+- Source: https://sketchfab.com/3d-models/guided-bomb-unit-12-gbu-12-707162a980214a6e93735a0ce7c42668
+- License: Creative Commons Attribution (CC BY)
+- Changes: converted from Collada, geometry reduced, recolored, and integrated
+  as MQ-9 precision ordnance.
+
+### Mk 82 Bomb
+
+- Creator: Thingits
+- Source: https://sketchfab.com/3d-models/mk-82-bomb-b6bf6eab731d4f13a3c79ac0e5cc0d3f
+- License: Creative Commons Attribution (CC BY)
+- Changes: converted from glTF, scaled, cached, and integrated as an unguided
+  MQ-9 payload.
+
 ## Restricted or Incomplete Attribution
 
 ### S-400 Triumf SAM system

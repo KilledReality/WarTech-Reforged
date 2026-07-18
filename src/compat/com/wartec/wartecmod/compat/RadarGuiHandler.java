@@ -4,6 +4,7 @@ import cpw.mods.fml.common.network.IGuiHandler;
 import java.lang.reflect.Constructor;
 import com.wartec.wartecmod.entity.vehicle.EntityCommandTruck;
 import com.wartec.wartecmod.entity.vehicle.EntityMobileAirDefense;
+import com.wartec.wartecmod.entity.missile.EntityMq9Drone;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.world.World;
@@ -12,6 +13,7 @@ public final class RadarGuiHandler implements IGuiHandler {
     public static final int GUI_ID = 71;
     public static final int GUI_ID_COMMAND = 72;
     public static final int GUI_ID_MOBILE_AIR_DEFENSE = 73;
+    public static final int GUI_ID_MQ9 = 74;
 
     @Override
     public Object getServerGuiElement(int id, EntityPlayer player, World world,
@@ -25,8 +27,11 @@ public final class RadarGuiHandler implements IGuiHandler {
             return new ContainerCommandVehicle(player.field_71071_by, command);
         }
         EntityMobileAirDefense system = findMobileAirDefense(id, world, x);
-        return system == null ? null
-                : new ContainerMobileAirDefense(player.field_71071_by, system);
+        if (system != null) {
+            return new ContainerMobileAirDefense(player.field_71071_by, system);
+        }
+        EntityMq9Drone drone = findMq9(id, world, x);
+        return drone == null ? null : new ContainerMq9Drone(player.field_71071_by, drone);
     }
 
     @Override
@@ -60,6 +65,15 @@ public final class RadarGuiHandler implements IGuiHandler {
                         EntityMobileAirDefense.class);
                 return constructor.newInstance(player.field_71071_by, system);
             }
+            EntityMq9Drone drone = findMq9(id, world, x);
+            if (drone != null) {
+                Class<?> gui = Class.forName(
+                        "com.wartec.wartecmod.compat.client.GuiMq9Drone");
+                Constructor<?> constructor = gui.getConstructor(
+                        net.minecraft.entity.player.InventoryPlayer.class,
+                        EntityMq9Drone.class);
+                return constructor.newInstance(player.field_71071_by, drone);
+            }
         } catch (Throwable ignored) {
         }
         return null;
@@ -85,5 +99,11 @@ public final class RadarGuiHandler implements IGuiHandler {
         Entity entity = world.func_73045_a(entityId);
         return entity instanceof EntityMobileAirDefense
                 ? (EntityMobileAirDefense) entity : null;
+    }
+
+    private static EntityMq9Drone findMq9(int id, World world, int entityId) {
+        if (id != GUI_ID_MQ9 || world == null) return null;
+        Entity entity = world.func_73045_a(entityId);
+        return entity instanceof EntityMq9Drone ? (EntityMq9Drone) entity : null;
     }
 }

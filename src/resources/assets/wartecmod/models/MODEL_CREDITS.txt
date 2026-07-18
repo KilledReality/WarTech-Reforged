@@ -70,3 +70,23 @@ Sketchfab uploader: 42manako
 Source: https://sketchfab.com/3d-models/96k6-pantsir-s2-758055e673b543bd9ec3f504c8d60e8b
 License: Creative Commons Attribution (CC BY)
 Note: the source page states that this is not the uploader's original model.
+
+MQ-9 Reaper Drone - Game Ready Military Asset
+Creator: The Aesthetic Modeler (@racingrevved)
+Source: https://sketchfab.com/3d-models/mq-9-reaper-drone-game-ready-military-asset-a02057e7401a4f4ea130cb75cc73d8cb
+License: Creative Commons Attribution (CC BY)
+
+Hellfire Missile
+Creator: xephoney
+Source: https://sketchfab.com/3d-models/hellfire-missile-208e1de6721e439cbb1666ec9a6517e5
+License: Creative Commons Attribution (CC BY)
+
+Guided Bomb Unit 12 / GBU-12
+Creator: NA3dmodel
+Source: https://sketchfab.com/3d-models/guided-bomb-unit-12-gbu-12-707162a980214a6e93735a0ce7c42668
+License: Creative Commons Attribution (CC BY)
+
+Mk 82 Bomb
+Creator: Thingits
+Source: https://sketchfab.com/3d-models/mk-82-bomb-b6bf6eab731d4f13a3c79ac0e5cc0d3f
+License: Creative Commons Attribution (CC BY)

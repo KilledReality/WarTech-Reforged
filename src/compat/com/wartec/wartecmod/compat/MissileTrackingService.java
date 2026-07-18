@@ -540,7 +540,9 @@ public final class MissileTrackingService {
     }
 
     public static boolean isDroneTarget(Entity entity) {
-        return entity != null && entity.getClass().getName().endsWith(".EntityGeran");
+        if (entity == null) return false;
+        String name = entity.getClass().getName();
+        return name.endsWith(".EntityGeran") || name.endsWith(".EntityMq9Drone");
     }
 
     public static boolean tryReserve(World world, int targetId, long ownerKey) {

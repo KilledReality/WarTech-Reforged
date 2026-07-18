@@ -1,4 +1,11 @@
 # Items
+item.MQ9ReaperDrone.name=MQ-9 Reaper Strike UAV
+item.MQ9Hellfire.name=AGM-114 Hellfire
+item.MQ9GBU12.name=GBU-12 Paveway II
+item.MQ9Mk82.name=Mk 82 General-Purpose Bomb
+entity.entity_MQ9_Drone.name=MQ-9 Reaper Strike UAV
+entity.entity_MQ9_Munition.name=Air-Launched Precision Ordnance
+container.wartecMq9=MQ-9 Ground Control Station
 item.ItemCruiseMissileNoWarheadTier1.name=Subsonic Cruise Missile without Warhead
 item.ItemEngineInletSectionTier1.name=Engine Inlet Tier 1
 item.ItemTurbofanEngineTier1.name=Turbofan Engine Tier 1

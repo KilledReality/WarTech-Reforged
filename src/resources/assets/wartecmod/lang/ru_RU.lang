@@ -1,4 +1,11 @@
 # Items
+item.MQ9ReaperDrone.name=Ударный БПЛА MQ-9 Reaper
+item.MQ9Hellfire.name=Управляемая ракета AGM-114 Hellfire
+item.MQ9GBU12.name=Управляемая авиабомба GBU-12 Paveway II
+item.MQ9Mk82.name=Фугасная авиабомба Mk 82
+entity.entity_MQ9_Drone.name=Ударный БПЛА MQ-9 Reaper
+entity.entity_MQ9_Munition.name=Высокоточный авиационный боеприпас
+container.wartecMq9=Наземная станция управления MQ-9
 item.ItemCruiseMissileNoWarheadTier1.name=Subsonic Cruise Missile without Warhead
 item.ItemEngineInletSectionTier1.name=Engine Inlet Tier 1
 item.ItemTurbofanEngineTier1.name=Turbofan Engine Tier 1
