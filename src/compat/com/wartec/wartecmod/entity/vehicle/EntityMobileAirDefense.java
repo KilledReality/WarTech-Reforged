@@ -477,7 +477,8 @@ public final class EntityMobileAirDefense extends Entity
         double forwardZ = Math.cos(yaw);
         double rightX = Math.cos(yaw);
         double rightZ = Math.sin(yaw);
-        double forward = isTor() ? 1.75D : 2.35D;
+        // Pantsir's cab is on the negative entity-forward end of the model.
+        double forward = isTor() ? 1.75D : -2.45D;
         field_70153_n.func_70107_b(
                 field_70165_t + forwardX * forward - rightX * 0.48D,
                 field_70163_u + 1.05D + field_70153_n.func_70033_W(),

@@ -76,9 +76,10 @@ public final class RenderMobileAirDefense extends Render {
 
     private void renderTor() {
         GL11.glPushMatrix();
-        GL11.glRotatef(90.0F, 0.0F, 1.0F, 0.0F);
+        // The source model is Z-up. Convert it before applying Minecraft yaw.
+        GL11.glRotatef(-90.0F, 1.0F, 0.0F, 0.0F);
         GL11.glScalef(0.72F, 0.72F, 0.72F);
-        GL11.glTranslatef(0.885F, -8.945F, 0.031F);
+        GL11.glTranslatef(0.885F, -12.943F, 2.420F);
         for (int i = 0; i < TOR_PARTS.length; ++i) {
             bind(TOR_TEXTURES[i]);
             torLists[i] = renderCached(torLists[i], tor, new String[] {TOR_PARTS[i]});

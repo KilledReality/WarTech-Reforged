@@ -117,15 +117,17 @@ public final class ContainerMobileAirDefense extends Container {
 
     private static final class MissileSlot extends Slot {
         private final EntityMobileAirDefense system;
+        private final int slotIndex;
 
         MissileSlot(EntityMobileAirDefense system, int slot, int x, int y) {
             super(system, slot, x, y);
             this.system = system;
+            this.slotIndex = slot;
         }
 
         @Override
         public boolean func_75214_a(ItemStack stack) {
-            return system.func_94041_b(field_75225_a, stack);
+            return system.func_94041_b(slotIndex, stack);
         }
     }
 
