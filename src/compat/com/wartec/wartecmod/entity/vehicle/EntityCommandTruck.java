@@ -290,9 +290,9 @@ public final class EntityCommandTruck extends Entity
             double rightX = Math.cos(yaw);
             double rightZ = Math.sin(yaw);
             field_70153_n.func_70107_b(
-                    field_70165_t + forwardX * 2.15D - rightX * 0.48D,
+                    field_70165_t - forwardX * 2.15D - rightX * 0.48D,
                     field_70163_u + 0.98D + field_70153_n.func_70033_W(),
-                    field_70161_v + forwardZ * 2.15D - rightZ * 0.48D);
+                    field_70161_v - forwardZ * 2.15D - rightZ * 0.48D);
         }
     }
 
