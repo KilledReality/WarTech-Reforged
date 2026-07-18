@@ -144,19 +144,3 @@ legal determination that every donation arrangement satisfies a Creative Commons
 NonCommercial license. Creative Commons states that this assessment depends on
 the purpose and circumstances of the specific use and the applicable jurisdiction.
 
-This noncommercial policy does not resolve the separate WarTech 1.1.1 rights
-issue: no license granting modification or redistribution rights has been found.
-
-## Required Release Actions
-
-1. Obtain explicit modification and redistribution permission for WarTech 1.1.1.
-2. If the original author remains unreachable, request written pre-submission
-   guidance from CurseForge moderation and retain their response. Platform
-   approval does not replace copyright permission, but avoids a blind submission.
-3. Verify the S-400 radar and Ural command-vehicle sources and licenses.
-4. Add the exact S-400 launcher source URL.
-5. Decide whether to keep noncommercial assets and disable monetization, obtain
-   commercial permissions, or replace them with original/CC BY alternatives.
-6. Include this notice in the source repository and the final downloadable JAR.
-7. Only then select and add an explicit license for original Reforged code and
-   assets; that license cannot override third-party terms.
