@@ -4,12 +4,12 @@
 
 ### Mod file
 
-- File: `WarTech-Reforged-1.2.1-hbm5751.jar`
+- File: `WarTech-Reforged-1.3.0-hbm5751.jar`
 - Current local path:
-  `C:\Users\kiril\AppData\Roaming\.minecraft\mods\WarTech-Reforged-1.2.1-hbm5751.jar`
+  `C:\Users\kiril\AppData\Roaming\.minecraft\mods\WarTech-Reforged-1.3.0-hbm5751.jar`
 - SHA-256:
-  `B81F01D5E8832733CECBBCBDB32EDAE007CE8165A5B6440A7025321975D82BB9`
-- Size: approximately 26.1 MB.
+  `<calculate from the final release JAR>`
+- Size: `<record the final release JAR size>`.
 
 Do not upload or bundle any of the following:
 
@@ -73,53 +73,17 @@ Do not select MIT, GPL, LGPL, or a Creative Commons license for the entire
 repository. The repository contains material under several different terms;
 `THIRD_PARTY_NOTICES.md` describes the scope that is currently known.
 
-### 4. Create the first GitHub Release
+### 4. Create the GitHub Release
 
 1. Open the repository.
 2. Select `Releases` and `Draft a new release`.
-3. Create tag: `v1.2.1-hbm5751`.
+3. Create tag: `v1.3.0-hbm5751`.
 4. Target: `main`.
-5. Release title: `WarTech Reforged 1.2.1 - HBM X5751`.
+5. Release title: `WarTech Reforged 1.3.0 - HBM X5751`.
 6. Mark it as `Pre-release`.
-7. Attach only `WarTech-Reforged-1.2.1-hbm5751.jar`.
-8. Use the following release notes:
-
-```markdown
-## WarTech Reforged 1.2.1
-
-Initial public beta of WarTech Reforged for Minecraft 1.7.10.
-
-### Requirements
-
-- Minecraft 1.7.10
-- Forge 10.13.4.1614
-- HBM's Nuclear Tech Mod 1.0.27 X5751
-- Client and server must use matching versions
-
-### Highlights
-
-- Restored WarTech cruise and ballistic missile systems
-- Layered Patriot and S-400 air defense
-- WTI-1 Falcon, WTI-2 Lance, and WTI-3 Sentinel interceptors
-- Mobile and long-range radar network with command vehicle
-- Storm Shadow cruise missile
-- Geran-2 attack drone and rail catapult
-- HEMTT mobile artillery platform with Greg and Henry modules
-- Missile route separation, interception effects, and performance fixes
-
-### Installation
-
-Remove original WarTech and all older Reforged builds. Install HBM X5751 and
-place this JAR in the `mods` folder. The same files are required on the server
-and every connecting client.
-
-### Status
-
-This is a beta build primarily tested in Creative mode. Back up important worlds.
-
-SHA-256:
-`B81F01D5E8832733CECBBCBDB32EDAE007CE8165A5B6440A7025321975D82BB9`
-```
+7. Attach only `WarTech-Reforged-1.3.0-hbm5751.jar`.
+8. Copy the English section from `docs/RELEASE_NOTES_1.3.0.md` into the release
+   description and append the SHA-256 of the final JAR.
 
 ## CurseForge Project
 
@@ -230,12 +194,12 @@ https://github.com/HbmMods/Hbm-s-Nuclear-Tech-GIT/releases/tag/1.0.27_X5751
 
 Do not upload or bundle the HBM JAR with WarTech Reforged.
 
-### 7. Upload the first file
+### 7. Upload the release file
 
 Open the project dashboard, select `Files`, and upload:
 
-- File: `WarTech-Reforged-1.2.1-hbm5751.jar`
-- Display name: `WarTech Reforged 1.2.1 for HBM X5751`
+- File: `WarTech-Reforged-1.3.0-hbm5751.jar`
+- Display name: `WarTech Reforged 1.3.0 for HBM X5751`
 - Release type: `Beta`
 - Game version: `Minecraft 1.7.10`
 - Mod loader: `Forge`
@@ -243,21 +207,8 @@ Open the project dashboard, select `Files`, and upload:
   runs on Java 8.
 - Required project: `Hbm's Nuclear Tech Mod`.
 
-Use this changelog:
-
-```markdown
-Initial public beta.
-
-- Restored original WarTech missile and launcher functionality
-- Added layered automated air defense and three interceptor tiers
-- Added Patriot and S-400 launchers
-- Added mobile and long-range radar vehicles and command network
-- Added Storm Shadow and Geran-2 with a dedicated catapult
-- Added mobile HEMTT artillery with Greg and Henry modules
-- Added route separation, improved guidance, impact effects, and performance fixes
-
-Requires HBM NTM 1.0.27 X5751 exactly. Remove original WarTech before installing.
-```
+Use the English section from `docs/RELEASE_NOTES_1.3.0.md` as the file changelog.
+The Russian section may be placed below it. Append the final JAR SHA-256.
 
 Leave automatic publication enabled so the file becomes visible after moderation.
 

@@ -18,7 +18,7 @@
 
 ## 2. Clean Release Build
 
-- [ ] Use version `1.2.1-hbm5751` or increment it if code/assets change.
+- [ ] Use version `1.3.0-hbm5751` or increment it if code/assets change.
 - [ ] Build one clean JAR named `WarTech-Reforged-<version>.jar`.
 - [ ] Verify that no original WarTech JAR, HBM JAR, `.bak`, crash report, model
       source archive, or private development file is bundled.
@@ -35,7 +35,7 @@
 - [ ] Publish source, build instructions, `README.md`, this checklist,
       `THIRD_PARTY_NOTICES.md`, and a changelog.
 - [ ] Do not commit Minecraft, Forge, HBM, or third-party binary dependencies.
-- [ ] Tag the release as `v1.2.1-hbm5751`.
+- [ ] Tag the release as `v1.3.0-hbm5751`.
 - [ ] Create a draft GitHub Release, attach only the clean JAR, add its SHA-256,
       dependency requirements, known limitations, and upgrade instructions.
 - [ ] Enable GitHub Issues and provide templates for crashes and gameplay bugs.
@@ -52,8 +52,8 @@
 - [ ] Select Minecraft `1.7.10`, Forge, client and server support.
 - [ ] Add HBM's Nuclear Tech Mod as a required dependency and state that the exact
       supported build is `1.0.27 X5751`.
-- [ ] Upload the first public file as **Beta**, not Release.
-- [ ] Upload only `WarTech-Reforged-1.2.1-hbm5751.jar`.
+- [ ] Upload version `1.3.0-hbm5751` as **Beta** while the project remains beta-quality.
+- [ ] Upload only `WarTech-Reforged-1.3.0-hbm5751.jar`.
 - [ ] State clearly that the original WarTech JAR must not be installed alongside it.
 - [ ] Link the GitHub source repository and issue tracker.
 - [ ] Disable project rewards/monetization while noncommercial model licenses remain.
