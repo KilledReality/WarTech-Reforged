@@ -1,5 +1,6 @@
 import com.wartec.wartecmod.compat.DroneStrikeContent;
 import com.wartec.wartecmod.compat.ItemMq9Payload;
+import com.wartec.wartecmod.compat.MissileTrackingService;
 import com.wartec.wartecmod.entity.missile.EntityMq9Drone;
 import com.wartec.wartecmod.entity.missile.EntityMq9Munition;
 import java.util.ArrayList;
@@ -18,6 +19,14 @@ public final class SmokeMq9Drone {
         EntityMq9Drone drone = new EntityMq9Drone(world);
         drone.func_70107_b(0.5D, 1.0D, 0.5D);
         drone.initializeHome();
+        world.field_72996_f.add(drone);
+        require(drone.getBlipLevel() < 0
+                        && drone.getTargetType()
+                        == api.hbm.entity.IRadarDetectable.RadarTargetType.PLAYER,
+                "parked MQ-9 must not advertise itself as an airborne threat");
+        require(MissileTrackingService.findPointDefenseThreat(world,
+                        0.5D, 2.0D, 0.5D, 100.0D) == null,
+                "point defense must ignore a parked MQ-9");
         drone.func_70299_a(0, new TestStack(DroneStrikeContent.mq9Payload,
                 ItemMq9Payload.HELLFIRE));
         drone.func_70299_a(1, new TestStack(DroneStrikeContent.mq9Payload,
@@ -37,6 +46,10 @@ public final class SmokeMq9Drone {
         require(drone.launchMission(operator), "loaded MQ-9 mission must launch");
         require(drone.getState() == EntityMq9Drone.STATE_TAKEOFF,
                 "launch must begin with a takeoff phase");
+        require(drone.getBlipLevel() == 1
+                        && MissileTrackingService.findPointDefenseThreat(world,
+                        0.5D, 2.0D, 0.5D, 100.0D) == drone,
+                "airborne MQ-9 must become a valid radar threat");
 
         double closestLanding = Double.MAX_VALUE;
         double closestLandingY = Double.NaN;

@@ -741,8 +741,10 @@ public final class EntityMq9Drone extends Entity
                 : slot >= 0 && slot < 6 && DroneStrikeContent.isPayload(stack);
     }
 
-    @Override public RadarTargetType getTargetType() { return RadarTargetType.MISSILE_TIER0; }
-    @Override public int getBlipLevel() { return 1; }
+    @Override public RadarTargetType getTargetType() {
+        return isFlying() ? RadarTargetType.MISSILE_TIER0 : RadarTargetType.PLAYER;
+    }
+    @Override public int getBlipLevel() { return isFlying() ? 1 : -1; }
 
     @Override public boolean func_70104_M() { return isReady(); }
     @Override public boolean func_70067_L() { return !field_70128_L; }

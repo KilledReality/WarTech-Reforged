@@ -38,6 +38,11 @@ public final class EntityMobileAirDefense extends Entity
     private static final int GUN_BURST_ROUNDS = 10;
     private static final double GUN_RANGE = 100.0D;
     private static final double MAX_HEALTH = 500.0D;
+    private static final float GUN_YAW_RATE = 3.2F;
+    private static final float GUN_PITCH_RATE = 2.2F;
+    private static final int GUN_LOCK_TIME = 8;
+    private static final int GUN_BURST_COOLDOWN = 8;
+    private static final int GUN_VISUAL_TICKS = 5;
 
     private static final int DW_VARIANT = 18;
     private static final int DW_DEPLOYED = 19;
@@ -406,18 +411,18 @@ public final class EntityMobileAirDefense extends Entity
                 - field_70177_z);
         float desiredPitch = clamp((float) Math.toDegrees(Math.atan2(dy, horizontal)),
                 -8.0F, 78.0F);
-        gunAimYaw = approachAngle(gunAimYaw, desiredYaw, 30.0F);
-        gunAimPitch = approach(gunAimPitch, desiredPitch, 18.0F);
+        gunAimYaw = approachAngle(gunAimYaw, desiredYaw, GUN_YAW_RATE);
+        gunAimPitch = approach(gunAimPitch, desiredPitch, GUN_PITCH_RATE);
         syncGunAim();
 
         float yawError = Math.abs(wrapDegrees(desiredYaw - gunAimYaw));
         float pitchError = Math.abs(desiredPitch - gunAimPitch);
-        if (yawError <= 4.5F && pitchError <= 4.5F) {
+        if (yawError <= 3.0F && pitchError <= 3.0F) {
             gunLockTicks++;
         } else {
             gunLockTicks = Math.max(0, gunLockTicks - 2);
         }
-        if (gunLockTicks >= 1 && gunCooldown <= 0) {
+        if (gunLockTicks >= GUN_LOCK_TIME && gunCooldown <= 0) {
             fireGunBurst(target, aimX, aimY, aimZ, distance);
         }
     }
@@ -445,10 +450,12 @@ public final class EntityMobileAirDefense extends Entity
             inventory[GUN_AMMO_SLOT] = null;
         }
         setPower(getPower() - GUN_BURST_ENERGY);
-        gunCooldown = 3;
-        gunFiringTicks = 2;
+        gunCooldown = GUN_BURST_COOLDOWN;
+        gunFiringTicks = GUN_VISUAL_TICKS;
         setGunFiring(true);
         markGunBurst();
+        field_70170_p.func_72956_a(this, "hbm:turret.richard_fire", 4.5F,
+                0.84F + field_70170_p.field_73012_v.nextFloat() * 0.08F);
         func_70296_d();
 
         int tier = MissileTrackingService.getThreatTier(target);
@@ -702,8 +709,8 @@ public final class EntityMobileAirDefense extends Entity
             clientGunBurstSerial = field_70180_af.func_75679_c(DW_GUN_STATE) >>> 26 & 63;
             return;
         }
-        clientGunYaw = approachAngle(clientGunYaw, targetYaw, 12.0F);
-        clientGunPitch = approach(clientGunPitch, targetPitch, 8.0F);
+        clientGunYaw = approachAngle(clientGunYaw, targetYaw, 4.5F);
+        clientGunPitch = approach(clientGunPitch, targetPitch, 3.2F);
         int serial = field_70180_af.func_75679_c(DW_GUN_STATE) >>> 26 & 63;
         if (serial != clientGunBurstSerial) {
             clientGunBurstSerial = serial;
@@ -712,8 +719,6 @@ public final class EntityMobileAirDefense extends Entity
     }
 
     private void spawnClientGunBurst() {
-        field_70170_p.func_72956_a(this, "hbm:turret.richard_fire", 6.0F,
-                0.88F + field_70170_p.field_73012_v.nextFloat() * 0.08F);
         double yaw = Math.toRadians(field_70177_z + clientGunYaw);
         double pitch = Math.toRadians(clientGunPitch);
         double horizontal = Math.cos(pitch);

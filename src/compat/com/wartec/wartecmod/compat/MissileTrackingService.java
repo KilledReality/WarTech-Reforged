@@ -3,6 +3,7 @@ package com.wartec.wartecmod.compat;
 import api.hbm.entity.IRadarDetectable;
 import api.hbm.entity.IRadarDetectable.RadarTargetType;
 import api.hbm.entity.IRadarDetectableNT;
+import com.wartec.wartecmod.entity.missile.EntityMq9Drone;
 import java.lang.reflect.Field;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -825,6 +826,9 @@ public final class MissileTrackingService {
 
     private static int getTargetTier(Entity entity) {
         if (entity == null || entity.field_70128_L || entity instanceof VlsInterceptor) {
+            return 0;
+        }
+        if (entity instanceof EntityMq9Drone && !((EntityMq9Drone) entity).isFlying()) {
             return 0;
         }
         for (Class<?> type = entity.getClass(); type != null; type = type.getSuperclass()) {

@@ -107,19 +107,29 @@ public final class SmokeMobileAirDefense {
         updateClientGunState.invoke(pantsir);
         int soundsBeforeBurst = world.sounds;
         TestMissile incoming = new TestMissile(world, 71);
-        incoming.field_70165_t = 0.0D;
+        incoming.field_70165_t = 70.0D;
         incoming.field_70163_u = 3.0D;
-        incoming.field_70161_v = 70.0D;
+        incoming.field_70161_v = 0.0D;
         incoming.field_70179_y = -4.0D;
         world.field_72996_f.add(incoming);
         java.lang.reflect.Method tickGuns = EntityMobileAirDefense.class
                 .getDeclaredMethod("tickPantsirGuns");
         tickGuns.setAccessible(true);
-        for (int tick = 0; tick < 6 && !incoming.field_70128_L; ++tick) {
+        tickGuns.invoke(pantsir);
+        require(Math.abs(gunYaw.getFloat(pantsir) + 3.2F) < 0.11F,
+                "Pantsir turret must respect its per-tick traverse limit");
+        incoming.field_70165_t = 0.0D;
+        incoming.field_70161_v = 70.0D;
+        for (int tick = 0; tick < 7; ++tick) {
+            tickGuns.invoke(pantsir);
+        }
+        require(!incoming.field_70128_L && pantsir.getGunRounds() == 600,
+                "Pantsir guns must establish a stable lock before firing");
+        for (int tick = 0; tick < 80 && !incoming.field_70128_L; ++tick) {
             tickGuns.invoke(pantsir);
         }
         require(incoming.field_70128_L,
-                "Pantsir guns must destroy a tier-1 missile within six reaction ticks");
+                "Pantsir guns must still defeat a tracked tier-1 missile");
         require(pantsir.getGunRounds() <= 590,
                 "a real gun interception must consume a 30 mm burst");
         world.field_72995_K = true;

@@ -51,9 +51,15 @@ public final class RenderMobileAirDefense extends Render {
                 + (system.field_70125_A - system.field_70127_C) * partialTicks;
         GL11.glRotatef(-renderYaw, 0.0F, 1.0F, 0.0F);
         GL11.glRotatef(renderPitch, 1.0F, 0.0F, 0.0F);
+        float gunYaw = system.getRenderGunAimYaw(partialTicks);
+        float gunPitch = system.getRenderGunAimPitch(partialTicks);
         renderVariant(system.getVariant(), system.isDeployed()
                         ? (system.field_70173_aa + partialTicks) * 1.8F : 0.0F,
-                system.getRenderGunAimYaw(partialTicks), system.isGunsFiring());
+                gunYaw, system.isGunsFiring());
+        if (!system.isTor() && system.isGunsFiring()) {
+            renderGunTracers(gunYaw, gunPitch,
+                    system.field_70173_aa + partialTicks);
+        }
         GL11.glPopAttrib();
         GL11.glPopMatrix();
     }
@@ -128,6 +134,47 @@ public final class RenderMobileAirDefense extends Render {
         }
         GL11.glCallList(list);
         return list;
+    }
+
+    private void renderGunTracers(float gunYaw, float gunPitch, float ticks) {
+        double yaw = Math.toRadians(gunYaw);
+        double pitch = Math.toRadians(gunPitch);
+        double horizontal = Math.cos(pitch);
+        double forwardX = -Math.sin(yaw) * horizontal;
+        double forwardY = Math.sin(pitch);
+        double forwardZ = Math.cos(yaw) * horizontal;
+        double rightX = Math.cos(yaw);
+        double rightZ = Math.sin(yaw);
+        double phase = ticks * 0.72D % 1.0D;
+
+        GL11.glDisable(3553);
+        GL11.glDisable(2896);
+        GL11.glEnable(3042);
+        GL11.glBlendFunc(770, 1);
+        GL11.glLineWidth(2.6F);
+        GL11.glColor4f(1.0F, 0.84F, 0.28F, 0.92F);
+        GL11.glBegin(1);
+        for (int side = -1; side <= 1; side += 2) {
+            double muzzleX = forwardX * 1.45D + rightX * side * 1.05D;
+            double muzzleY = 3.22D;
+            double muzzleZ = forwardZ * 1.45D + rightZ * side * 1.05D;
+            for (int segment = 0; segment < 6; ++segment) {
+                double start = 5.0D + (segment + phase) * 14.0D;
+                double end = start + 5.5D;
+                GL11.glVertex3d(muzzleX + forwardX * start,
+                        muzzleY + forwardY * start,
+                        muzzleZ + forwardZ * start);
+                GL11.glVertex3d(muzzleX + forwardX * end,
+                        muzzleY + forwardY * end,
+                        muzzleZ + forwardZ * end);
+            }
+        }
+        GL11.glEnd();
+        GL11.glLineWidth(1.0F);
+        GL11.glColor4f(1.0F, 1.0F, 1.0F, 1.0F);
+        GL11.glDisable(3042);
+        GL11.glEnable(3553);
+        GL11.glEnable(2896);
     }
 
     private void renderParts(IModelCustom model, String[] parts) {

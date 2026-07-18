@@ -31,6 +31,7 @@ public final class ItemRenderAdvancedMissile implements IItemRenderer {
         GL11.glPushMatrix();
         if (type == ItemRenderType.INVENTORY) {
             GL11.glTranslatef(0.0F, -0.25F, 0.0F);
+            GL11.glScalef(1.4F, 1.4F, 1.4F);
         }
         renderer.renderInventoryModel(scale, yaw);
         GL11.glPopMatrix();

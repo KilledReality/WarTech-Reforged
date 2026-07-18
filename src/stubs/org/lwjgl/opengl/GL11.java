@@ -22,4 +22,7 @@ public final class GL11 {
     public static void glBegin(int mode) {}
     public static void glEnd() {}
     public static void glVertex3f(float x, float y, float z) {}
+    public static void glVertex3d(double x, double y, double z) {}
+    public static void glBlendFunc(int sourceFactor, int destinationFactor) {}
+    public static void glLineWidth(float width) {}
 }

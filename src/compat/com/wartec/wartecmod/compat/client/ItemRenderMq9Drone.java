@@ -18,7 +18,10 @@ public final class ItemRenderMq9Drone implements IItemRenderer {
     @Override
     public void renderItem(ItemRenderType type, ItemStack item, Object... data) {
         GL11.glPushMatrix();
-        if (type == ItemRenderType.INVENTORY) GL11.glTranslatef(0.0F, -0.1F, 0.0F);
+        if (type == ItemRenderType.INVENTORY) {
+            GL11.glTranslatef(0.0F, -0.1F, 0.0F);
+            GL11.glScalef(1.4F, 1.4F, 1.4F);
+        }
         renderer.renderInventory();
         GL11.glPopMatrix();
     }

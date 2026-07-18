@@ -27,6 +27,7 @@ public final class ItemRenderMobileAirDefense implements IItemRenderer {
         GL11.glPushMatrix();
         if (type == ItemRenderType.INVENTORY) {
             GL11.glTranslatef(0.0F, -0.18F, 0.0F);
+            GL11.glScalef(1.4F, 1.4F, 1.4F);
         } else if (type == ItemRenderType.EQUIPPED_FIRST_PERSON) {
             GL11.glTranslatef(0.65F, 0.30F, 0.10F);
             GL11.glScalef(0.34F, 0.34F, 0.34F);
