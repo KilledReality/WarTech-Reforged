@@ -4,6 +4,7 @@ import com.wartec.wartecmod.compat.ElectronicWarfareService;
 import com.wartec.wartecmod.compat.HeavyVehicleDynamics;
 import com.wartec.wartecmod.compat.HeavyVehicleDynamics.Motion;
 import com.wartec.wartecmod.compat.IAntiRadiationTarget;
+import com.wartec.wartecmod.compat.ItemPantsirAmmoBelt;
 import com.wartec.wartecmod.compat.MissileTrackingService;
 import com.wartec.wartecmod.compat.RadarGuiHandler;
 import com.wartec.wartecmod.compat.VehicleEnergyHelper;
@@ -19,6 +20,7 @@ import net.minecraft.util.AxisAlignedBB;
 import net.minecraft.util.ChatComponentText;
 import net.minecraft.util.DamageSource;
 import net.minecraft.world.World;
+import net.minecraft.world.WorldServer;
 
 public final class EntityMobileAirDefense extends Entity
         implements IInventory, IAntiRadiationTarget {
@@ -29,8 +31,12 @@ public final class EntityMobileAirDefense extends Entity
     public static final int FIRE_EMERGENCY = 2;
     public static final int ENERGY_CAPACITY = 1200000;
     public static final int BATTERY_SLOT = 12;
-    private static final int INVENTORY_SIZE = 13;
+    public static final int GUN_AMMO_SLOT = 13;
+    private static final int INVENTORY_SIZE = 14;
     private static final int LAUNCH_ENERGY = 50000;
+    private static final int GUN_BURST_ENERGY = 1800;
+    private static final int GUN_BURST_ROUNDS = 10;
+    private static final double GUN_RANGE = 60.0D;
     private static final double MAX_HEALTH = 500.0D;
 
     private static final int DW_VARIANT = 18;
@@ -42,7 +48,10 @@ public final class EntityMobileAirDefense extends Entity
     private static final int DW_AMMO = 24;
     private static final int DW_BLIP_COUNT = 25;
     private static final int DW_BLIP_BASE = 26;
-    private static final int BLIP_LIMIT = 6;
+    private static final int BLIP_LIMIT = 5;
+    private static final int DW_GUN_STATE = 31;
+    private static final int GUN_ENABLED = 1;
+    private static final int GUN_FIRING = 2;
 
     private final ItemStack[] inventory = new ItemStack[INVENTORY_SIZE];
     private String ownerTeam = "";
@@ -50,6 +59,13 @@ public final class EntityMobileAirDefense extends Entity
     private double driveSpeed;
     private double steeringState;
     private int launchCooldown;
+    private int gunCooldown;
+    private int gunFiringTicks;
+    private int gunTargetId = -1;
+    private int gunLockTicks;
+    private int gunHitScore;
+    private float gunAimYaw;
+    private float gunAimPitch;
     private double clientTargetX;
     private double clientTargetY;
     private double clientTargetZ;
@@ -78,6 +94,7 @@ public final class EntityMobileAirDefense extends Entity
         for (int i = 0; i < BLIP_LIMIT; ++i) {
             field_70180_af.func_75682_a(DW_BLIP_BASE + i, Integer.valueOf(0));
         }
+        field_70180_af.func_75682_a(DW_GUN_STATE, Integer.valueOf(GUN_ENABLED));
     }
 
     public void setVariant(int variant) {
@@ -138,6 +155,30 @@ public final class EntityMobileAirDefense extends Entity
 
     public String getRequiredInterceptorName() {
         return isTor() ? "WTI-2 LANCE" : "WTI-1 FALCON";
+    }
+
+    public int getGunRounds() {
+        return isTor() ? 0 : ItemPantsirAmmoBelt.getRounds(inventory[GUN_AMMO_SLOT]);
+    }
+
+    public boolean isGunsEnabled() {
+        return !isTor() && (field_70180_af.func_75679_c(DW_GUN_STATE)
+                & GUN_ENABLED) != 0;
+    }
+
+    public boolean isGunsFiring() {
+        return !isTor() && (field_70180_af.func_75679_c(DW_GUN_STATE)
+                & GUN_FIRING) != 0;
+    }
+
+    public float getGunAimYaw() {
+        int raw = field_70180_af.func_75679_c(DW_GUN_STATE) >>> 13 & 8191;
+        return (raw >= 4096 ? raw - 8192 : raw) / 10.0F;
+    }
+
+    public float getGunAimPitch() {
+        int raw = field_70180_af.func_75679_c(DW_GUN_STATE) >>> 2 & 2047;
+        return (raw >= 1024 ? raw - 2048 : raw) / 10.0F;
     }
 
     public int getRadarRange() {
@@ -242,6 +283,7 @@ public final class EntityMobileAirDefense extends Entity
             MissileTrackingService.removeRadar(field_70170_p, func_145782_y());
             setWatcher(DW_CONTACTS, 0);
             clearBlips();
+            resetGunTracking();
             return;
         }
 
@@ -260,6 +302,10 @@ public final class EntityMobileAirDefense extends Entity
                     ElectronicWarfareService.BAND_X);
             setWatcher(DW_CONTACTS, contacts);
             updateBlips();
+        }
+
+        if (!isTor()) {
+            tickPantsirGuns();
         }
 
         if (getFireMode() == FIRE_HOLD || launchCooldown > 0
@@ -292,6 +338,226 @@ public final class EntityMobileAirDefense extends Entity
             updateAmmoWatcher();
             func_70296_d();
         }
+    }
+
+    private void tickPantsirGuns() {
+        if (gunCooldown > 0) {
+            gunCooldown--;
+        }
+        if (gunFiringTicks > 0 && --gunFiringTicks == 0) {
+            setGunFiring(false);
+        }
+        if (!isGunsEnabled() || getGunRounds() <= 0
+                || getPower() < GUN_BURST_ENERGY) {
+            resetGunTracking();
+            return;
+        }
+
+        Entity target = gunTargetId < 0 ? null
+                : field_70170_p.func_73045_a(gunTargetId);
+        if (!isGunTargetValid(target)) {
+            target = MissileTrackingService.findCloseThreat(field_70170_p,
+                    field_70165_t, field_70163_u + 3.1D, field_70161_v,
+                    1, GUN_RANGE, getLauncherKey());
+            int targetId = target == null ? -1 : target.func_145782_y();
+            if (targetId != gunTargetId) {
+                gunTargetId = targetId;
+                gunLockTicks = 0;
+                gunHitScore = 0;
+            }
+        }
+        if (target == null) {
+            resetGunTracking();
+            return;
+        }
+
+        double dx = target.field_70165_t - field_70165_t;
+        double dy = target.field_70163_u + 0.45D - (field_70163_u + 3.15D);
+        double dz = target.field_70161_v - field_70161_v;
+        double distance = Math.sqrt(dx * dx + dy * dy + dz * dz);
+        double leadTicks = Math.max(0.5D, Math.min(6.0D, distance / 10.0D));
+        double aimX = target.field_70165_t + target.field_70159_w * leadTicks;
+        double aimY = target.field_70163_u + 0.45D
+                + target.field_70181_x * leadTicks;
+        double aimZ = target.field_70161_v + target.field_70179_y * leadTicks;
+        dx = aimX - field_70165_t;
+        dy = aimY - (field_70163_u + 3.15D);
+        dz = aimZ - field_70161_v;
+        double horizontal = Math.max(0.001D, Math.sqrt(dx * dx + dz * dz));
+        float desiredYaw = wrapDegrees((float) Math.toDegrees(Math.atan2(-dx, dz))
+                - field_70177_z);
+        float desiredPitch = clamp((float) Math.toDegrees(Math.atan2(dy, horizontal)),
+                -8.0F, 78.0F);
+        gunAimYaw = approachAngle(gunAimYaw, desiredYaw, 8.0F);
+        gunAimPitch = approach(gunAimPitch, desiredPitch, 5.0F);
+        syncGunAim();
+
+        float yawError = Math.abs(wrapDegrees(desiredYaw - gunAimYaw));
+        float pitchError = Math.abs(desiredPitch - gunAimPitch);
+        if (yawError <= 4.5F && pitchError <= 4.5F) {
+            gunLockTicks++;
+        } else {
+            gunLockTicks = Math.max(0, gunLockTicks - 2);
+        }
+        if (gunLockTicks >= 6 && gunCooldown <= 0) {
+            fireGunBurst(target, aimX, aimY, aimZ, distance);
+        }
+    }
+
+    private boolean isGunTargetValid(Entity target) {
+        if (target == null || target.field_70128_L
+                || MissileTrackingService.getThreatTier(target) == 0) {
+            return false;
+        }
+        double dx = target.field_70165_t - field_70165_t;
+        double dy = target.field_70163_u - field_70163_u;
+        double dz = target.field_70161_v - field_70161_v;
+        return dx * dx + dy * dy + dz * dz <= GUN_RANGE * GUN_RANGE;
+    }
+
+    private void fireGunBurst(Entity target, double aimX, double aimY,
+            double aimZ, double distance) {
+        ItemStack belt = inventory[GUN_AMMO_SLOT];
+        int consumed = ItemPantsirAmmoBelt.consume(belt, GUN_BURST_ROUNDS);
+        if (consumed <= 0) {
+            resetGunTracking();
+            return;
+        }
+        if (ItemPantsirAmmoBelt.getRounds(belt) <= 0) {
+            inventory[GUN_AMMO_SLOT] = null;
+        }
+        setPower(getPower() - GUN_BURST_ENERGY);
+        gunCooldown = 4;
+        gunFiringTicks = 2;
+        setGunFiring(true);
+        func_70296_d();
+
+        int tier = MissileTrackingService.getThreatTier(target);
+        double baseChance = tier == 1 ? 0.42D : tier == 2 ? 0.16D : 0.035D;
+        if (MissileTrackingService.isBallisticTarget(target)) {
+            baseChance *= 0.45D;
+        }
+        double distanceFactor = 1.0D
+                - Math.min(0.60D, distance / GUN_RANGE * 0.55D);
+        double lockBonus = Math.min(0.16D, Math.max(0, gunLockTicks - 6) * 0.008D);
+        double chance = Math.min(0.72D,
+                (baseChance * distanceFactor + lockBonus)
+                * consumed / GUN_BURST_ROUNDS);
+        boolean hit = field_70170_p.field_73012_v.nextDouble() < chance;
+        emitGunBurst(target, aimX, aimY, aimZ, hit);
+        if (hit) {
+            gunHitScore++;
+            emitGunHit(target);
+        }
+
+        int requiredHits = tier == 1 ? 2 : tier == 2 ? 4 : 10;
+        if (MissileTrackingService.isBallisticTarget(target)) {
+            requiredHits += 4;
+        }
+        if (gunHitScore >= requiredHits && !target.field_70128_L) {
+            destroyGunTarget(target);
+        }
+    }
+
+    private void emitGunBurst(Entity target, double aimX, double aimY,
+            double aimZ, boolean hit) {
+        field_70170_p.func_72956_a(this, "hbm:turret.richard_fire", 4.0F,
+                0.92F + field_70170_p.field_73012_v.nextFloat() * 0.12F);
+        if (!(field_70170_p instanceof WorldServer)) {
+            return;
+        }
+        WorldServer world = (WorldServer) field_70170_p;
+        double yaw = Math.toRadians(field_70177_z + gunAimYaw);
+        double forwardX = -Math.sin(yaw);
+        double forwardZ = Math.cos(yaw);
+        double rightX = Math.cos(yaw);
+        double rightZ = Math.sin(yaw);
+        double spread = hit ? 0.35D : 1.9D;
+        double endX = aimX + (field_70170_p.field_73012_v.nextDouble() - 0.5D) * spread;
+        double endY = aimY + (field_70170_p.field_73012_v.nextDouble() - 0.5D) * spread;
+        double endZ = aimZ + (field_70170_p.field_73012_v.nextDouble() - 0.5D) * spread;
+        for (int side = -1; side <= 1; side += 2) {
+            double muzzleX = field_70165_t + forwardX * 1.45D + rightX * side * 1.05D;
+            double muzzleY = field_70163_u + 3.22D;
+            double muzzleZ = field_70161_v + forwardZ * 1.45D + rightZ * side * 1.05D;
+            world.func_147487_a("largesmoke", muzzleX, muzzleY, muzzleZ, 2,
+                    0.08D, 0.08D, 0.08D, 0.01D);
+            for (int point = 1; point <= 7; ++point) {
+                double fraction = point / 8.0D;
+                world.func_147487_a("fireworksSpark",
+                        muzzleX + (endX - muzzleX) * fraction,
+                        muzzleY + (endY - muzzleY) * fraction,
+                        muzzleZ + (endZ - muzzleZ) * fraction,
+                        1, 0.015D, 0.015D, 0.015D, 0.0D);
+            }
+        }
+    }
+
+    private void emitGunHit(Entity target) {
+        if (field_70170_p instanceof WorldServer) {
+            ((WorldServer) field_70170_p).func_147487_a("crit",
+                    target.field_70165_t, target.field_70163_u + 0.35D,
+                    target.field_70161_v, 10, 0.28D, 0.28D, 0.28D, 0.12D);
+        }
+    }
+
+    private void destroyGunTarget(Entity target) {
+        MissileTrackingService.releaseReservation(field_70170_p,
+                target.func_145782_y(), getLauncherKey());
+        boolean fire = field_70170_p.field_73012_v.nextDouble() < 0.30D;
+        field_70170_p.func_72885_a(this, target.field_70165_t,
+                target.field_70163_u + 0.25D, target.field_70161_v,
+                1.35F, fire, false);
+        target.func_70106_y();
+        resetGunTracking();
+    }
+
+    private void resetGunTracking() {
+        gunTargetId = -1;
+        gunLockTicks = 0;
+        gunHitScore = 0;
+        gunAimYaw = 0.0F;
+        gunAimPitch = 0.0F;
+        syncGunAim();
+        setGunFiring(false);
+    }
+
+    private void setGunFlags(boolean enabled, boolean firing) {
+        int state = field_70180_af.func_75679_c(DW_GUN_STATE);
+        int flags = (enabled ? GUN_ENABLED : 0) | (firing ? GUN_FIRING : 0);
+        setWatcher(DW_GUN_STATE, state & -4 | flags);
+    }
+
+    private void setGunFiring(boolean firing) {
+        setGunFlags(isGunsEnabled(), firing);
+    }
+
+    private void syncGunAim() {
+        int state = field_70180_af.func_75679_c(DW_GUN_STATE);
+        int yaw = Math.round(gunAimYaw * 10.0F) & 8191;
+        int pitch = Math.round(gunAimPitch * 10.0F) & 2047;
+        setWatcher(DW_GUN_STATE, yaw << 13 | pitch << 2 | state & 3);
+    }
+
+    private static float approach(float value, float target, float maximumDelta) {
+        if (value < target) return Math.min(target, value + maximumDelta);
+        if (value > target) return Math.max(target, value - maximumDelta);
+        return value;
+    }
+
+    private static float approachAngle(float value, float target, float maximumDelta) {
+        return wrapDegrees(value + clamp(wrapDegrees(target - value),
+                -maximumDelta, maximumDelta));
+    }
+
+    private static float wrapDegrees(float value) {
+        while (value < -180.0F) value += 360.0F;
+        while (value >= 180.0F) value -= 360.0F;
+        return value;
+    }
+
+    private static float clamp(float value, float minimum, float maximum) {
+        return Math.max(minimum, Math.min(maximum, value));
     }
 
     private int getRadarEnergyUse() {
@@ -350,6 +616,7 @@ public final class EntityMobileAirDefense extends Entity
         ElectronicWarfareService.removeNode(field_70170_p, func_145782_y());
         setWatcher(DW_CONTACTS, 0);
         clearBlips();
+        resetGunTracking();
     }
 
     private void updateDriving() {
@@ -468,6 +735,13 @@ public final class EntityMobileAirDefense extends Entity
             }
             return true;
         }
+        if (action == 2 && !isTor()) {
+            setGunFlags(!isGunsEnabled(), false);
+            resetGunTracking();
+            field_70170_p.func_72956_a(this, "hbm:item.techBleep", 0.7F,
+                    isGunsEnabled() ? 1.18F : 0.76F);
+            return true;
+        }
         return false;
     }
 
@@ -569,6 +843,7 @@ public final class EntityMobileAirDefense extends Entity
         tag.func_74774_a("Variant", (byte) getVariant());
         tag.func_74757_a("Deployed", isDeployed());
         tag.func_74757_a("RadarEnabled", isRadarEnabled());
+        tag.func_74757_a("GunsEnabled", isGunsEnabled());
         tag.func_74774_a("FireMode", (byte) getFireMode());
         tag.func_74768_a("Power", getPower());
         tag.func_74780_a("VehicleHealth", vehicleHealth);
@@ -589,6 +864,9 @@ public final class EntityMobileAirDefense extends Entity
         field_70180_af.func_75692_b(DW_RADAR_ENABLED,
                 Byte.valueOf((byte) (!tag.func_74764_b("RadarEnabled")
                         || tag.func_74767_n("RadarEnabled") ? 1 : 0)));
+        boolean gunsEnabled = !tag.func_74764_b("GunsEnabled")
+                || tag.func_74767_n("GunsEnabled");
+        setGunFlags(gunsEnabled, false);
         field_70180_af.func_75692_b(DW_FIRE_MODE,
                 Byte.valueOf((byte) Math.max(0, Math.min(2,
                         tag.func_74771_c("FireMode")))));
@@ -650,6 +928,9 @@ public final class EntityMobileAirDefense extends Entity
     @Override public void func_70305_f() {}
     @Override public boolean func_94041_b(int slot, ItemStack stack) {
         if (slot == BATTERY_SLOT) return VehicleEnergyHelper.isBattery(stack);
+        if (slot == GUN_AMMO_SLOT) {
+            return !isTor() && ItemPantsirAmmoBelt.isAmmo(stack);
+        }
         return slot >= 0 && slot < getMissileCapacity()
                 && VlsDefenseCompat.getInterceptorTier(stack) == getRequiredInterceptorTier();
     }

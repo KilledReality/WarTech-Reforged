@@ -25,6 +25,8 @@ public final class ContainerMobileAirDefense extends Container {
         }
         func_75146_a(new BatterySlot(system, EntityMobileAirDefense.BATTERY_SLOT,
                 244, 105));
+        func_75146_a(new GunAmmoSlot(system,
+                EntityMobileAirDefense.GUN_AMMO_SLOT, 244, 80));
         for (int row = 0; row < 3; ++row) {
             for (int column = 0; column < 9; ++column) {
                 func_75146_a(new Slot(playerInventory, column + row * 9 + 9,
@@ -95,10 +97,12 @@ public final class ContainerMobileAirDefense extends Container {
         }
         ItemStack stack = slot.func_75211_c();
         ItemStack original = stack.func_77946_l();
-        if (index < 13) {
-            if (!func_75135_a(stack, 13, 49, true)) return null;
+        if (index < 14) {
+            if (!func_75135_a(stack, 14, 50, true)) return null;
         } else if (VehicleEnergyHelper.isBattery(stack)) {
             if (!func_75135_a(stack, 12, 13, false)) return null;
+        } else if (ItemPantsirAmmoBelt.isAmmo(stack)) {
+            if (!func_75135_a(stack, 13, 14, false)) return null;
         } else {
             boolean moved = false;
             for (int i = 0; i < system.getMissileCapacity(); ++i) {
@@ -139,6 +143,20 @@ public final class ContainerMobileAirDefense extends Container {
         @Override
         public boolean func_75214_a(ItemStack stack) {
             return VehicleEnergyHelper.isBattery(stack);
+        }
+    }
+
+    private static final class GunAmmoSlot extends Slot {
+        private final EntityMobileAirDefense system;
+
+        GunAmmoSlot(EntityMobileAirDefense system, int slot, int x, int y) {
+            super(system, slot, x, y);
+            this.system = system;
+        }
+
+        @Override
+        public boolean func_75214_a(ItemStack stack) {
+            return !system.isTor() && ItemPantsirAmmoBelt.isAmmo(stack);
         }
     }
 }

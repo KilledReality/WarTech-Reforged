@@ -32,6 +32,7 @@ public final class ItemMobileAirDefense extends Item {
             List lines, boolean advanced) {
         if (stack.func_77960_j() == EntityMobileAirDefense.VARIANT_PANTSIR) {
             lines.add("Point defense | 12 x WTI-1 Falcon | 100-block engagement");
+            lines.add("Twin 30 mm last-ditch cannon | 60-block engagement");
             lines.add("Integrated X-band radar: 260 blocks");
         } else {
             lines.add("Mobile SHORAD | 8 x WTI-2 Lance | 220-block engagement");

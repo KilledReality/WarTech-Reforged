@@ -1,4 +1,6 @@
 import com.wartec.wartecmod.compat.ContainerMobileAirDefense;
+import com.wartec.wartecmod.compat.ItemPantsirAmmoBelt;
+import com.wartec.wartecmod.compat.RadarNetworkContent;
 import com.wartec.wartecmod.entity.vehicle.EntityMobileAirDefense;
 import com.wartec.wartecmod.items.wartecmodItems;
 import java.util.ArrayList;
@@ -14,6 +16,7 @@ public final class SmokeMobileAirDefense {
         wartecmodItems.itemMissileAntiAirTier1 = new Item();
         wartecmodItems.itemMissileAntiAirTier2 = new Item();
         wartecmodItems.itemMissileAntiAirTier3 = new Item();
+        RadarNetworkContent.pantsirAmmoBelt = new ItemPantsirAmmoBelt();
 
         TestWorld world = new TestWorld();
         EntityMobileAirDefense tor = new EntityMobileAirDefense(world);
@@ -34,8 +37,11 @@ public final class SmokeMobileAirDefense {
         EntityPlayer player = new EntityPlayer(world);
         ContainerMobileAirDefense container = new ContainerMobileAirDefense(
                 player.field_71071_by, tor);
-        require(container.field_75151_b.size() == 49,
-                "SHORAD GUI must expose 12 missile cells, battery, and player inventory");
+        require(container.field_75151_b.size() == 50,
+                "SHORAD GUI must expose missiles, battery, gun belt, and player inventory");
+        require(!tor.func_94041_b(EntityMobileAirDefense.GUN_AMMO_SLOT,
+                        new TestStack(RadarNetworkContent.pantsirAmmoBelt)),
+                "Tor must reject Pantsir cannon ammunition");
         require(tor.getFireMode() == EntityMobileAirDefense.FIRE_AUTO,
                 "SHORAD must start in automatic fire mode");
         container.func_75140_a(player, 0);
@@ -60,6 +66,36 @@ public final class SmokeMobileAirDefense {
                 new TestStack(wartecmodItems.itemMissileAntiAirTier1));
         require(pantsir.getAmmoCount() == 2,
                 "Pantsir ammunition watcher must count loaded missiles");
+        ItemStack belt = new TestStack(RadarNetworkContent.pantsirAmmoBelt);
+        require(pantsir.func_94041_b(EntityMobileAirDefense.GUN_AMMO_SLOT, belt),
+                "Pantsir must accept its 30 mm belt");
+        pantsir.func_70299_a(EntityMobileAirDefense.GUN_AMMO_SLOT, belt);
+        require(pantsir.getGunRounds() == ItemPantsirAmmoBelt.CAPACITY,
+                "a fresh Pantsir belt must contain 600 rounds");
+        ItemStack testBelt = new TestStack(RadarNetworkContent.pantsirAmmoBelt);
+        require(ItemPantsirAmmoBelt.consume(testBelt, 10) == 10
+                        && ItemPantsirAmmoBelt.getRounds(testBelt) == 590,
+                "Pantsir belt must persist consumed rounds in NBT");
+        require(pantsir.isGunsEnabled(), "Pantsir guns must default to automatic mode");
+        pantsir.handleGuiAction(2, player);
+        require(!pantsir.isGunsEnabled(), "gun GUI control must switch guns to hold");
+        pantsir.handleGuiAction(2, player);
+        require(pantsir.isGunsEnabled(), "gun GUI control must restore automatic mode");
+        java.lang.reflect.Field gunYaw = EntityMobileAirDefense.class
+                .getDeclaredField("gunAimYaw");
+        java.lang.reflect.Field gunPitch = EntityMobileAirDefense.class
+                .getDeclaredField("gunAimPitch");
+        java.lang.reflect.Method syncGunAim = EntityMobileAirDefense.class
+                .getDeclaredMethod("syncGunAim");
+        gunYaw.setAccessible(true);
+        gunPitch.setAccessible(true);
+        syncGunAim.setAccessible(true);
+        gunYaw.setFloat(pantsir, -123.4F);
+        gunPitch.setFloat(pantsir, 45.6F);
+        syncGunAim.invoke(pantsir);
+        require(Math.abs(pantsir.getGunAimYaw() + 123.4F) < 0.11F
+                        && Math.abs(pantsir.getGunAimPitch() - 45.6F) < 0.11F,
+                "packed gun aim must survive entity data synchronization");
 
         EntityPlayer driver = new EntityPlayer(world);
         driver.field_70701_bs = 1.0F;

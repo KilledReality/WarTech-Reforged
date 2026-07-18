@@ -18,6 +18,7 @@ public final class RadarNetworkContent {
     public static Item electronicWarfareUnit;
     public static Item antiRadiationMissile;
     public static Item mobileAirDefense;
+    public static Item pantsirAmmoBelt;
 
     private RadarNetworkContent() {
     }
@@ -50,6 +51,10 @@ public final class RadarNetworkContent {
                 .func_77637_a(wartecmod.tabwartecmodcruisemissiles)
                 .func_111206_d("wartecmod:mobile_radar");
         GameRegistry.registerItem(mobileAirDefense, "MobileAirDefenseSystem");
+        pantsirAmmoBelt = new ItemPantsirAmmoBelt()
+                .func_77637_a(wartecmod.tabwartecmodcruisemissiles)
+                .func_111206_d("hbm:ammo_container");
+        GameRegistry.registerItem(pantsirAmmoBelt, "Pantsir30mmBelt");
         EntityRegistry.registerModEntity(EntityRadarTruck.class, "entity_Mobile_Radar", 31,
                 wartecmod.instance, 512, 1, true);
         EntityRegistry.registerModEntity(EntityS400Radar.class, "entity_S400_Radar", 32,

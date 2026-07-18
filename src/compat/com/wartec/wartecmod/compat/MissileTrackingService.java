@@ -54,6 +54,20 @@ public final class MissileTrackingService {
 
     public static Entity findThreat(World world, double defenseX, double defenseY, double defenseZ,
             int interceptorTier, double range, long ownerKey) {
+        return findThreat(world, defenseX, defenseY, defenseZ,
+                interceptorTier, range, ownerKey, false);
+    }
+
+    public static Entity findCloseThreat(World world, double defenseX,
+            double defenseY, double defenseZ, int interceptorTier,
+            double range, long ownerKey) {
+        return findThreat(world, defenseX, defenseY, defenseZ,
+                interceptorTier, range, ownerKey, true);
+    }
+
+    private static Entity findThreat(World world, double defenseX,
+            double defenseY, double defenseZ, int interceptorTier,
+            double range, long ownerKey, boolean shareReservedTargets) {
         if (world == null || world.field_72995_K) {
             return null;
         }
@@ -79,11 +93,14 @@ public final class MissileTrackingService {
             }
             Integer trackKey = Integer.valueOf(track.entityId);
             Long blockedUntil = tracks.blockedUntil.get(trackKey);
-            if (blockedUntil != null && blockedUntil.longValue() > now) {
+            if (!shareReservedTargets && blockedUntil != null
+                    && blockedUntil.longValue() > now) {
                 continue;
             }
             Reservation reservation = tracks.reservations.get(trackKey);
-            if (reservation != null && reservation.expiresAt >= now && reservation.ownerKey != ownerKey) {
+            if (!shareReservedTargets && reservation != null
+                    && reservation.expiresAt >= now
+                    && reservation.ownerKey != ownerKey) {
                 continue;
             }
 
@@ -474,6 +491,10 @@ public final class MissileTrackingService {
             }
         }
         return false;
+    }
+
+    public static int getThreatTier(Entity entity) {
+        return getTargetTier(entity);
     }
 
     public static boolean tryReserve(World world, int targetId, long ownerKey) {

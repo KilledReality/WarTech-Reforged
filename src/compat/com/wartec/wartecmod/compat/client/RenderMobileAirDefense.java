@@ -23,8 +23,10 @@ public final class RenderMobileAirDefense extends Render {
     };
     private static final String[] PANTSIR_STATIC = {
             "body", "canopy0", "canopy1", "canopy2", "canopy3", "canopy4",
-            "hatch0", "weapon0", "weapon0_aux", "wheel0", "wheel1",
-            "wheel2", "wheel3", "wheel4", "wheel5", "missiles"
+            "hatch0", "wheel0", "wheel1", "wheel2", "wheel3", "wheel4", "wheel5"
+    };
+    private static final String[] PANTSIR_TURRET = {
+            "weapon0", "weapon0_aux", "missiles"
     };
     private static final String PANTSIR_RADAR = "weapon0_radar";
 
@@ -32,6 +34,7 @@ public final class RenderMobileAirDefense extends Render {
     private final IModelCustom pantsir = AdvancedModelLoader.loadModel(PANTSIR_MODEL);
     private final int[] torLists = new int[TOR_PARTS.length];
     private int pantsirStaticList;
+    private int pantsirTurretList;
     private int pantsirRadarList;
 
     @Override
@@ -49,7 +52,8 @@ public final class RenderMobileAirDefense extends Render {
         GL11.glRotatef(-renderYaw, 0.0F, 1.0F, 0.0F);
         GL11.glRotatef(renderPitch, 1.0F, 0.0F, 0.0F);
         renderVariant(system.getVariant(), system.isDeployed()
-                ? (system.field_70173_aa + partialTicks) * 1.8F : 0.0F);
+                        ? (system.field_70173_aa + partialTicks) * 1.8F : 0.0F,
+                system.getGunAimYaw(), system.isGunsFiring());
         GL11.glPopAttrib();
         GL11.glPopMatrix();
     }
@@ -61,14 +65,15 @@ public final class RenderMobileAirDefense extends Render {
         GL11.glRotatef(22.0F, 1.0F, 0.0F, 0.0F);
         GL11.glRotatef(138.0F, 0.0F, 1.0F, 0.0F);
         GL11.glScalef(0.115F, 0.115F, 0.115F);
-        renderVariant(variant, 0.0F);
+        renderVariant(variant, 0.0F, 0.0F, false);
         GL11.glPopAttrib();
         GL11.glPopMatrix();
     }
 
-    private void renderVariant(int variant, float radarRotation) {
+    private void renderVariant(int variant, float radarRotation,
+            float gunYaw, boolean gunsFiring) {
         if (variant == EntityMobileAirDefense.VARIANT_PANTSIR) {
-            renderPantsir(radarRotation);
+            renderPantsir(radarRotation, gunYaw, gunsFiring);
         } else {
             renderTor();
         }
@@ -87,18 +92,28 @@ public final class RenderMobileAirDefense extends Render {
         GL11.glPopMatrix();
     }
 
-    private void renderPantsir(float radarRotation) {
+    private void renderPantsir(float radarRotation, float gunYaw,
+            boolean gunsFiring) {
         GL11.glPushMatrix();
         GL11.glScalef(0.65F, 0.65F, 0.65F);
         GL11.glTranslatef(0.0F, 0.35F, -1.70F);
         bind(PANTSIR_TEXTURE);
         pantsirStaticList = renderCached(pantsirStaticList, pantsir, PANTSIR_STATIC);
         GL11.glPushMatrix();
+        GL11.glTranslatef(0.0F, 3.03F, 0.56F);
+        GL11.glRotatef(-gunYaw, 0.0F, 1.0F, 0.0F);
+        GL11.glTranslatef(0.0F, -3.03F, -0.56F);
+        if (gunsFiring) {
+            GL11.glTranslatef(0.0F, 0.0F, -0.035F);
+        }
+        pantsirTurretList = renderCached(pantsirTurretList, pantsir, PANTSIR_TURRET);
+        GL11.glPushMatrix();
         GL11.glTranslatef(0.0F, 4.03F, 0.56F);
         GL11.glRotatef(radarRotation, 0.0F, 1.0F, 0.0F);
         GL11.glTranslatef(0.0F, -4.03F, -0.56F);
         pantsirRadarList = renderCached(pantsirRadarList, pantsir,
                 new String[] {PANTSIR_RADAR});
+        GL11.glPopMatrix();
         GL11.glPopMatrix();
         GL11.glPopMatrix();
     }

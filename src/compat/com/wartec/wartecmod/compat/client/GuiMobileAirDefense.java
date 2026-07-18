@@ -24,13 +24,17 @@ public final class GuiMobileAirDefense extends GuiContainer {
         field_146292_n.add(new GuiButton(0, field_147003_i + 151,
                 field_147009_r + 78, 86, 20, "MODE"));
         field_146292_n.add(new GuiButton(1, field_147003_i + 151,
-                field_147009_r + 102, 86, 20, "RADAR"));
+                field_147009_r + 102, system.isTor() ? 86 : 42, 20, "RADAR"));
+        if (!system.isTor()) {
+            field_146292_n.add(new GuiButton(2, field_147003_i + 195,
+                    field_147009_r + 102, 42, 20, "GUNS"));
+        }
     }
 
     @Override
     protected void func_146284_a(GuiButton button) {
         if (!button.field_146124_l) return;
-        if (button.field_146127_k == 0 || button.field_146127_k == 1) {
+        if (button.field_146127_k >= 0 && button.field_146127_k <= 2) {
             field_146297_k.field_71442_b.func_78756_a(
                     field_147002_h.field_75152_c, button.field_146127_k);
         }
@@ -59,6 +63,13 @@ public final class GuiMobileAirDefense extends GuiContainer {
             }
         }
         drawSlot(left + 243, top + 104);
+        drawSlot(left + 243, top + 79);
+        if (system.isTor()) {
+            Gui.func_73734_a(left + 245, top + 81,
+                    left + 259, top + 95, 0xFF512B2B);
+            Gui.func_73734_a(left + 246, top + 87,
+                    left + 258, top + 90, 0xFFD15353);
+        }
         int powerHeight = (int) Math.round(58.0D * system.getPower()
                 / EntityMobileAirDefense.ENERGY_CAPACITY);
         Gui.func_73734_a(left + 264, top + 65, left + 274, top + 125, 0xFF101510);
@@ -134,6 +145,10 @@ public final class GuiMobileAirDefense extends GuiContainer {
         field_146289_q.func_78276_b("HEALTH " + system.getHealthPercent() + "%",
                 73, 125, white);
         field_146289_q.func_78276_b("BAT", 241, 96, white);
+        if (!system.isTor()) {
+            field_146289_q.func_78276_b("30:" + system.getGunRounds(),
+                    239, 71, 0xFFD65A);
+        }
         field_146289_q.func_78276_b("INVENTORY", 8, 137, white);
         for (Object value : field_146292_n) {
             if (!(value instanceof GuiButton)) continue;
@@ -143,6 +158,8 @@ public final class GuiMobileAirDefense extends GuiContainer {
             } else if (button.field_146127_k == 1) {
                 button.field_146126_j = system.isRadarEnabled()
                         ? "RADAR: ON" : "RADAR: OFF";
+            } else if (button.field_146127_k == 2) {
+                button.field_146126_j = system.isGunsEnabled() ? "G:ON" : "G:OFF";
             }
         }
     }
