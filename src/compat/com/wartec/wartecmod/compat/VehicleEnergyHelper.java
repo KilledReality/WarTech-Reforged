@@ -10,6 +10,10 @@ public final class VehicleEnergyHelper {
 
     public static int chargeFromHeld(EntityPlayer player, int stored, int capacity) {
         ItemStack stack = player.func_71045_bC();
+        return chargeFromStack(stack, stored, capacity);
+    }
+
+    public static int chargeFromStack(ItemStack stack, int stored, int capacity) {
         if (stack == null || !(stack.func_77973_b() instanceof IBatteryItem)
                 || stored >= capacity) {
             return stored;

@@ -7,6 +7,7 @@ import java.lang.reflect.Method;
 import cpw.mods.fml.common.Mod;
 import cpw.mods.fml.common.event.FMLInitializationEvent;
 import cpw.mods.fml.common.event.FMLPreInitializationEvent;
+import cpw.mods.fml.common.network.NetworkRegistry;
 
 @Mod(
     modid = "wartecfix",
@@ -15,6 +16,9 @@ import cpw.mods.fml.common.event.FMLPreInitializationEvent;
     dependencies = "required-after:hbm;after:wartecmod"
 )
 public final class WarTecBootstrap {
+    @Mod.Instance("wartecfix")
+    public static WarTecBootstrap instance;
+
     @Mod.EventHandler
     public void preInit(FMLPreInitializationEvent event) {
         try {
@@ -51,6 +55,7 @@ public final class WarTecBootstrap {
 
     @Mod.EventHandler
     public void init(FMLInitializationEvent event) {
+        NetworkRegistry.INSTANCE.registerGuiHandler(instance, new RadarGuiHandler());
         if (event.getSide().isClient()) {
             try {
                 Class.forName("com.wartec.wartecmod.compat.client.PatriotClient")

@@ -61,6 +61,8 @@ new cruise missiles, and mobile artillery platforms.
   point, supports home-on-jam, and remembers the last emitter position after a
   radar shutdown with gradually increasing accuracy error. It follows a lofted
   attack profile and destroys radar, EW, or active command vehicles on a close hit.
+- AGM-88 salvo launches receive separate lateral, wave, and loft profiles while
+  preserving terminal guidance to the selected emitter.
 - New radar, command, and EW equipment stores scoreboard-team ownership for
   basic IFF and friendly-jamming protection.
 
@@ -70,6 +72,10 @@ new cruise missiles, and mobile artillery platforms.
   to 500 blocks.
 - **S-400 long-range radar**: detection range up to 1,200 blocks, altitude up to
   900 blocks, and support for up to 32 tracked contacts.
+- Both radar vehicles have an HBM-style control interface with live power,
+  contact, range, ceiling, and operating-state readouts plus an HBM battery slot.
+- Right click a radar with an empty hand to open its interface. Shift-right-click
+  toggles the TRM radar or deploys/retracts the S-400 radar.
 - **Ural air-defense command post** links radars and launchers into one network.
 - The command interface displays connected radars, detected contacts, available
   launchers, and active interceptions.

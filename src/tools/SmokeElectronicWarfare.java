@@ -5,9 +5,13 @@ import com.wartec.wartecmod.entity.vehicle.EntityElectronicWarfareUnit;
 import com.wartec.wartecmod.entity.vehicle.EntityCommandTruck;
 import com.wartec.wartecmod.entity.vehicle.EntityRadarTruck;
 import com.wartec.wartecmod.entity.vehicle.EntityS400Radar;
+import com.wartec.wartecmod.compat.ContainerRadarVehicle;
+import com.wartec.wartecmod.compat.AntiRadiationRoutePlanner;
+import com.wartec.wartecmod.compat.AntiRadiationRoutePlanner.RouteProfile;
 import java.util.ArrayList;
 import java.util.Random;
 import net.minecraft.world.World;
+import net.minecraft.entity.player.EntityPlayer;
 
 public final class SmokeElectronicWarfare {
     public static void main(String[] args) {
@@ -20,6 +24,30 @@ public final class SmokeElectronicWarfare {
         EntityRadarTruck radar = new EntityRadarTruck(world);
         EntityS400Radar longRangeRadar = new EntityS400Radar(world);
         EntityCommandTruck command = new EntityCommandTruck(world);
+        require(radar.getPower() == 250000 && radar.isRadarOperational(),
+                "mobile radar must start powered and operational");
+        require(longRangeRadar.getPower() == 1000000 && !longRangeRadar.isDeployed(),
+                "S-400 radar must start charged but retracted");
+        EntityPlayer player = new EntityPlayer(world);
+        ContainerRadarVehicle radarContainer = new ContainerRadarVehicle(
+                player.field_71071_by, radar);
+        require(radarContainer.field_75151_b.size() == 37,
+                "radar container must expose one battery and 36 player slots");
+        require(radarContainer.func_75140_a(player, 0) && !radar.isRadarActive(),
+                "radar GUI toggle must disable the mobile radar");
+        radarContainer.func_75140_a(player, 0);
+        require(radar.isRadarActive(), "radar GUI toggle must re-enable the mobile radar");
+        ContainerRadarVehicle s400Container = new ContainerRadarVehicle(
+                player.field_71071_by, longRangeRadar);
+        require(s400Container.func_75140_a(player, 0) && longRangeRadar.isDeployed(),
+                "radar GUI toggle must deploy the S-400 radar");
+
+        RouteProfile firstRoute = AntiRadiationRoutePlanner.create(world.field_73012_v);
+        RouteProfile secondRoute = AntiRadiationRoutePlanner.create(world.field_73012_v);
+        require(firstRoute.lateral != secondRoute.lateral
+                        || firstRoute.wave != secondRoute.wave,
+                "salvo AGM launches must receive different flight corridors");
+
         radar.wartecDestroyByAntiRadiationMissile();
         longRangeRadar.wartecDestroyByAntiRadiationMissile();
         command.wartecDestroyByAntiRadiationMissile();

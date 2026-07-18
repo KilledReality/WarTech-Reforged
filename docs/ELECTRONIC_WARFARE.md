@@ -37,6 +37,9 @@ sensors and anti-radiation weapons use a separate emitter picture.
 - Continuously updates the impact point while the emitter remains active.
 - Uses a smooth boost, lofted cruise phase and terminal dive instead of the
   generic randomized cruise-missile corridor.
+- Every missile receives an independent lateral corridor, S-turn amplitude and
+  loft offset. Salvos therefore separate in flight and reconverge only for the
+  terminal attack on the selected emitter.
 - A proximity-fuzed hit destroys radar trucks, S-400 radar vehicles, deployed
   command posts, jammers and decoys. Heavy conventional damage can also destroy
   radar and command vehicles normally.
@@ -53,6 +56,11 @@ sensors and anti-radiation weapons use a separate emitter picture.
 - Right click a jammer or decoy to cycle L, S, X and wideband operation.
 - Right click passive ESM to read its current emitter count.
 - Insert an HBM-compatible battery by right clicking the unit with the battery.
+- Right click a Renault TRM or S-400 radar with an empty hand to open its radar
+  interface. The interface accepts one HBM-compatible battery and shows live
+  power, contacts, range, ceiling and operational state.
+- Use the interface button to enable/disable the TRM radar or deploy/retract the
+  S-400 radar. Shift-right-click remains a quick toggle.
 
 ## Ownership and IFF
 
