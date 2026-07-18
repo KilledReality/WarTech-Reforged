@@ -28,7 +28,9 @@ public final class RenderMq9Drone extends Render {
             "big_rocket_system_right", "big_rocket_system_left",
             "rocket_system_left", "rocket_system_right"
     };
-    private static final float[] PAYLOAD_Z = {-2.9F, -1.9F, -0.95F, 0.95F, 1.9F, 2.9F};
+    private static final float AIRFRAME_SCALE = 900.0F;
+    private static final float[] PAYLOAD_Z = {-2.35F, -1.65F, -0.95F,
+            0.95F, 1.65F, 2.35F};
 
     private final IModelCustom airframe = AdvancedModelLoader.loadModel(MODEL);
     private final RenderMq9Ordnance ordnance;
@@ -50,14 +52,14 @@ public final class RenderMq9Drone extends Render {
         GL11.glPushMatrix();
         GL11.glPushAttrib(24833);
         RenderMq9Ordnance.setup();
-        GL11.glTranslated(x, y + 0.55D, z);
+        GL11.glTranslated(x, y + 1.10D, z);
         float renderYaw = raw.field_70126_B
                 + (raw.field_70177_z - raw.field_70126_B) * partialTicks;
         float renderPitch = raw.field_70127_C
                 + (raw.field_70125_A - raw.field_70127_C) * partialTicks;
         GL11.glRotatef(-renderYaw - 90.0F, 0.0F, 1.0F, 0.0F);
         GL11.glRotatef(-renderPitch, 0.0F, 0.0F, 1.0F);
-        renderAirframe(raw.field_70173_aa + partialTicks, 550.0F);
+        renderAirframe(raw.field_70173_aa + partialTicks, AIRFRAME_SCALE);
         renderPayloads(drone);
         GL11.glPopAttrib();
         GL11.glPopMatrix();
@@ -67,10 +69,9 @@ public final class RenderMq9Drone extends Render {
         GL11.glPushMatrix();
         GL11.glPushAttrib(24833);
         RenderMq9Ordnance.setup();
-        GL11.glRotatef(22.0F, 1.0F, 0.0F, 0.0F);
-        GL11.glRotatef(145.0F, 0.0F, 1.0F, 0.0F);
-        GL11.glRotatef(-90.0F, 0.0F, 1.0F, 0.0F);
-        renderAirframe(0.0F, 72.0F);
+        GL11.glRotatef(64.0F, 1.0F, 0.0F, 0.0F);
+        GL11.glRotatef(-38.0F, 0.0F, 1.0F, 0.0F);
+        renderAirframe(0.0F, 82.0F);
         GL11.glPopAttrib();
         GL11.glPopMatrix();
     }
@@ -103,8 +104,8 @@ public final class RenderMq9Drone extends Render {
             int type = drone.getPayloadAt(slot);
             if (type < 0) continue;
             GL11.glPushMatrix();
-            GL11.glTranslatef(0.0F, -0.30F, PAYLOAD_Z[slot]);
-            ordnance.renderModel(type, 0.72F);
+            GL11.glTranslatef(-0.05F, -0.42F, PAYLOAD_Z[slot]);
+            ordnance.renderModel(type, 0.90F);
             GL11.glPopMatrix();
         }
     }

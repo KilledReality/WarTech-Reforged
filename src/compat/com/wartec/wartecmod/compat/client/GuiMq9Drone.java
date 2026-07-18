@@ -78,6 +78,8 @@ public final class GuiMq9Drone extends GuiContainer {
         field_146289_q.func_78276_b("MQ-9 REAPER GROUND CONTROL", 15, 10, white);
         field_146289_q.func_78276_b("STATUS: " + drone.getStateName(), 15, 21,
                 drone.isReady() ? 0x65F28A : cyan);
+        field_146289_q.func_78276_b(ItemMq9Payload.getPayloadStatus(
+                drone.getSelectedPayload()), 15, 31, 0xF1C96B);
         String target = drone.hasTarget()
                 ? drone.getTargetX() + " / " + drone.getTargetY() + " / " + drone.getTargetZ()
                 : "NOT ASSIGNED";

@@ -2,8 +2,10 @@ import pathlib
 import re
 import shutil
 import sys
+import math
 
 import bpy
+from mathutils import Matrix
 
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
@@ -126,7 +128,42 @@ def process_airframe():
         resize_texture(textures / original, TEXTURE_OUTPUT / converted, 512)
 
 
-def join_and_export(source, output_name, ratio=1.0):
+def canonicalize_ordnance(obj, rotation_axis=None, rotation_degrees=0.0):
+    # Imported Collada/FBX files often keep their unit conversion on an Empty.
+    # Bake the complete world transform before detaching so every payload uses
+    # the same one-unit coordinate system in the runtime renderer.
+    obj.data.transform(obj.matrix_world)
+    obj.parent = None
+    obj.matrix_world = Matrix.Identity(4)
+    if rotation_axis == "z":
+        obj.rotation_euler[2] = math.radians(rotation_degrees)
+    elif rotation_axis == "y":
+        obj.rotation_euler[1] = math.radians(rotation_degrees)
+    bpy.context.view_layer.objects.active = obj
+    obj.select_set(True)
+    bpy.ops.object.transform_apply(location=False, rotation=True, scale=True)
+
+    # OBJ export uses X=Blender X, Y=Blender Z, Z=-Blender Y.
+    xs = [vertex.co.x for vertex in obj.data.vertices]
+    ys = [vertex.co.y for vertex in obj.data.vertices]
+    zs = [vertex.co.z for vertex in obj.data.vertices]
+    center_x = (min(xs) + max(xs)) * 0.5
+    center_y = (min(ys) + max(ys)) * 0.5
+    top_z = max(zs)
+    for vertex in obj.data.vertices:
+        vertex.co.x -= center_x
+        vertex.co.y -= center_y
+        vertex.co.z -= top_z
+    material = bpy.data.materials.new("wartech_material")
+    material.diffuse_color = (1.0, 1.0, 1.0, 1.0)
+    obj.data.materials.clear()
+    obj.data.materials.append(material)
+    for polygon in obj.data.polygons:
+        polygon.material_index = 0
+
+
+def join_and_export(source, output_name, ratio=1.0,
+                    rotation_axis=None, rotation_degrees=0.0):
     clear_scene()
     import_model(source)
     objects = mesh_objects()
@@ -139,6 +176,7 @@ def join_and_export(source, output_name, ratio=1.0):
     joined.name = output_name
     joined.data.name = output_name
     decimate(joined, ratio)
+    canonicalize_ordnance(joined, rotation_axis, rotation_degrees)
     export_obj(MODEL_OUTPUT / (output_name + ".obj"))
 
 
@@ -146,11 +184,15 @@ def process_ordnance():
     join_and_export(
         WORK / "hellfire" / "source" / "Hellfire_missile.fbx",
         "agm114_hellfire",
+        rotation_axis="y",
+        rotation_degrees=90.0,
     )
     join_and_export(
         WORK / "gbu12" / "source" / "unpacked" / "GBU 12.dae",
         "gbu12_paveway",
         0.19,
+        rotation_axis="z",
+        rotation_degrees=-90.0,
     )
     join_and_export(
         WORK / "mk82" / "source" / "model (2).gltf",
@@ -161,12 +203,8 @@ def process_ordnance():
         TEXTURE_OUTPUT / "agm114_hellfire.png",
         256,
     )
-    resize_texture(
-        WORK / "mk82" / "textures" / "gltf_embedded_0.png",
-        TEXTURE_OUTPUT / "mk82_bomb.png",
-        128,
-    )
     solid_texture(TEXTURE_OUTPUT / "gbu12_paveway.png", (0.30, 0.34, 0.23, 1.0))
+    solid_texture(TEXTURE_OUTPUT / "mk82_bomb.png", (0.25, 0.27, 0.20, 1.0))
 
 
 MODEL_OUTPUT.mkdir(parents=True, exist_ok=True)

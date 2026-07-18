@@ -20,9 +20,9 @@ public final class ItemRenderMq9Payload implements IItemRenderer {
         GL11.glPushMatrix();
         GL11.glPushAttrib(24833);
         RenderMq9Ordnance.setup();
-        GL11.glRotatef(22.0F, 1.0F, 0.0F, 0.0F);
-        GL11.glRotatef(135.0F, 0.0F, 1.0F, 0.0F);
-        renderer.renderModel(item.func_77960_j(), 0.78F);
+        GL11.glRotatef(18.0F, 1.0F, 0.0F, 0.0F);
+        GL11.glRotatef(-34.0F, 0.0F, 0.0F, 1.0F);
+        renderer.renderModel(item.func_77960_j(), 1.12F);
         GL11.glPopAttrib();
         GL11.glPopMatrix();
     }

@@ -5,6 +5,7 @@ import net.minecraft.creativetab.CreativeTabs;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
+import net.minecraft.util.StatCollector;
 
 public final class ItemMq9Payload extends Item {
     public static final int HELLFIRE = 0;
@@ -39,24 +40,20 @@ public final class ItemMq9Payload extends Item {
     @Override
     public void func_77624_a(ItemStack stack, EntityPlayer player,
             List lines, boolean advanced) {
-        switch (stack.func_77960_j()) {
-            case GBU12:
-                lines.add("Laser-guided 500 lb bomb | precise terminal correction");
-                lines.add("Best against structures and stationary vehicles");
-                break;
-            case MK82:
-                lines.add("Unguided 500 lb general-purpose bomb");
-                lines.add("Largest blast | release point is calculated by the UAV");
-                break;
-            default:
-                lines.add("Light precision missile | powered terminal attack");
-                lines.add("Best against vehicles, radar and air-defense systems");
-                break;
-        }
+        String key = func_77667_c(stack);
+        lines.add(StatCollector.func_74838_a(key + ".role"));
+        lines.add(StatCollector.func_74838_a(key + ".details"));
     }
 
     public static String getPayloadName(int type) {
         return type == GBU12 ? "GBU-12 PAVEWAY II"
                 : type == MK82 ? "MK 82 GENERAL-PURPOSE BOMB" : "AGM-114 HELLFIRE";
+    }
+
+    public static String getPayloadStatus(int type) {
+        String key = type == GBU12 ? "item.MQ9GBU12.status"
+                : type == MK82 ? "item.MQ9Mk82.status"
+                : "item.MQ9Hellfire.status";
+        return StatCollector.func_74838_a(key);
     }
 }

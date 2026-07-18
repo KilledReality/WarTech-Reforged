@@ -47,16 +47,14 @@ public final class RenderMq9Ordnance extends Render {
                 Math.min(ItemMq9Payload.MK82, type));
         GL11.glPushMatrix();
         if (type == ItemMq9Payload.HELLFIRE) {
-            GL11.glRotatef(-90.0F, 0.0F, 0.0F, 1.0F);
-            GL11.glScalef(0.62F * presentationScale, 0.62F * presentationScale,
-                    0.62F * presentationScale);
+            GL11.glScalef(1.00F * presentationScale, 1.00F * presentationScale,
+                    1.00F * presentationScale);
         } else if (type == ItemMq9Payload.GBU12) {
-            GL11.glRotatef(-90.0F, 0.0F, 1.0F, 0.0F);
-            GL11.glScalef(1.45F * presentationScale, 1.45F * presentationScale,
-                    1.45F * presentationScale);
-        } else {
             GL11.glScalef(1.85F * presentationScale, 1.85F * presentationScale,
                     1.85F * presentationScale);
+        } else {
+            GL11.glScalef(3.00F * presentationScale, 3.00F * presentationScale,
+                    3.00F * presentationScale);
         }
         bind(textures[type]);
         renderCached(type);
