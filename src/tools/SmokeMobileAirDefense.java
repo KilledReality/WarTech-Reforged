@@ -101,6 +101,11 @@ public final class SmokeMobileAirDefense {
         gunYaw.setFloat(pantsir, 0.0F);
         gunPitch.setFloat(pantsir, 0.0F);
         syncGunAim.invoke(pantsir);
+        java.lang.reflect.Method updateClientGunState = EntityMobileAirDefense.class
+                .getDeclaredMethod("updateClientGunState");
+        updateClientGunState.setAccessible(true);
+        updateClientGunState.invoke(pantsir);
+        int soundsBeforeBurst = world.sounds;
         TestMissile incoming = new TestMissile(world, 71);
         incoming.field_70165_t = 0.0D;
         incoming.field_70163_u = 3.0D;
@@ -117,6 +122,13 @@ public final class SmokeMobileAirDefense {
                 "Pantsir guns must destroy a tier-1 missile within six reaction ticks");
         require(pantsir.getGunRounds() <= 590,
                 "a real gun interception must consume a 30 mm burst");
+        world.field_72995_K = true;
+        updateClientGunState.invoke(pantsir);
+        world.field_72995_K = false;
+        require(world.particles >= 30,
+                "a synchronized gun burst must create visible client tracers");
+        require(world.sounds > soundsBeforeBurst,
+                "a synchronized gun burst must play an audible client sound");
 
         EntityPlayer driver = new EntityPlayer(world);
         driver.field_70701_bs = 1.0F;
@@ -142,11 +154,25 @@ public final class SmokeMobileAirDefense {
     }
 
     private static final class TestWorld extends World {
+        int particles;
+        int sounds;
+
         TestWorld() {
             field_72995_K = false;
             field_73012_v = new Random(11L);
             field_72996_f = new ArrayList();
             field_147482_g = new ArrayList();
+        }
+
+        @Override
+        public void func_72869_a(String particle, double x, double y, double z,
+                double velocityX, double velocityY, double velocityZ) {
+            ++particles;
+        }
+
+        @Override
+        public void func_72956_a(Entity entity, String sound, float volume, float pitch) {
+            ++sounds;
         }
     }
 

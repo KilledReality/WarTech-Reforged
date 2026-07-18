@@ -53,7 +53,7 @@ public final class RenderMobileAirDefense extends Render {
         GL11.glRotatef(renderPitch, 1.0F, 0.0F, 0.0F);
         renderVariant(system.getVariant(), system.isDeployed()
                         ? (system.field_70173_aa + partialTicks) * 1.8F : 0.0F,
-                system.getGunAimYaw(), system.isGunsFiring());
+                system.getRenderGunAimYaw(partialTicks), system.isGunsFiring());
         GL11.glPopAttrib();
         GL11.glPopMatrix();
     }
@@ -103,9 +103,6 @@ public final class RenderMobileAirDefense extends Render {
         GL11.glTranslatef(0.0F, 3.03F, 0.56F);
         GL11.glRotatef(-gunYaw, 0.0F, 1.0F, 0.0F);
         GL11.glTranslatef(0.0F, -3.03F, -0.56F);
-        if (gunsFiring) {
-            GL11.glTranslatef(0.0F, 0.0F, -0.035F);
-        }
         pantsirTurretList = renderCached(pantsirTurretList, pantsir, PANTSIR_TURRET);
         GL11.glPushMatrix();
         GL11.glTranslatef(0.0F, 4.03F, 0.56F);

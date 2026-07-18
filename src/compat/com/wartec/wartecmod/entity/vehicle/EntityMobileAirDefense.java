@@ -64,8 +64,14 @@ public final class EntityMobileAirDefense extends Entity
     private int gunTargetId = -1;
     private int gunLockTicks;
     private int gunHitScore;
+    private boolean gunTierOneSolution;
     private float gunAimYaw;
     private float gunAimPitch;
+    private float clientPreviousGunYaw;
+    private float clientGunYaw;
+    private float clientPreviousGunPitch;
+    private float clientGunPitch;
+    private int clientGunBurstSerial = -1;
     private double clientTargetX;
     private double clientTargetY;
     private double clientTargetZ;
@@ -179,6 +185,16 @@ public final class EntityMobileAirDefense extends Entity
     public float getGunAimPitch() {
         int raw = field_70180_af.func_75679_c(DW_GUN_STATE) >>> 2 & 2047;
         return (raw >= 1024 ? raw - 2048 : raw) / 10.0F;
+    }
+
+    public float getRenderGunAimYaw(float partialTicks) {
+        float delta = wrapDegrees(clientGunYaw - clientPreviousGunYaw);
+        return wrapDegrees(clientPreviousGunYaw + delta * partialTicks);
+    }
+
+    public float getRenderGunAimPitch(float partialTicks) {
+        return clientPreviousGunPitch
+                + (clientGunPitch - clientPreviousGunPitch) * partialTicks;
     }
 
     public int getRadarRange() {
@@ -363,6 +379,9 @@ public final class EntityMobileAirDefense extends Entity
                 gunTargetId = targetId;
                 gunLockTicks = 0;
                 gunHitScore = 0;
+                gunTierOneSolution = target != null
+                        && MissileTrackingService.getThreatTier(target) == 1
+                        && field_70170_p.field_73012_v.nextDouble() < 0.75D;
             }
         }
         if (target == null) {
@@ -426,32 +445,32 @@ public final class EntityMobileAirDefense extends Entity
             inventory[GUN_AMMO_SLOT] = null;
         }
         setPower(getPower() - GUN_BURST_ENERGY);
-        gunCooldown = 2;
+        gunCooldown = 3;
         gunFiringTicks = 2;
         setGunFiring(true);
+        markGunBurst();
         func_70296_d();
 
         int tier = MissileTrackingService.getThreatTier(target);
-        boolean drone = MissileTrackingService.isDroneTarget(target);
-        double baseChance = drone ? 1.0D
-                : tier == 1 ? 0.96D : tier == 2 ? 0.22D : 0.045D;
+        double baseChance = tier == 1 ? 0.78D : tier == 2 ? 0.22D : 0.045D;
         if (MissileTrackingService.isBallisticTarget(target)) {
             baseChance *= 0.45D;
         }
         double distanceFactor = 1.0D
                 - Math.min(0.22D, distance / GUN_RANGE * 0.22D);
         double lockBonus = Math.min(0.14D, Math.max(0, gunLockTicks - 1) * 0.014D);
-        double chance = Math.min(drone ? 0.98D : tier == 1 ? 0.94D : 0.78D,
+        double chance = Math.min(tier == 1 ? 0.86D : 0.78D,
                 (baseChance * distanceFactor + lockBonus)
                 * consumed / GUN_BURST_ROUNDS);
-        boolean hit = field_70170_p.field_73012_v.nextDouble() < chance;
+        boolean hit = (tier != 1 || gunTierOneSolution)
+                && field_70170_p.field_73012_v.nextDouble() < chance;
         emitGunBurst(target, aimX, aimY, aimZ, hit);
         if (hit) {
             gunHitScore++;
             emitGunHit(target);
         }
 
-        int requiredHits = tier == 1 ? 1 : tier == 2 ? 4 : 10;
+        int requiredHits = tier == 1 ? 2 : tier == 2 ? 4 : 10;
         if (MissileTrackingService.isBallisticTarget(target)) {
             requiredHits += 4;
         }
@@ -462,8 +481,6 @@ public final class EntityMobileAirDefense extends Entity
 
     private void emitGunBurst(Entity target, double aimX, double aimY,
             double aimZ, boolean hit) {
-        field_70170_p.func_72956_a(this, "hbm:turret.richard_fire", 4.0F,
-                0.92F + field_70170_p.field_73012_v.nextFloat() * 0.12F);
         if (!(field_70170_p instanceof WorldServer)) {
             return;
         }
@@ -517,6 +534,7 @@ public final class EntityMobileAirDefense extends Entity
         gunTargetId = -1;
         gunLockTicks = 0;
         gunHitScore = 0;
+        gunTierOneSolution = false;
         gunAimYaw = 0.0F;
         gunAimPitch = 0.0F;
         syncGunAim();
@@ -537,7 +555,14 @@ public final class EntityMobileAirDefense extends Entity
         int state = field_70180_af.func_75679_c(DW_GUN_STATE);
         int yaw = Math.round(gunAimYaw * 10.0F) & 8191;
         int pitch = Math.round(gunAimPitch * 10.0F) & 2047;
-        setWatcher(DW_GUN_STATE, yaw << 13 | pitch << 2 | state & 3);
+        setWatcher(DW_GUN_STATE, state & 0xFC000003
+                | yaw << 13 | pitch << 2);
+    }
+
+    private void markGunBurst() {
+        int state = field_70180_af.func_75679_c(DW_GUN_STATE);
+        int serial = ((state >>> 26) + 1) & 63;
+        setWatcher(DW_GUN_STATE, state & 0x03FFFFFF | serial << 26);
     }
 
     private static float approach(float value, float target, float maximumDelta) {
@@ -646,6 +671,7 @@ public final class EntityMobileAirDefense extends Entity
     }
 
     private void updateClientInterpolation() {
+        updateClientGunState();
         if (clientInterpolationTicks <= 0) {
             return;
         }
@@ -661,6 +687,60 @@ public final class EntityMobileAirDefense extends Entity
                 + (clientTargetPitch - field_70125_A) * fraction);
         func_70107_b(x, y, z);
         clientInterpolationTicks--;
+    }
+
+    private void updateClientGunState() {
+        clientPreviousGunYaw = clientGunYaw;
+        clientPreviousGunPitch = clientGunPitch;
+        float targetYaw = getGunAimYaw();
+        float targetPitch = getGunAimPitch();
+        if (clientGunBurstSerial < 0) {
+            clientGunYaw = targetYaw;
+            clientGunPitch = targetPitch;
+            clientPreviousGunYaw = targetYaw;
+            clientPreviousGunPitch = targetPitch;
+            clientGunBurstSerial = field_70180_af.func_75679_c(DW_GUN_STATE) >>> 26 & 63;
+            return;
+        }
+        clientGunYaw = approachAngle(clientGunYaw, targetYaw, 12.0F);
+        clientGunPitch = approach(clientGunPitch, targetPitch, 8.0F);
+        int serial = field_70180_af.func_75679_c(DW_GUN_STATE) >>> 26 & 63;
+        if (serial != clientGunBurstSerial) {
+            clientGunBurstSerial = serial;
+            spawnClientGunBurst();
+        }
+    }
+
+    private void spawnClientGunBurst() {
+        field_70170_p.func_72956_a(this, "hbm:turret.richard_fire", 6.0F,
+                0.88F + field_70170_p.field_73012_v.nextFloat() * 0.08F);
+        double yaw = Math.toRadians(field_70177_z + clientGunYaw);
+        double pitch = Math.toRadians(clientGunPitch);
+        double horizontal = Math.cos(pitch);
+        double forwardX = -Math.sin(yaw) * horizontal;
+        double forwardY = Math.sin(pitch);
+        double forwardZ = Math.cos(yaw) * horizontal;
+        double rightX = Math.cos(yaw);
+        double rightZ = Math.sin(yaw);
+        for (int side = -1; side <= 1; side += 2) {
+            double muzzleX = field_70165_t + forwardX * 1.45D + rightX * side * 1.05D;
+            double muzzleY = field_70163_u + 3.22D;
+            double muzzleZ = field_70161_v + forwardZ * 1.45D + rightZ * side * 1.05D;
+            field_70170_p.func_72869_a("largesmoke", muzzleX, muzzleY, muzzleZ,
+                    forwardX * 0.03D, 0.025D, forwardZ * 0.03D);
+            for (int point = 1; point <= 14; ++point) {
+                double distance = point * 6.5D;
+                double x = muzzleX + forwardX * distance;
+                double y = muzzleY + forwardY * distance;
+                double z = muzzleZ + forwardZ * distance;
+                field_70170_p.func_72869_a("fireworksSpark", x, y, z,
+                        forwardX * 0.16D, forwardY * 0.16D, forwardZ * 0.16D);
+                if (point % 4 == 0) {
+                    field_70170_p.func_72869_a("flame", x, y, z,
+                            forwardX * 0.04D, forwardY * 0.04D, forwardZ * 0.04D);
+                }
+            }
+        }
     }
 
     @Override
