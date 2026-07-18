@@ -4,6 +4,7 @@ import com.wartec.wartecmod.compat.ElectronicWarfareService;
 import com.wartec.wartecmod.compat.ElectronicWarfareService.EmitterTarget;
 import com.wartec.wartecmod.compat.IAntiRadiationTarget;
 import com.wartec.wartecmod.compat.RadarNetworkContent;
+import com.wartec.wartecmod.compat.MissileTrackingService;
 import com.wartec.wartecmod.compat.AntiRadiationRoutePlanner;
 import com.wartec.wartecmod.compat.AntiRadiationRoutePlanner.RouteProfile;
 import com.wartec.wartecmod.tileentity.vls.TileEntityVlsExhaust;
@@ -58,6 +59,7 @@ public final class EntityAntiRadiationMissile extends EntityKalibrMissile {
         this.searchX = targetX;
         this.searchZ = targetZ;
         initializeRoute(x, y, z);
+        MissileTrackingService.registerLaunch(this, x, y, z, targetX, targetZ);
         syncGuidanceWatchers();
     }
 

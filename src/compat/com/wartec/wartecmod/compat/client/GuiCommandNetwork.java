@@ -1,59 +1,67 @@
 package com.wartec.wartecmod.compat.client;
 
+import com.wartec.wartecmod.compat.ContainerCommandVehicle;
 import com.wartec.wartecmod.entity.vehicle.EntityCommandTruck;
-import net.minecraft.client.gui.GuiScreen;
+import net.minecraft.client.gui.Gui;
+import net.minecraft.client.gui.inventory.GuiContainer;
+import net.minecraft.entity.player.InventoryPlayer;
 
-public final class GuiCommandNetwork extends GuiScreen {
+public final class GuiCommandNetwork extends GuiContainer {
     private final EntityCommandTruck command;
 
-    public GuiCommandNetwork(EntityCommandTruck command) {
+    public GuiCommandNetwork(InventoryPlayer inventory, EntityCommandTruck command) {
+        super(new ContainerCommandVehicle(inventory, command));
         this.command = command;
+        field_146999_f = 256;
+        field_147000_g = 222;
     }
 
     @Override
-    public void func_73863_a(int mouseX, int mouseY, float partialTicks) {
-        func_146276_q_();
-        int left = field_146294_l / 2 - 112;
-        int top = field_146295_m / 2 - 101;
-        func_73734_a(left, top, left + 224, top + 202, 0xE0141A18);
-        func_73734_a(left + 3, top + 3, left + 221, top + 26, 0xFF26332E);
-        func_73732_a(field_146289_q, "AIR DEFENSE COMMAND NETWORK",
-                field_146294_l / 2, top + 10, 0xFFD9E7DF);
-
-        int powerColor = command.isNetworkActive() ? 0xFF5DE878 : 0xFFE85D5D;
-        drawLine(left, top, 38, "NETWORK", command.isNetworkActive() ? "ONLINE" : "OFFLINE",
-                powerColor);
-        drawLine(left, top, 57, "LINKED RADARS", Integer.toString(command.getLinkedRadars()),
-                command.getLinkedRadars() > 0 ? 0xFF75D9FF : 0xFF9A9A9A);
-        drawLine(left, top, 76, "LINKED LAUNCHERS",
-                Integer.toString(command.getLinkedLaunchers()), 0xFFE8D475);
-        drawLine(left, top, 95, "TRACKED TARGETS", Integer.toString(command.getContacts()),
-                command.getContacts() > 0 ? 0xFFFF776E : 0xFF9A9A9A);
-        drawLine(left, top, 114, "HOSTILE EMITTERS",
-                Integer.toString(command.getHostileEmitters()), 0xFFFF8F70);
-        drawLine(left, top, 133, "HOSTILE JAMMERS",
-                Integer.toString(command.getActiveJammers()),
-                command.getActiveJammers() > 0 ? 0xFFFF5D8F : 0xFF9A9A9A);
-        drawLine(left, top, 152, "ACTIVE INTERCEPTS",
-                Integer.toString(command.getAssignedTargets()), 0xFFFFB45D);
-        int percent = (int) (command.getPower() * 100L
-                / EntityCommandTruck.ENERGY_CAPACITY);
-        drawLine(left, top, 171, "POWER", percent + "%", powerColor);
-        func_73732_a(field_146289_q,
-                "Shift + RMB: retract | Battery: recharge",
-                field_146294_l / 2, top + 188, 0xFF8FA39A);
-        super.func_73863_a(mouseX, mouseY, partialTicks);
+    protected void func_146976_a(float partialTicks, int mouseX, int mouseY) {
+        int left = field_147003_i;
+        int top = field_147009_r;
+        Gui.func_73734_a(left, top, left + 256, top + 222, 0xFF77776F);
+        Gui.func_73734_a(left + 4, top + 4, left + 252, top + 136, 0xFF141A18);
+        Gui.func_73734_a(left + 7, top + 7, left + 249, top + 28, 0xFF26332E);
+        Gui.func_73734_a(left + 4, top + 136, left + 170, top + 218, 0xFF77776F);
+        drawSlot(left + 227, top + 104);
+        for (int row = 0; row < 3; ++row) {
+            for (int column = 0; column < 9; ++column) {
+                drawSlot(left + 7 + column * 18, top + 139 + row * 18);
+            }
+        }
+        for (int column = 0; column < 9; ++column) {
+            drawSlot(left + 7 + column * 18, top + 197);
+        }
     }
 
-    private void drawLine(int left, int top, int offset, String label,
-            String value, int color) {
-        field_146289_q.func_78276_b(label, left + 15, top + offset, 0xFFB6C2BC);
-        int width = field_146289_q.func_78256_a(value);
-        field_146289_q.func_78276_b(value, left + 209 - width, top + offset, color);
+    private void drawSlot(int x, int y) {
+        Gui.func_73734_a(x, y, x + 18, y + 18, 0xFF3A3A36);
+        Gui.func_73734_a(x + 1, y + 1, x + 17, y + 17, 0xFF9D9D91);
     }
 
     @Override
-    public boolean func_73868_f() {
-        return false;
+    protected void func_146979_b(int mouseX, int mouseY) {
+        int green = 0x5DE878;
+        int red = 0xE85D5D;
+        int white = 0xD9E7DF;
+        field_146289_q.func_78276_b("AIR DEFENSE COMMAND NETWORK", 12, 13, white);
+        drawLine(12, 38, "NETWORK", command.isNetworkActive() ? "ONLINE" : "OFFLINE",
+                command.isNetworkActive() ? green : red);
+        drawLine(12, 53, "LINKED RADARS", Integer.toString(command.getLinkedRadars()), white);
+        drawLine(12, 68, "LINKED LAUNCHERS", Integer.toString(command.getLinkedLaunchers()), white);
+        drawLine(12, 83, "TRACKED TARGETS", Integer.toString(command.getContacts()), 0xFF776E);
+        drawLine(12, 98, "HOSTILE EMITTERS", Integer.toString(command.getHostileEmitters()), 0xFF8F70);
+        drawLine(12, 113, "ACTIVE INTERCEPTS", Integer.toString(command.getAssignedTargets()), 0xFFB45D);
+        int percent = (int) (command.getPower() * 100L / EntityCommandTruck.ENERGY_CAPACITY);
+        field_146289_q.func_78276_b("POWER " + percent + "%", 178, 71,
+                command.isNetworkActive() ? green : red);
+        field_146289_q.func_78276_b("BATTERY", 205, 96, white);
+        field_146289_q.func_78276_b("INVENTORY", 8, 129, white);
+    }
+
+    private void drawLine(int x, int y, String label, String value, int color) {
+        field_146289_q.func_78276_b(label, x, y, 0xB6C2BC);
+        field_146289_q.func_78276_b(value, 118, y, color);
     }
 }

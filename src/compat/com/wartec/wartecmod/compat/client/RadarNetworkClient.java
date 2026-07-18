@@ -7,7 +7,6 @@ import com.wartec.wartecmod.entity.vehicle.EntityCommandTruck;
 import com.wartec.wartecmod.entity.vehicle.EntityElectronicWarfareUnit;
 import com.wartec.wartecmod.entity.missile.EntityAntiRadiationMissile;
 import cpw.mods.fml.client.registry.RenderingRegistry;
-import net.minecraft.client.Minecraft;
 import net.minecraftforge.client.MinecraftForgeClient;
 
 public final class RadarNetworkClient {
@@ -39,9 +38,5 @@ public final class RadarNetworkClient {
                 armRenderer);
         MinecraftForgeClient.registerItemRenderer(RadarNetworkContent.antiRadiationMissile,
                 new ItemRenderAdvancedMissile(armRenderer, 0.21F, 135.0F));
-    }
-
-    public static void openCommandGui(EntityCommandTruck command) {
-        Minecraft.func_71410_x().func_147108_a(new GuiCommandNetwork(command));
     }
 }

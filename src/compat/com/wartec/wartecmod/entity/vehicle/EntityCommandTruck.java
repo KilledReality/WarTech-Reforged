@@ -5,9 +5,14 @@ import com.wartec.wartecmod.compat.MissileTrackingService.CommandSnapshot;
 import com.wartec.wartecmod.compat.VehicleEnergyHelper;
 import com.wartec.wartecmod.compat.ElectronicWarfareService;
 import com.wartec.wartecmod.compat.IAntiRadiationTarget;
-import java.lang.reflect.Method;
+import com.wartec.wartecmod.compat.RadarGuiHandler;
+import com.wartec.wartecmod.compat.WarTecBootstrap;
+import com.wartec.wartecmod.compat.HeavyVehicleDynamics;
+import com.wartec.wartecmod.compat.HeavyVehicleDynamics.Motion;
+import cpw.mods.fml.common.network.internal.FMLNetworkHandler;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.inventory.IInventory;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.AxisAlignedBB;
@@ -15,7 +20,8 @@ import net.minecraft.util.ChatComponentText;
 import net.minecraft.util.DamageSource;
 import net.minecraft.world.World;
 
-public final class EntityCommandTruck extends Entity implements IAntiRadiationTarget {
+public final class EntityCommandTruck extends Entity
+        implements IAntiRadiationTarget, IInventory {
     public static final int ENERGY_CAPACITY = 2000000;
     private static final int ENERGY_USE = 40;
     private static final int DW_DEPLOYED = 18;
@@ -29,6 +35,7 @@ public final class EntityCommandTruck extends Entity implements IAntiRadiationTa
     private static final double MAX_HEALTH = 450.0D;
     private double vehicleHealth = MAX_HEALTH;
     private double driveSpeed;
+    private double steeringState;
     private double clientTargetX;
     private double clientTargetY;
     private double clientTargetZ;
@@ -36,6 +43,7 @@ public final class EntityCommandTruck extends Entity implements IAntiRadiationTa
     private float clientTargetPitch;
     private int clientInterpolationTicks;
     private String ownerTeam = "";
+    private ItemStack battery;
 
     public EntityCommandTruck(World world) {
         super(world);
@@ -105,6 +113,9 @@ public final class EntityCommandTruck extends Entity implements IAntiRadiationTa
             updateClientInterpolation();
             return;
         }
+        int charged = VehicleEnergyHelper.chargeFromStack(battery,
+                getPower(), ENERGY_CAPACITY);
+        if (charged != getPower()) setPower(charged);
         if (isDeployed()) {
             driveSpeed = 0.0D;
             field_70159_w = 0.0D;
@@ -134,10 +145,16 @@ public final class EntityCommandTruck extends Entity implements IAntiRadiationTa
         } else if (field_70181_x < 0.0D) {
             field_70181_x = 0.0D;
         }
+        if (field_70123_F && field_70122_E && Math.abs(driveSpeed) > 0.04D) {
+            field_70181_x = Math.max(field_70181_x, 0.20D);
+        }
+        double oldY = field_70163_u;
         func_70091_d(field_70159_w, field_70181_x, field_70179_y);
+        field_70125_A = HeavyVehicleDynamics.suspensionPitch(
+                field_70125_A, field_70163_u - oldY);
         updateBounds();
-        field_70159_w *= 0.82D;
-        field_70179_y *= 0.82D;
+        field_70159_w *= 0.72D;
+        field_70179_y *= 0.72D;
         field_70181_x *= 0.98D;
     }
 
@@ -175,18 +192,19 @@ public final class EntityCommandTruck extends Entity implements IAntiRadiationTa
             forward = driver.field_70701_bs;
             steering = driver.field_70702_br;
         }
-        if (Math.abs(forward) > 0.01F) {
-            driveSpeed += forward * 0.018D;
-            double max = forward > 0.0F ? 0.32D : 0.16D;
-            driveSpeed = Math.max(-max, Math.min(max, driveSpeed));
-            field_70177_z -= steering * (float) (2.0D + Math.abs(driveSpeed) * 6.0D)
-                    * (driveSpeed >= 0.0D ? 1.0F : -1.0F);
-        } else {
-            driveSpeed *= 0.91D;
+        Motion motion = HeavyVehicleDynamics.step(driveSpeed, steeringState,
+                field_70177_z, forward, steering, 0.36D, 0.17D,
+                field_70122_E, field_70123_F);
+        driveSpeed = motion.speed;
+        steeringState = motion.steering;
+        field_70177_z = motion.yaw;
+        field_70159_w = motion.motionX;
+        field_70179_y = motion.motionZ;
+        if (field_70153_n != null && Math.abs(driveSpeed) > 0.04D
+                && field_70173_aa % 24 == 0) {
+            field_70170_p.func_72956_a(this, "minecart.base", 0.28F,
+                    (float) (0.82D + Math.min(0.35D, Math.abs(driveSpeed))));
         }
-        double yaw = Math.toRadians(field_70177_z);
-        field_70159_w = -Math.sin(yaw) * driveSpeed;
-        field_70179_y = Math.cos(yaw) * driveSpeed;
     }
 
     private void updateClientInterpolation() {
@@ -219,17 +237,13 @@ public final class EntityCommandTruck extends Entity implements IAntiRadiationTa
         clientTargetZ = z;
         clientTargetYaw = yaw;
         clientTargetPitch = pitch;
-        clientInterpolationTicks = Math.max(1, increments);
+        clientInterpolationTicks = Math.max(3, increments);
     }
 
     @Override
     public boolean func_130002_c(EntityPlayer player) {
         ItemStack held = player.func_71045_bC();
         if (field_70170_p.field_72995_K) {
-            if (isDeployed() && !player.func_70093_af()
-                    && !VehicleEnergyHelper.isBattery(held)) {
-                openClientGui();
-            }
             return true;
         }
         if (VehicleEnergyHelper.isBattery(held)) {
@@ -254,6 +268,9 @@ public final class EntityCommandTruck extends Entity implements IAntiRadiationTa
             return true;
         }
         if (isDeployed()) {
+            FMLNetworkHandler.openGui(player, WarTecBootstrap.instance,
+                    RadarGuiHandler.GUI_ID_COMMAND, field_70170_p,
+                    func_145782_y(), 0, 0);
             return true;
         }
         if (field_70153_n == null || field_70153_n == player) {
@@ -264,23 +281,18 @@ public final class EntityCommandTruck extends Entity implements IAntiRadiationTa
         return true;
     }
 
-    private void openClientGui() {
-        try {
-            Class<?> client = Class.forName(
-                    "com.wartec.wartecmod.compat.client.RadarNetworkClient");
-            Method method = client.getMethod("openCommandGui", EntityCommandTruck.class);
-            method.invoke(null, this);
-        } catch (Throwable ignored) {
-        }
-    }
-
     @Override
     public void func_70043_V() {
         if (field_70153_n != null) {
             double yaw = Math.toRadians(field_70177_z);
-            field_70153_n.func_70107_b(field_70165_t - Math.sin(yaw) * 1.75D,
-                    field_70163_u + 1.05D + field_70153_n.func_70033_W(),
-                    field_70161_v + Math.cos(yaw) * 1.75D);
+            double forwardX = -Math.sin(yaw);
+            double forwardZ = Math.cos(yaw);
+            double rightX = Math.cos(yaw);
+            double rightZ = Math.sin(yaw);
+            field_70153_n.func_70107_b(
+                    field_70165_t + forwardX * 2.15D - rightX * 0.48D,
+                    field_70163_u + 0.98D + field_70153_n.func_70033_W(),
+                    field_70161_v + forwardZ * 2.15D - rightZ * 0.48D);
         }
     }
 
@@ -341,6 +353,7 @@ public final class EntityCommandTruck extends Entity implements IAntiRadiationTa
 
     private void destroyVehicle() {
         disconnectNetwork();
+        dropBattery();
         func_70106_y();
         field_70170_p.func_72885_a(this, field_70165_t, field_70163_u + 1.0D,
                 field_70161_v, 4.5F, true, true);
@@ -350,6 +363,7 @@ public final class EntityCommandTruck extends Entity implements IAntiRadiationTa
     public void wartecDestroyByAntiRadiationMissile() {
         if (!field_70128_L && !field_70170_p.field_72995_K) {
             disconnectNetwork();
+            dropBattery();
             func_70106_y();
         }
     }
@@ -369,6 +383,9 @@ public final class EntityCommandTruck extends Entity implements IAntiRadiationTa
         tag.func_74768_a("Power", getPower());
         tag.func_74780_a("VehicleHealth", vehicleHealth);
         tag.func_74778_a("CommandTeam", ownerTeam);
+        if (battery != null) {
+            tag.func_74782_a("CommandBattery", battery.func_77955_b(new NBTTagCompound()));
+        }
     }
 
     @Override
@@ -382,6 +399,62 @@ public final class EntityCommandTruck extends Entity implements IAntiRadiationTa
                     Math.min(MAX_HEALTH, tag.func_74769_h("VehicleHealth")));
         }
         ownerTeam = tag.func_74779_i("CommandTeam");
+        battery = tag.func_74764_b("CommandBattery")
+                ? ItemStack.func_77949_a(tag.func_74775_l("CommandBattery")) : null;
+    }
+
+    public void setPower(int power) {
+        field_70180_af.func_75692_b(DW_POWER, Integer.valueOf(Math.max(0,
+                Math.min(ENERGY_CAPACITY, power))));
+    }
+
+    private void dropBattery() {
+        if (battery != null) {
+            func_70099_a(battery, 0.5F);
+            battery = null;
+        }
+    }
+
+    @Override public int func_70302_i_() { return 1; }
+    @Override public ItemStack func_70301_a(int slot) { return slot == 0 ? battery : null; }
+    @Override public ItemStack func_70298_a(int slot, int amount) {
+        if (slot != 0 || battery == null) return null;
+        if (battery.field_77994_a <= amount) {
+            ItemStack result = battery;
+            battery = null;
+            func_70296_d();
+            return result;
+        }
+        ItemStack result = battery.func_77979_a(amount);
+        func_70296_d();
+        return result;
+    }
+    @Override public ItemStack func_70304_b(int slot) {
+        if (slot != 0) return null;
+        ItemStack result = battery;
+        battery = null;
+        func_70296_d();
+        return result;
+    }
+    @Override public void func_70299_a(int slot, ItemStack stack) {
+        if (slot == 0) {
+            battery = stack;
+            if (battery != null && battery.field_77994_a > 1) battery.field_77994_a = 1;
+            func_70296_d();
+        }
+    }
+    @Override public String func_145825_b() { return "container.wartecCommand"; }
+    @Override public boolean func_145818_k_() { return false; }
+    @Override public int func_70297_j_() { return 1; }
+    @Override public void func_70296_d() {}
+    @Override public boolean func_70300_a(EntityPlayer player) {
+        return !field_70128_L && player.func_70092_e(field_70165_t,
+                field_70163_u, field_70161_v) <= 256.0D;
+    }
+    @Override public void func_70295_k_() {}
+    @Override public void func_70305_f() {}
+    @Override public boolean func_94041_b(int slot, ItemStack stack) {
+        return slot == 0 && VehicleEnergyHelper.isBattery(stack);
     }
 
     private static void tell(EntityPlayer player, String text) {

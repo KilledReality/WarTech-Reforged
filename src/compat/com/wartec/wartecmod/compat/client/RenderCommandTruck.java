@@ -34,6 +34,9 @@ public final class RenderCommandTruck extends Render {
         float renderYaw = command.field_70126_B
                 + (command.field_70177_z - command.field_70126_B) * partialTicks;
         GL11.glRotatef(180.0F - renderYaw, 0.0F, 1.0F, 0.0F);
+        float renderPitch = command.field_70127_C
+                + (command.field_70125_A - command.field_70127_C) * partialTicks;
+        GL11.glRotatef(renderPitch, 1.0F, 0.0F, 0.0F);
         GL11.glScalef(WORLD_SCALE, WORLD_SCALE, WORLD_SCALE);
         GL11.glTranslatef(0.0F, 0.0F, -0.4746F);
         renderModel();

@@ -59,6 +59,9 @@ sensors and anti-radiation weapons use a separate emitter picture.
 - Right click a Renault TRM or S-400 radar with an empty hand to open its radar
   interface. The interface accepts one HBM-compatible battery and shows live
   power, contacts, range, ceiling and operational state.
+- Up to eight nearest confirmed contacts are transmitted by the server and
+  plotted as moving blips. The numeric counter can be higher when additional or
+  false jamming contacts are present.
 - Use the interface button to enable/disable the TRM radar or deploy/retract the
   S-400 radar. Shift-right-click remains a quick toggle.
 

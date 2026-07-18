@@ -40,6 +40,9 @@ public final class RenderMobileArtillery extends Render {
         float renderYaw = entity.field_70126_B
                 + (entity.field_70177_z - entity.field_70126_B) * partialTicks;
         GL11.glRotatef(180.0F - renderYaw, 0.0F, 1.0F, 0.0F);
+        float renderPitch = entity.field_70127_C
+                + (entity.field_70125_A - entity.field_70127_C) * partialTicks;
+        GL11.glRotatef(renderPitch, 1.0F, 0.0F, 0.0F);
 
         bind(TRUCK_TEXTURE);
         GL11.glPushMatrix();

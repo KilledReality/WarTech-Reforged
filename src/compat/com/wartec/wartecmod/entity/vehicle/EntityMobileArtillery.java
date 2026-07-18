@@ -6,6 +6,8 @@ import com.hbm.entity.projectile.EntityArtilleryShell;
 import com.hbm.blocks.ModBlocks;
 import com.hbm.items.ModItems;
 import com.wartec.wartecmod.compat.MobileArtilleryContent;
+import com.wartec.wartecmod.compat.HeavyVehicleDynamics;
+import com.wartec.wartecmod.compat.HeavyVehicleDynamics.Motion;
 import com.hbm.main.MainRegistry;
 import com.hbm.tileentity.IGUIProvider;
 import com.hbm.tileentity.turret.TileEntityTurretBaseArtillery;
@@ -48,6 +50,7 @@ public final class EntityMobileArtillery extends Entity implements IGUIProvider 
     private static final int DW_POWER = 31;
 
     private double driveSpeed;
+    private double steeringState;
     private double vehicleHealth = MAX_HEALTH;
     private int fireCooldown;
     private NBTTagCompound ammoTag;
@@ -170,10 +173,16 @@ public final class EntityMobileArtillery extends Entity implements IGUIProvider 
         } else if (field_70181_x < 0.0D) {
             field_70181_x = 0.0D;
         }
+        if (field_70123_F && field_70122_E && Math.abs(driveSpeed) > 0.04D) {
+            field_70181_x = Math.max(field_70181_x, 0.20D);
+        }
+        double oldY = field_70163_u;
         func_70091_d(field_70159_w, field_70181_x, field_70179_y);
+        field_70125_A = HeavyVehicleDynamics.suspensionPitch(
+                field_70125_A, field_70163_u - oldY);
         updateVehicleBounds();
-        field_70159_w *= 0.82D;
-        field_70179_y *= 0.82D;
+        field_70159_w *= 0.72D;
+        field_70179_y *= 0.72D;
         field_70181_x *= 0.98D;
     }
 
@@ -207,7 +216,7 @@ public final class EntityMobileArtillery extends Entity implements IGUIProvider 
         clientTargetZ = z;
         clientTargetYaw = yaw;
         clientTargetPitch = pitch;
-        clientInterpolationTicks = Math.max(1, increments);
+        clientInterpolationTicks = Math.max(3, increments);
     }
 
     @Override
@@ -253,18 +262,19 @@ public final class EntityMobileArtillery extends Entity implements IGUIProvider 
             forward = driver.field_70701_bs;
             steering = driver.field_70702_br;
         }
-        if (Math.abs(forward) > 0.01F) {
-            driveSpeed += forward * 0.018D;
-            double max = forward > 0.0F ? 0.34D : 0.17D;
-            driveSpeed = Math.max(-max, Math.min(max, driveSpeed));
-            field_70177_z -= steering * (float) (2.2D + Math.abs(driveSpeed) * 7.0D)
-                    * (driveSpeed >= 0.0D ? 1.0F : -1.0F);
-        } else {
-            driveSpeed *= 0.91D;
+        Motion motion = HeavyVehicleDynamics.step(driveSpeed, steeringState,
+                field_70177_z, forward, steering, 0.38D, 0.18D,
+                field_70122_E, field_70123_F);
+        driveSpeed = motion.speed;
+        steeringState = motion.steering;
+        field_70177_z = motion.yaw;
+        field_70159_w = motion.motionX;
+        field_70179_y = motion.motionZ;
+        if (field_70153_n != null && Math.abs(driveSpeed) > 0.04D
+                && field_70173_aa % 24 == 0) {
+            field_70170_p.func_72956_a(this, "minecart.base", 0.30F,
+                    (float) (0.80D + Math.min(0.38D, Math.abs(driveSpeed))));
         }
-        double yaw = Math.toRadians(field_70177_z);
-        field_70159_w = -Math.sin(yaw) * driveSpeed;
-        field_70179_y = Math.cos(yaw) * driveSpeed;
     }
 
     private void enforceDeployedCollision() {
@@ -822,9 +832,14 @@ public final class EntityMobileArtillery extends Entity implements IGUIProvider 
     public void func_70043_V() {
         if (field_70153_n != null) {
             double yaw = Math.toRadians(field_70177_z);
-            field_70153_n.func_70107_b(field_70165_t - Math.sin(yaw) * 2.55D,
-                    field_70163_u + 1.18D + field_70153_n.func_70033_W(),
-                    field_70161_v + Math.cos(yaw) * 2.55D);
+            double forwardX = -Math.sin(yaw);
+            double forwardZ = Math.cos(yaw);
+            double rightX = Math.cos(yaw);
+            double rightZ = Math.sin(yaw);
+            field_70153_n.func_70107_b(
+                    field_70165_t + forwardX * 3.35D - rightX * 0.56D,
+                    field_70163_u + 1.08D + field_70153_n.func_70033_W(),
+                    field_70161_v + forwardZ * 3.35D - rightZ * 0.56D);
         }
     }
 

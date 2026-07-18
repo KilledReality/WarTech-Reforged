@@ -74,9 +74,13 @@ new cruise missiles, and mobile artillery platforms.
   900 blocks, and support for up to 32 tracked contacts.
 - Both radar vehicles have an HBM-style control interface with live power,
   contact, range, ceiling, and operating-state readouts plus an HBM battery slot.
+- Confirmed airborne contacts are plotted as synchronized moving blips on the
+  radar display; anti-radiation launches are registered immediately.
 - Right click a radar with an empty hand to open its interface. Shift-right-click
   toggles the TRM radar or deploys/retracts the S-400 radar.
 - **Ural air-defense command post** links radars and launchers into one network.
+- The Ural command interface contains a persistent HBM battery slot and live
+  network/power telemetry.
 - The command interface displays connected radars, detected contacts, available
   launchers, and active interceptions.
 - Detection is based on actual outgoing launches and tracked flying threats,
@@ -89,6 +93,9 @@ new cruise missiles, and mobile artillery platforms.
   mutually exclusive weapon modules.
 - Travel and deployed modes, stabilizing supports, vehicle collision, and
   reinforced vehicle durability.
+- The driveable Ural and HEMTT share smoother heavy-vehicle acceleration,
+  braking, speed-dependent steering, obstacle climbing, suspension pitch, and
+  corrected driver positions inside their cabs.
 - Turret inventory, ammunition, batteries, operating modes, and HBM artillery
   designator integration are available from the mounted weapon interface.
 

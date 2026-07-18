@@ -2,37 +2,52 @@ package com.wartec.wartecmod.compat;
 
 import cpw.mods.fml.common.network.IGuiHandler;
 import java.lang.reflect.Constructor;
+import com.wartec.wartecmod.entity.vehicle.EntityCommandTruck;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.world.World;
 
 public final class RadarGuiHandler implements IGuiHandler {
     public static final int GUI_ID = 71;
+    public static final int GUI_ID_COMMAND = 72;
 
     @Override
     public Object getServerGuiElement(int id, EntityPlayer player, World world,
             int x, int y, int z) {
         IRadarGuiTarget radar = find(id, world, x);
-        return radar == null ? null : new ContainerRadarVehicle(player.field_71071_by, radar);
+        if (radar != null) {
+            return new ContainerRadarVehicle(player.field_71071_by, radar);
+        }
+        EntityCommandTruck command = findCommand(id, world, x);
+        return command == null ? null
+                : new ContainerCommandVehicle(player.field_71071_by, command);
     }
 
     @Override
     public Object getClientGuiElement(int id, EntityPlayer player, World world,
             int x, int y, int z) {
         IRadarGuiTarget radar = find(id, world, x);
-        if (radar == null) {
-            return null;
-        }
         try {
-            Class<?> gui = Class.forName(
-                    "com.wartec.wartecmod.compat.client.GuiRadarVehicle");
-            Constructor<?> constructor = gui.getConstructor(
-                    net.minecraft.entity.player.InventoryPlayer.class,
-                    IRadarGuiTarget.class);
-            return constructor.newInstance(player.field_71071_by, radar);
+            if (radar != null) {
+                Class<?> gui = Class.forName(
+                        "com.wartec.wartecmod.compat.client.GuiRadarVehicle");
+                Constructor<?> constructor = gui.getConstructor(
+                        net.minecraft.entity.player.InventoryPlayer.class,
+                        IRadarGuiTarget.class);
+                return constructor.newInstance(player.field_71071_by, radar);
+            }
+            EntityCommandTruck command = findCommand(id, world, x);
+            if (command != null) {
+                Class<?> gui = Class.forName(
+                        "com.wartec.wartecmod.compat.client.GuiCommandNetwork");
+                Constructor<?> constructor = gui.getConstructor(
+                        net.minecraft.entity.player.InventoryPlayer.class,
+                        EntityCommandTruck.class);
+                return constructor.newInstance(player.field_71071_by, command);
+            }
         } catch (Throwable ignored) {
-            return null;
         }
+        return null;
     }
 
     private static IRadarGuiTarget find(int id, World world, int entityId) {
@@ -41,5 +56,11 @@ public final class RadarGuiHandler implements IGuiHandler {
         }
         Entity entity = world.func_73045_a(entityId);
         return entity instanceof IRadarGuiTarget ? (IRadarGuiTarget) entity : null;
+    }
+
+    private static EntityCommandTruck findCommand(int id, World world, int entityId) {
+        if (id != GUI_ID_COMMAND || world == null) return null;
+        Entity entity = world.func_73045_a(entityId);
+        return entity instanceof EntityCommandTruck ? (EntityCommandTruck) entity : null;
     }
 }

@@ -6,12 +6,19 @@ import com.wartec.wartecmod.entity.vehicle.EntityCommandTruck;
 import com.wartec.wartecmod.entity.vehicle.EntityRadarTruck;
 import com.wartec.wartecmod.entity.vehicle.EntityS400Radar;
 import com.wartec.wartecmod.compat.ContainerRadarVehicle;
+import com.wartec.wartecmod.compat.ContainerCommandVehicle;
+import com.wartec.wartecmod.compat.HeavyVehicleDynamics;
+import com.wartec.wartecmod.compat.HeavyVehicleDynamics.Motion;
+import com.wartec.wartecmod.compat.MissileTrackingService;
 import com.wartec.wartecmod.compat.AntiRadiationRoutePlanner;
 import com.wartec.wartecmod.compat.AntiRadiationRoutePlanner.RouteProfile;
 import java.util.ArrayList;
 import java.util.Random;
 import net.minecraft.world.World;
 import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.entity.Entity;
+import api.hbm.entity.IRadarDetectable;
+import api.hbm.entity.IRadarDetectable.RadarTargetType;
 
 public final class SmokeElectronicWarfare {
     public static void main(String[] args) {
@@ -41,6 +48,37 @@ public final class SmokeElectronicWarfare {
                 player.field_71071_by, longRangeRadar);
         require(s400Container.func_75140_a(player, 0) && longRangeRadar.isDeployed(),
                 "radar GUI toggle must deploy the S-400 radar");
+        ContainerCommandVehicle commandContainer = new ContainerCommandVehicle(
+                player.field_71071_by, command);
+        require(commandContainer.field_75151_b.size() == 37,
+                "command container must expose one battery and 36 player slots");
+
+        Motion moving = new MotionSequence().accelerate();
+        require(moving.speed > 0.30D && moving.speed <= 0.36D,
+                "heavy vehicle must accelerate smoothly to its governed speed");
+        Motion turning = HeavyVehicleDynamics.step(moving.speed, moving.steering,
+                moving.yaw, 1.0F, 1.0F, 0.36D, 0.17D, true, false);
+        require(turning.yaw != moving.yaw,
+                "moving heavy vehicle must respond to steering");
+        Motion collision = HeavyVehicleDynamics.step(turning.speed, turning.steering,
+                turning.yaw, 1.0F, 0.0F, 0.36D, 0.17D, true, true);
+        require(collision.speed < turning.speed * 0.5D,
+                "collision must remove most vehicle speed");
+
+        TestMissile missile = new TestMissile(world, 44);
+        missile.field_70165_t = 100.0D;
+        missile.field_70163_u = 80.0D;
+        missile.field_70161_v = 40.0D;
+        world.field_72996_f.add(missile);
+        int radarContacts = MissileTrackingService.updateRadarSweep(world, 99,
+                0.0D, 64.0D, 0.0D, 600.0D, 500.0D, 8);
+        int[] blips = MissileTrackingService.getRadarBlips(world, 99,
+                0.0D, 0.0D, 8);
+        require(radarContacts == 1 && blips.length == 1,
+                "confirmed missile must appear as a radar blip");
+        require((short) (blips[0] >>> 16) == 100 && (short) blips[0] == 40,
+                "radar blip must preserve relative target coordinates");
+        MissileTrackingService.removeRadar(world, 99);
 
         RouteProfile firstRoute = AntiRadiationRoutePlanner.create(world.field_73012_v);
         RouteProfile secondRoute = AntiRadiationRoutePlanner.create(world.field_73012_v);
@@ -114,6 +152,32 @@ public final class SmokeElectronicWarfare {
         @Override
         public long func_82737_E() {
             return time;
+        }
+    }
+
+    private static final class TestMissile extends Entity implements IRadarDetectable {
+        private final int id;
+
+        TestMissile(World world, int id) {
+            super(world);
+            this.id = id;
+        }
+
+        @Override public int func_145782_y() { return id; }
+        @Override public RadarTargetType getTargetType() {
+            return RadarTargetType.MISSILE_TIER1;
+        }
+    }
+
+    private static final class MotionSequence {
+        Motion accelerate() {
+            Motion motion = HeavyVehicleDynamics.step(0.0D, 0.0D, 0.0F,
+                    1.0F, 0.0F, 0.36D, 0.17D, true, false);
+            for (int i = 0; i < 40; ++i) {
+                motion = HeavyVehicleDynamics.step(motion.speed, motion.steering,
+                        motion.yaw, 1.0F, 0.0F, 0.36D, 0.17D, true, false);
+            }
+            return motion;
         }
     }
 }

@@ -24,6 +24,9 @@ public final class EntityRadarTruck extends Entity
     private static final int DW_ACTIVE = 18;
     private static final int DW_CONTACTS = 19;
     private static final int DW_POWER = 20;
+    private static final int DW_BLIP_COUNT = 21;
+    private static final int DW_BLIP_BASE = 22;
+    private static final int BLIP_LIMIT = 8;
     private static final double MAX_HEALTH = 300.0D;
     private double radarHealth = MAX_HEALTH;
     private String ownerTeam = "";
@@ -41,6 +44,10 @@ public final class EntityRadarTruck extends Entity
         field_70180_af.func_75682_a(DW_ACTIVE, Byte.valueOf((byte) 1));
         field_70180_af.func_75682_a(DW_CONTACTS, Integer.valueOf(0));
         field_70180_af.func_75682_a(DW_POWER, Integer.valueOf(250000));
+        field_70180_af.func_75682_a(DW_BLIP_COUNT, Integer.valueOf(0));
+        for (int i = 0; i < BLIP_LIMIT; ++i) {
+            field_70180_af.func_75682_a(DW_BLIP_BASE + i, Integer.valueOf(0));
+        }
     }
 
     public boolean isRadarActive() {
@@ -83,6 +90,7 @@ public final class EntityRadarTruck extends Entity
             if (getRadarContacts() != 0) {
                 field_70180_af.func_75692_b(DW_CONTACTS, Integer.valueOf(0));
             }
+            clearRadarBlips();
             return;
         }
         field_70180_af.func_75692_b(DW_POWER, Integer.valueOf(getPower() - ENERGY_USE));
@@ -92,6 +100,23 @@ public final class EntityRadarTruck extends Entity
                     RADAR_RANGE, RADAR_CEILING, Integer.MAX_VALUE, ownerTeam,
                     com.wartec.wartecmod.compat.ElectronicWarfareService.BAND_S);
             field_70180_af.func_75692_b(DW_CONTACTS, Integer.valueOf(contacts));
+            updateRadarBlips();
+        }
+    }
+
+    private void updateRadarBlips() {
+        int[] blips = MissileTrackingService.getRadarBlips(field_70170_p,
+                func_145782_y(), field_70165_t, field_70161_v, BLIP_LIMIT);
+        field_70180_af.func_75692_b(DW_BLIP_COUNT, Integer.valueOf(blips.length));
+        for (int i = 0; i < BLIP_LIMIT; ++i) {
+            field_70180_af.func_75692_b(DW_BLIP_BASE + i,
+                    Integer.valueOf(i < blips.length ? blips[i] : 0));
+        }
+    }
+
+    private void clearRadarBlips() {
+        if (field_70180_af.func_75679_c(DW_BLIP_COUNT) != 0) {
+            field_70180_af.func_75692_b(DW_BLIP_COUNT, Integer.valueOf(0));
         }
     }
 
@@ -243,6 +268,14 @@ public final class EntityRadarTruck extends Entity
     @Override public int wartecGetContacts() { return getRadarContacts(); }
     @Override public int wartecGetRange() { return (int) RADAR_RANGE; }
     @Override public int wartecGetCeiling() { return (int) RADAR_CEILING; }
+    @Override public int wartecGetBlipCount() {
+        return Math.max(0, Math.min(BLIP_LIMIT,
+                field_70180_af.func_75679_c(DW_BLIP_COUNT)));
+    }
+    @Override public int wartecGetPackedBlip(int index) {
+        return index >= 0 && index < BLIP_LIMIT
+                ? field_70180_af.func_75679_c(DW_BLIP_BASE + index) : 0;
+    }
     @Override public boolean wartecIsEnabled() { return isRadarActive(); }
     @Override public boolean wartecIsOperational() { return isRadarOperational(); }
     @Override public boolean wartecToggle(EntityPlayer player) {

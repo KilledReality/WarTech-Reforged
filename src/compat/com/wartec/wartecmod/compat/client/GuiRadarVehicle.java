@@ -51,6 +51,7 @@ public final class GuiRadarVehicle extends GuiContainer {
         GL11.glScalef(0.62F, 0.62F, 1.0F);
         func_73729_b(0, 0, 5, 15, 204, 204);
         GL11.glPopMatrix();
+        drawRadarPicture(left, top);
 
         int capacity = Math.max(1, radar.wartecGetCapacity());
         int powerHeight = (int) Math.round(58.0D
@@ -66,6 +67,31 @@ public final class GuiRadarVehicle extends GuiContainer {
         }
         for (int column = 0; column < 9; ++column) {
             drawSlot(left + 7 + column * 18, top + 197);
+        }
+    }
+
+    private void drawRadarPicture(int left, int top) {
+        int centerX = left + 68;
+        int centerY = top + 68;
+        double angle = (System.currentTimeMillis() % 5000L) / 5000.0D
+                * Math.PI * 2.0D;
+        for (int radius = 5; radius <= 55; radius += 3) {
+            int x = centerX + (int) Math.round(Math.sin(angle) * radius);
+            int y = centerY - (int) Math.round(Math.cos(angle) * radius);
+            Gui.func_73734_a(x, y, x + 1, y + 1, 0x805CFF78);
+        }
+        double scale = 54.0D / Math.max(1, radar.wartecGetRange());
+        int count = radar.wartecGetBlipCount();
+        for (int i = 0; i < count; ++i) {
+            int packed = radar.wartecGetPackedBlip(i);
+            int relativeX = (short) (packed >>> 16);
+            int relativeZ = (short) packed;
+            int x = centerX + (int) Math.round(relativeX * scale);
+            int y = centerY + (int) Math.round(relativeZ * scale);
+            int color = ((System.currentTimeMillis() / 250L + i) & 1L) == 0L
+                    ? 0xFFFF5E55 : 0xFFFFC15A;
+            Gui.func_73734_a(x - 2, y - 2, x + 3, y + 3, color);
+            Gui.func_73734_a(x - 3, y, x + 4, y + 1, 0xFFFFFFFF);
         }
     }
 

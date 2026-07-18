@@ -12,6 +12,8 @@ public interface IRadarGuiTarget extends IInventory {
     int wartecGetContacts();
     int wartecGetRange();
     int wartecGetCeiling();
+    int wartecGetBlipCount();
+    int wartecGetPackedBlip(int index);
     boolean wartecIsEnabled();
     boolean wartecIsOperational();
     boolean wartecToggle(EntityPlayer player);

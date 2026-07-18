@@ -222,6 +222,56 @@ public final class MissileTrackingService {
         }
     }
 
+    public static int[] getRadarBlips(World world, int radarId,
+            double radarX, double radarZ, int maximum) {
+        if (world == null || world.field_72995_K || radarId <= 0 || maximum <= 0) {
+            return new int[0];
+        }
+        WorldTracks tracks = getWorldTracks(world);
+        long now = world.func_82737_E();
+        refresh(world, tracks, now);
+        int limit = Math.min(16, maximum);
+        int[] packed = new int[limit];
+        double[] distances = new double[limit];
+        int count = 0;
+        Integer radarKey = Integer.valueOf(radarId);
+        for (Track track : tracks.tracks.values()) {
+            Entity entity = track.entity;
+            Long seen = track.radarSeen.get(radarKey);
+            if (entity == null || entity.field_70128_L || seen == null
+                    || now - seen.longValue() > TRACK_TIMEOUT
+                    || getTargetTier(entity) == 0) {
+                continue;
+            }
+            double dx = entity.field_70165_t - radarX;
+            double dz = entity.field_70161_v - radarZ;
+            double distance = dx * dx + dz * dz;
+            int relativeX = clampSignedShort((int) Math.round(dx));
+            int relativeZ = clampSignedShort((int) Math.round(dz));
+            int value = (relativeX & 65535) << 16 | relativeZ & 65535;
+            int insert = count;
+            while (insert > 0 && distances[insert - 1] > distance) {
+                if (insert < limit) {
+                    distances[insert] = distances[insert - 1];
+                    packed[insert] = packed[insert - 1];
+                }
+                --insert;
+            }
+            if (insert < limit) {
+                distances[insert] = distance;
+                packed[insert] = value;
+                if (count < limit) ++count;
+            }
+        }
+        int[] result = new int[count];
+        System.arraycopy(packed, 0, result, 0, count);
+        return result;
+    }
+
+    private static int clampSignedShort(int value) {
+        return Math.max(Short.MIN_VALUE, Math.min(Short.MAX_VALUE, value));
+    }
+
     public static CommandSnapshot updateCommandPost(World world, int commandId,
             double x, double y, double z) {
         return updateCommandPost(world, commandId, x, y, z, "");

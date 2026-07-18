@@ -2,6 +2,7 @@ package net.minecraft.entity;
 
 import net.minecraft.world.World;
 import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.entity.item.EntityItem;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.DamageSource;
@@ -51,7 +52,7 @@ public class Entity {
     public boolean func_70097_a(DamageSource source, float amount) { return false; }
     public boolean func_130002_c(EntityPlayer player) { return false; }
     public void func_70078_a(Entity entity) {}
-    public void func_70099_a(ItemStack stack, float offset) {}
+    public EntityItem func_70099_a(ItemStack stack, float offset) { return null; }
     public int func_145782_y() { return 0; }
     public boolean func_70112_a(double distance) { return true; }
 }
