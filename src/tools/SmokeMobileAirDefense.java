@@ -22,6 +22,8 @@ public final class SmokeMobileAirDefense {
         require(tor.getRequiredInterceptorTier() == 2
                         && tor.getEngagementRange() == 220,
                 "Tor must use tier-2 interceptors at short range");
+        require("WTI-2 LANCE".equals(tor.getRequiredInterceptorName()),
+                "Tor GUI must identify its compatible missile");
         require(tor.func_94041_b(0,
                         new TestStack(wartecmodItems.itemMissileAntiAirTier2)),
                 "Tor must accept WTI-2");
@@ -50,6 +52,8 @@ public final class SmokeMobileAirDefense {
         require(pantsir.getRequiredInterceptorTier() == 1
                         && pantsir.getEngagementRange() == 100,
                 "Pantsir must use tier-1 interceptors for point defense");
+        require("WTI-1 FALCON".equals(pantsir.getRequiredInterceptorName()),
+                "Pantsir GUI must identify its compatible missile");
         pantsir.func_70299_a(0,
                 new TestStack(wartecmodItems.itemMissileAntiAirTier1));
         pantsir.func_70299_a(1,
@@ -64,9 +68,11 @@ public final class SmokeMobileAirDefense {
         java.lang.reflect.Method updateDriving = EntityMobileAirDefense.class
                 .getDeclaredMethod("updateDriving");
         updateDriving.setAccessible(true);
-        updateDriving.invoke(pantsir);
-        require(Math.abs(pantsir.field_70159_w) + Math.abs(pantsir.field_70179_y) > 0.0D,
-                "mobile air-defense vehicle must respond to W input");
+        for (int i = 0; i < 15; ++i) {
+            updateDriving.invoke(pantsir);
+        }
+        require(Math.abs(pantsir.field_70159_w) + Math.abs(pantsir.field_70179_y) > 0.30D,
+                "mobile air-defense vehicle must build useful road speed quickly");
         pantsir.func_70097_a(new DamageSource(), 600.0F);
         require(pantsir.field_70128_L,
                 "a severe missile-scale hit must destroy mobile air defense");

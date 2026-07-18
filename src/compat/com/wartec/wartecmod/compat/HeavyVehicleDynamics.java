@@ -7,6 +7,14 @@ public final class HeavyVehicleDynamics {
     public static Motion step(double speed, double steeringState, float yaw,
             float throttleInput, float steeringInput, double maximumForward,
             double maximumReverse, boolean grounded, boolean collided) {
+        return step(speed, steeringState, yaw, throttleInput, steeringInput,
+                maximumForward, maximumReverse, grounded, collided, 1.0D, 0.38D);
+    }
+
+    public static Motion step(double speed, double steeringState, float yaw,
+            float throttleInput, float steeringInput, double maximumForward,
+            double maximumReverse, boolean grounded, boolean collided,
+            double engineResponse, double collisionRetention) {
         double throttle = deadZone(clamp(throttleInput, -1.0D, 1.0D));
         double steering = deadZone(clamp(steeringInput, -1.0D, 1.0D));
         double targetSpeed = throttle >= 0.0D
@@ -15,12 +23,12 @@ public final class HeavyVehicleDynamics {
         if (Math.abs(throttle) < 0.001D) {
             rate = 0.012D + Math.abs(speed) * 0.075D;
         } else if (speed * targetSpeed < 0.0D) {
-            rate = 0.045D;
+            rate = 0.045D * engineResponse;
         } else {
-            rate = grounded ? 0.014D : 0.005D;
+            rate = (grounded ? 0.014D : 0.005D) * engineResponse;
         }
         speed = approach(speed, targetSpeed, rate);
-        if (collided) speed *= 0.38D;
+        if (collided) speed *= clamp(collisionRetention, 0.0D, 1.0D);
         if (Math.abs(speed) < 0.002D) speed = 0.0D;
 
         double steeringRate = Math.abs(steering) > Math.abs(steeringState)

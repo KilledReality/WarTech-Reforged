@@ -136,6 +136,10 @@ public final class EntityMobileAirDefense extends Entity
         return isTor() ? 2 : 1;
     }
 
+    public String getRequiredInterceptorName() {
+        return isTor() ? "WTI-2 LANCE" : "WTI-1 FALCON";
+    }
+
     public int getRadarRange() {
         return isTor() ? 340 : 260;
     }
@@ -356,11 +360,11 @@ public final class EntityMobileAirDefense extends Entity
             forward = driver.field_70701_bs;
             steering = driver.field_70702_br;
         }
-        double maxForward = isTor() ? 0.28D : 0.34D;
-        double maxReverse = isTor() ? 0.14D : 0.17D;
+        double maxForward = isTor() ? 0.42D : 0.46D;
+        double maxReverse = isTor() ? 0.20D : 0.22D;
         Motion motion = HeavyVehicleDynamics.step(driveSpeed, steeringState,
                 field_70177_z, forward, steering, maxForward, maxReverse,
-                field_70122_E, field_70123_F);
+                field_70122_E, field_70123_F, 1.70D, 0.68D);
         driveSpeed = motion.speed;
         steeringState = motion.steering;
         field_70177_z = motion.yaw;

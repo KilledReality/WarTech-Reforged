@@ -126,8 +126,9 @@ public final class GuiMobileAirDefense extends GuiContainer {
                 : system.isDeployed() ? "NO POWER / RADAR OFF" : "TRAVEL";
         field_146289_q.func_78276_b(status, 150, 21,
                 system.isOperational() ? green : 0xFFB34F);
-        field_146289_q.func_78276_b("MISSILES " + system.getAmmoCount()
-                + "/" + system.getMissileCapacity(), 150, 29, white);
+        field_146289_q.func_78276_b(system.getRequiredInterceptorName()
+                + " ONLY " + system.getAmmoCount() + "/" + system.getMissileCapacity(),
+                150, 29, 0xFFD65A);
         field_146289_q.func_78276_b("CONTACTS " + system.getContacts(), 8, 7, green);
         field_146289_q.func_78276_b("RANGE " + system.getEngagementRange(), 8, 125, white);
         field_146289_q.func_78276_b("HEALTH " + system.getHealthPercent() + "%",
