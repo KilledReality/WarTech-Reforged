@@ -58,3 +58,15 @@ AGM-88 HARM missile
 Creator: hayfertepur1982
 Source: https://sketchfab.com/3d-models/agm-88-missile-065a61a8b6d349d3aed9c544e04f6bf2
 License: Creative Commons Attribution (CC BY)
+
+9K331 Tor-M1
+Sketchfab uploader: 42manako
+Model credit on source page: DartShinigami
+Source: https://sketchfab.com/3d-models/9k331-tor-m1-3098265903054ae8b8bdc1536835c3db
+License: Creative Commons Attribution (CC BY)
+
+96K6 Pantsir-S2
+Sketchfab uploader: 42manako
+Source: https://sketchfab.com/3d-models/96k6-pantsir-s2-758055e673b543bd9ec3f504c8d60e8b
+License: Creative Commons Attribution (CC BY)
+Note: the source page states that this is not the uploader's original model.

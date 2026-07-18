@@ -99,6 +99,24 @@ WarTech Reforged currently targets HBM NTM `1.0.27 X5751` specifically.
 - Changes: converted, reoriented, scaled, and integrated as an anti-radiation
   missile.
 
+### 9K331 Tor-M1
+
+- Sketchfab uploader: 42manako
+- Model credit stated on the source page: DartShinigami
+- Source: https://sketchfab.com/3d-models/9k331-tor-m1-3098265903054ae8b8bdc1536835c3db
+- License: Creative Commons Attribution (CC BY)
+- Changes: extracted from the downloaded archive, material groups separated,
+  textures reduced, scaled, cached, and integrated as a mobile air-defense unit.
+
+### 96K6 Pantsir-S2
+
+- Sketchfab uploader: 42manako
+- Source: https://sketchfab.com/3d-models/96k6-pantsir-s2-758055e673b543bd9ec3f504c8d60e8b
+- License: Creative Commons Attribution (CC BY)
+- Source-page note: the uploader states that the model is not their original model.
+- Changes: converted from FBX to OBJ, object groups preserved, texture reduced,
+  scaled, cached, and integrated as a mobile air-defense unit.
+
 ## Restricted or Incomplete Attribution
 
 ### S-400 Triumf SAM system

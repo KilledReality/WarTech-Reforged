@@ -5,6 +5,7 @@ import com.wartec.wartecmod.entity.vehicle.EntityS400Radar;
 import com.wartec.wartecmod.entity.vehicle.EntityCommandTruck;
 import com.wartec.wartecmod.entity.vehicle.EntityElectronicWarfareUnit;
 import com.wartec.wartecmod.entity.missile.EntityAntiRadiationMissile;
+import com.wartec.wartecmod.entity.vehicle.EntityMobileAirDefense;
 import com.wartec.wartecmod.wartecmod;
 import cpw.mods.fml.common.registry.EntityRegistry;
 import cpw.mods.fml.common.registry.GameRegistry;
@@ -16,6 +17,7 @@ public final class RadarNetworkContent {
     public static Item commandTruck;
     public static Item electronicWarfareUnit;
     public static Item antiRadiationMissile;
+    public static Item mobileAirDefense;
 
     private RadarNetworkContent() {
     }
@@ -44,6 +46,10 @@ public final class RadarNetworkContent {
                 .func_111206_d("wartecmod:storm_shadow");
         GameRegistry.registerItem(electronicWarfareUnit, "ElectronicWarfareUnit");
         GameRegistry.registerItem(antiRadiationMissile, "AntiRadiationMissile");
+        mobileAirDefense = new ItemMobileAirDefense()
+                .func_77637_a(wartecmod.tabwartecmodcruisemissiles)
+                .func_111206_d("wartecmod:mobile_radar");
+        GameRegistry.registerItem(mobileAirDefense, "MobileAirDefenseSystem");
         EntityRegistry.registerModEntity(EntityRadarTruck.class, "entity_Mobile_Radar", 31,
                 wartecmod.instance, 512, 1, true);
         EntityRegistry.registerModEntity(EntityS400Radar.class, "entity_S400_Radar", 32,
@@ -54,5 +60,7 @@ public final class RadarNetworkContent {
                 wartecmod.instance, 512, 1, true);
         EntityRegistry.registerModEntity(EntityAntiRadiationMissile.class, "entity_AGM_88_HARM", 35,
                 wartecmod.instance, 1000, 1, true);
+        EntityRegistry.registerModEntity(EntityMobileAirDefense.class,
+                "entity_Mobile_Air_Defense", 36, wartecmod.instance, 768, 1, true);
     }
 }

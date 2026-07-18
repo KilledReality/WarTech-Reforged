@@ -577,6 +577,94 @@ public final class VlsDefenseCompat {
         return 0;
     }
 
+    public static int getInterceptorTier(ItemStack stack) {
+        if (stack == null) {
+            return 0;
+        }
+        Item item = stack.func_77973_b();
+        if (item == wartecmodItems.itemMissileAntiAirTier1) {
+            return 1;
+        }
+        if (item == wartecmodItems.itemMissileAntiAirTier2) {
+            return 2;
+        }
+        if (item == wartecmodItems.itemMissileAntiAirTier3) {
+            return 3;
+        }
+        return 0;
+    }
+
+    public static boolean launchMobileInterceptor(World world, double x, double y,
+            double z, float launchYaw, int tier, double range, long ownerKey,
+            boolean verticalLaunch) {
+        if (world == null || world.field_72995_K || tier < 1 || tier > 3) {
+            return false;
+        }
+        Entity target = MissileTrackingService.findThreat(world, x, y, z,
+                tier, range, ownerKey);
+        if (target == null) {
+            return false;
+        }
+        int targetId = target.func_145782_y();
+        if (!MissileTrackingService.tryReserve(world, targetId, ownerKey)) {
+            return false;
+        }
+        try {
+            String name = "com.wartec.wartecmod.entity.missile.EntityMissileAntiAirTier" + tier;
+            Class<?> type = Class.forName(name);
+            Constructor<?> constructor = type.getConstructor(World.class);
+            Entity interceptor = (Entity) constructor.newInstance(world);
+            interceptor.func_70012_b(x, y, z, launchYaw, 0.0F);
+
+            double dx = target.field_70165_t - x;
+            double dz = target.field_70161_v - z;
+            double horizontal = Math.sqrt(dx * dx + dz * dz);
+            if (verticalLaunch || horizontal < 0.01D) {
+                interceptor.field_70159_w = 0.0D;
+                interceptor.field_70181_x = tier == 1 ? 2.2D : 2.4D;
+                interceptor.field_70179_y = 0.0D;
+            } else {
+                interceptor.field_70159_w = dx / horizontal * 1.45D;
+                interceptor.field_70181_x = 0.72D;
+                interceptor.field_70179_y = dz / horizontal * 1.45D;
+            }
+
+            boolean malfunction = world.field_73012_v.nextDouble()
+                    < MALFUNCTION_CHANCES[tier];
+            if (malfunction) {
+                double baseAngle = Math.atan2(dz, dx);
+                double angle = baseAngle + (world.field_73012_v.nextDouble() - 0.5D) * 1.2D;
+                double speed = 0.8D + tier * 0.22D;
+                interceptor.field_70159_w = Math.cos(angle) * speed;
+                interceptor.field_70179_y = Math.sin(angle) * speed;
+                interceptor.field_70181_x = verticalLaunch ? 1.35D : 0.55D;
+                ((VlsInterceptor) interceptor).wartecSetTarget(-1);
+            } else {
+                ((VlsInterceptor) interceptor).wartecSetTarget(targetId);
+            }
+            if (!world.func_72838_d(interceptor)) {
+                MissileTrackingService.releaseReservation(world, targetId, ownerKey);
+                return false;
+            }
+            if (malfunction) {
+                MissileTrackingService.releaseReservation(world, targetId, ownerKey);
+                MissileTrackingService.deferTarget(world, targetId);
+            } else {
+                rememberTarget(interceptor, target);
+                MissileTrackingService.confirmReservation(world, targetId, ownerKey,
+                        interceptor.func_145782_y());
+            }
+            spawnLaunchSmoke(world, x, y, z, tier);
+            world.func_72908_a(x, y, z, "wartecmod:rocket_launch", 3.2F,
+                    verticalLaunch ? 0.95F : 1.08F);
+            return true;
+        } catch (Throwable error) {
+            MissileTrackingService.releaseReservation(world, targetId, ownerKey);
+            error.printStackTrace();
+            return false;
+        }
+    }
+
     private static boolean isValidTarget(Entity entity, int tier) {
         return getTargetTier(entity) > 0;
     }

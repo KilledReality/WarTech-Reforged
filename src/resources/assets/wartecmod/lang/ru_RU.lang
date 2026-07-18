@@ -112,3 +112,7 @@ item.RadarDecoyEmitter.name=Развёртываемый ложный излуч
 item.ItemAntiRadiationMissile.name=Противорадиолокационная ракета AGM-88 HARM
 entity.entity_EW_Unit.name=Комплекс радиоэлектронной борьбы
 entity.entity_AGM_88_HARM.name=Противорадиолокационная ракета AGM-88 HARM
+item.TorM1System.name=Мобильный ЗРК 9К331 «Тор-М1»
+item.PantsirS2System.name=ЗРПК 96К6 «Панцирь-С2»
+entity.entity_Mobile_Air_Defense.name=Мобильный комплекс ПВО малой дальности
+container.wartecMobileAirDefense=Управление мобильным комплексом ПВО

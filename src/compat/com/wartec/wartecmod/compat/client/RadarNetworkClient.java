@@ -6,6 +6,7 @@ import com.wartec.wartecmod.entity.vehicle.EntityS400Radar;
 import com.wartec.wartecmod.entity.vehicle.EntityCommandTruck;
 import com.wartec.wartecmod.entity.vehicle.EntityElectronicWarfareUnit;
 import com.wartec.wartecmod.entity.missile.EntityAntiRadiationMissile;
+import com.wartec.wartecmod.entity.vehicle.EntityMobileAirDefense;
 import cpw.mods.fml.client.registry.RenderingRegistry;
 import net.minecraftforge.client.MinecraftForgeClient;
 
@@ -38,5 +39,10 @@ public final class RadarNetworkClient {
                 armRenderer);
         MinecraftForgeClient.registerItemRenderer(RadarNetworkContent.antiRadiationMissile,
                 new ItemRenderAdvancedMissile(armRenderer, 0.21F, 135.0F));
+        RenderMobileAirDefense mobileDefenseRenderer = new RenderMobileAirDefense();
+        RenderingRegistry.registerEntityRenderingHandler(EntityMobileAirDefense.class,
+                mobileDefenseRenderer);
+        MinecraftForgeClient.registerItemRenderer(RadarNetworkContent.mobileAirDefense,
+                new ItemRenderMobileAirDefense(mobileDefenseRenderer));
     }
 }

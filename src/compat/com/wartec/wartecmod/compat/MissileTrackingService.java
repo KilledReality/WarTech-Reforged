@@ -132,6 +132,17 @@ public final class MissileTrackingService {
         return best;
     }
 
+    public static void updateLauncherPresence(World world, double x, double y,
+            double z, int tier, long ownerKey) {
+        if (world == null || world.field_72995_K) {
+            return;
+        }
+        WorldTracks tracks = getWorldTracks(world);
+        long now = world.func_82737_E();
+        expireNetworkNodes(tracks, now);
+        updateLauncher(tracks, ownerKey, x, y, z, tier, now);
+    }
+
     public static int updateRadarSweep(World world, int radarId, double radarX, double radarY,
             double radarZ, double range, double ceiling) {
         return updateRadarSweep(world, radarId, radarX, radarY, radarZ,
