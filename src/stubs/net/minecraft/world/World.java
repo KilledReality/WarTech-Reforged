@@ -6,6 +6,7 @@ import net.minecraft.entity.Entity;
 import net.minecraft.block.Block;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.AxisAlignedBB;
+import net.minecraft.world.chunk.Chunk;
 
 public class World {
     public boolean field_72995_K;
@@ -23,6 +24,7 @@ public class World {
     public void func_147455_a(int x, int y, int z, TileEntity tile) {}
     public void func_147475_p(int x, int y, int z) {}
     public Block func_147439_a(int x, int y, int z) { return null; }
+    public Chunk func_72964_e(int x, int z) { return null; }
     public boolean func_147437_c(int x, int y, int z) { return true; }
     public boolean func_147465_d(int x, int y, int z, Block block, int metadata, int flags) { return true; }
     public boolean func_147468_f(int x, int y, int z) { return true; }

@@ -31,7 +31,7 @@ public final class EntityMobileAirDefense extends Entity
     public static final int BATTERY_SLOT = 12;
     private static final int INVENTORY_SIZE = 13;
     private static final int LAUNCH_ENERGY = 50000;
-    private static final double MAX_HEALTH = 900.0D;
+    private static final double MAX_HEALTH = 500.0D;
 
     private static final int DW_VARIANT = 18;
     private static final int DW_DEPLOYED = 19;
@@ -477,12 +477,12 @@ public final class EntityMobileAirDefense extends Entity
         double forwardZ = Math.cos(yaw);
         double rightX = Math.cos(yaw);
         double rightZ = Math.sin(yaw);
-        // Pantsir's cab is on the negative entity-forward end of the model.
-        double forward = isTor() ? 1.75D : -2.45D;
+        double forward = isTor() ? 2.05D : 2.45D;
+        double side = isTor() ? 0.42D : 0.48D;
         field_70153_n.func_70107_b(
-                field_70165_t + forwardX * forward - rightX * 0.48D,
+                field_70165_t + forwardX * forward - rightX * side,
                 field_70163_u + 1.05D + field_70153_n.func_70033_W(),
-                field_70161_v + forwardZ * forward - rightZ * 0.48D);
+                field_70161_v + forwardZ * forward - rightZ * side);
     }
 
     @Override
@@ -519,7 +519,7 @@ public final class EntityMobileAirDefense extends Entity
             destroyVehicle(false);
             return true;
         }
-        vehicleHealth -= Math.min(80.0D, amount);
+        vehicleHealth -= amount;
         if (vehicleHealth <= 0.0D) {
             destroyVehicle(true);
         } else if (vehicleHealth < MAX_HEALTH * 0.25D) {

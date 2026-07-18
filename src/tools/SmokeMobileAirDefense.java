@@ -6,6 +6,7 @@ import java.util.Random;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
+import net.minecraft.util.DamageSource;
 import net.minecraft.world.World;
 
 public final class SmokeMobileAirDefense {
@@ -66,6 +67,9 @@ public final class SmokeMobileAirDefense {
         updateDriving.invoke(pantsir);
         require(Math.abs(pantsir.field_70159_w) + Math.abs(pantsir.field_70179_y) > 0.0D,
                 "mobile air-defense vehicle must respond to W input");
+        pantsir.func_70097_a(new DamageSource(), 600.0F);
+        require(pantsir.field_70128_L,
+                "a severe missile-scale hit must destroy mobile air defense");
 
         System.out.println("Mobile air-defense smoke test passed");
     }

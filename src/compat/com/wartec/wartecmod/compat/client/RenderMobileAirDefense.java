@@ -46,7 +46,7 @@ public final class RenderMobileAirDefense extends Render {
                 + (system.field_70177_z - system.field_70126_B) * partialTicks;
         float renderPitch = system.field_70127_C
                 + (system.field_70125_A - system.field_70127_C) * partialTicks;
-        GL11.glRotatef(180.0F - renderYaw, 0.0F, 1.0F, 0.0F);
+        GL11.glRotatef(-renderYaw, 0.0F, 1.0F, 0.0F);
         GL11.glRotatef(renderPitch, 1.0F, 0.0F, 0.0F);
         renderVariant(system.getVariant(), system.isDeployed()
                 ? (system.field_70173_aa + partialTicks) * 1.8F : 0.0F);
