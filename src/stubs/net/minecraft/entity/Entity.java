@@ -40,7 +40,11 @@ public class Entity {
     public AxisAlignedBB func_70046_E() { return field_70121_D; }
     public AxisAlignedBB func_70114_g(Entity entity) { return null; }
     public boolean func_70104_M() { return false; }
-    public void func_70107_b(double x, double y, double z) {}
+    public void func_70107_b(double x, double y, double z) {
+        field_70165_t = x;
+        field_70163_u = y;
+        field_70161_v = z;
+    }
     public void func_70106_y() { field_70128_L = true; }
     public void func_70071_h_() {}
     public void func_70105_a(float width, float height) {}

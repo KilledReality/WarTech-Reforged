@@ -21,7 +21,7 @@ import api.hbm.entity.IRadarDetectable;
 import api.hbm.entity.IRadarDetectable.RadarTargetType;
 
 public final class SmokeElectronicWarfare {
-    public static void main(String[] args) {
+    public static void main(String[] args) throws Exception {
         TestWorld world = new TestWorld();
         EntityElectronicWarfareUnit unit = new EntityElectronicWarfareUnit(world);
         unit.setMode(EntityElectronicWarfareUnit.MODE_JAMMER);
@@ -52,6 +52,22 @@ public final class SmokeElectronicWarfare {
                 player.field_71071_by, command);
         require(commandContainer.field_75151_b.size() == 37,
                 "command container must expose one battery and 36 player slots");
+
+        EntityCommandTruck drivingCommand = new EntityCommandTruck(world);
+        EntityPlayer driver = new EntityPlayer(world);
+        driver.field_70701_bs = 1.0F;
+        drivingCommand.field_70122_E = true;
+        drivingCommand.field_70153_n = driver;
+        java.lang.reflect.Method updateDriving = EntityCommandTruck.class
+                .getDeclaredMethod("updateDriving");
+        updateDriving.setAccessible(true);
+        updateDriving.invoke(drivingCommand);
+        require(drivingCommand.field_70179_y < 0.0D,
+                "Ural W input must move toward the visual front of the model");
+        drivingCommand.func_70043_V();
+        require(Math.abs(driver.field_70165_t + 0.48D) < 0.001D
+                        && Math.abs(driver.field_70161_v + 1.55D) < 0.001D,
+                "Ural driver must sit inside the cab rather than ahead of it");
 
         Motion moving = new MotionSequence().accelerate();
         require(moving.speed > 0.30D && moving.speed <= 0.36D,

@@ -198,8 +198,9 @@ public final class EntityCommandTruck extends Entity
         driveSpeed = motion.speed;
         steeringState = motion.steering;
         field_70177_z = motion.yaw;
-        field_70159_w = motion.motionX;
-        field_70179_y = motion.motionZ;
+        // The Ural OBJ faces opposite Minecraft's conventional entity heading.
+        field_70159_w = -motion.motionX;
+        field_70179_y = -motion.motionZ;
         if (field_70153_n != null && Math.abs(driveSpeed) > 0.04D
                 && field_70173_aa % 24 == 0) {
             field_70170_p.func_72956_a(this, "minecart.base", 0.28F,
@@ -290,9 +291,9 @@ public final class EntityCommandTruck extends Entity
             double rightX = Math.cos(yaw);
             double rightZ = Math.sin(yaw);
             field_70153_n.func_70107_b(
-                    field_70165_t - forwardX * 2.15D - rightX * 0.48D,
+                    field_70165_t - forwardX * 1.55D - rightX * 0.48D,
                     field_70163_u + 0.98D + field_70153_n.func_70033_W(),
-                    field_70161_v - forwardZ * 2.15D - rightZ * 0.48D);
+                    field_70161_v - forwardZ * 1.55D - rightZ * 0.48D);
         }
     }
 
