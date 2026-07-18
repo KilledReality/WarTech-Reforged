@@ -10,6 +10,7 @@ import net.minecraft.item.Item;
 public final class DroneStrikeContent {
     public static Item mq9Drone;
     public static Item mq9Payload;
+    public static Item mq9Flares;
 
     private DroneStrikeContent() {
     }
@@ -24,8 +25,12 @@ public final class DroneStrikeContent {
         mq9Payload = new ItemMq9Payload()
                 .func_77637_a(wartecmod.tabwartecmodcruisemissiles)
                 .func_111206_d("wartecmod:mq9_hellfire");
+        mq9Flares = new ItemMq9Flares()
+                .func_77637_a(wartecmod.tabwartecmodcruisemissiles)
+                .func_111206_d("hbm:ammo_standard.g26_flare_supply");
         GameRegistry.registerItem(mq9Drone, "MQ9ReaperDrone");
         GameRegistry.registerItem(mq9Payload, "MQ9Payload");
+        GameRegistry.registerItem(mq9Flares, "MQ9Flares");
         EntityRegistry.registerModEntity(EntityMq9Drone.class, "entity_MQ9_Drone", 37,
                 wartecmod.instance, 1200, 1, true);
         EntityRegistry.registerModEntity(EntityMq9Munition.class, "entity_MQ9_Munition", 38,
@@ -36,5 +41,9 @@ public final class DroneStrikeContent {
         return stack != null && stack.func_77973_b() == mq9Payload
                 && stack.func_77960_j() >= ItemMq9Payload.HELLFIRE
                 && stack.func_77960_j() <= ItemMq9Payload.MK82;
+    }
+
+    public static boolean isFlares(net.minecraft.item.ItemStack stack) {
+        return stack != null && stack.func_77973_b() == mq9Flares;
     }
 }

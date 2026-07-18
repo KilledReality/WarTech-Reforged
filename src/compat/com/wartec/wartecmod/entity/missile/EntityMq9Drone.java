@@ -22,6 +22,7 @@ import net.minecraft.util.ChatComponentText;
 import net.minecraft.util.DamageSource;
 import net.minecraft.util.Vec3;
 import net.minecraft.world.World;
+import net.minecraft.world.WorldServer;
 
 public final class EntityMq9Drone extends Entity
         implements IInventory, IRadarDetectable, IRadarDetectableNT {
@@ -33,8 +34,10 @@ public final class EntityMq9Drone extends Entity
     public static final int STATE_LANDING = 5;
     public static final int STATE_CRASHED = 6;
     public static final int BATTERY_SLOT = 6;
+    public static final int FLARE_SLOT = 7;
+    public static final int MAX_TARGETS = 6;
     public static final int ENERGY_CAPACITY = 800000;
-    private static final int INVENTORY_SIZE = 7;
+    private static final int INVENTORY_SIZE = 8;
     private static final int ENERGY_PER_TICK = 12;
     private static final int LAUNCH_ENERGY = 35000;
     private static final double MAX_MISSION_RANGE = 2400.0D;
@@ -52,6 +55,7 @@ public final class EntityMq9Drone extends Entity
     private static final int DW_PAYLOAD_MASK = 24;
     private static final int DW_HEALTH = 25;
     private static final int DW_FLAGS = 26;
+    private static final int DW_TARGET_QUEUE = 27;
     private static final int FLAG_TARGET_VALID = 1;
 
     private final ItemStack[] inventory = new ItemStack[INVENTORY_SIZE];
@@ -66,11 +70,20 @@ public final class EntityMq9Drone extends Entity
     private float homeYaw;
     private double routeLateral;
     private double routeWave;
+    private double routeStartX;
+    private double routeStartZ;
     private double vehicleHealth = MAX_HEALTH;
     private boolean homeInitialized;
     private boolean weaponReleased;
     private int stateTicks;
     private int landingPhase;
+    private final int[] missionTargetX = new int[MAX_TARGETS];
+    private final int[] missionTargetY = new int[MAX_TARGETS];
+    private final int[] missionTargetZ = new int[MAX_TARGETS];
+    private int targetCount;
+    private int targetIndex;
+    private int flareCooldown;
+    private int flareActiveTicks;
     private double clientTargetX;
     private double clientTargetY;
     private double clientTargetZ;
@@ -98,6 +111,7 @@ public final class EntityMq9Drone extends Entity
         field_70180_af.func_75682_a(DW_PAYLOAD_MASK, Integer.valueOf(0));
         field_70180_af.func_75682_a(DW_HEALTH, Integer.valueOf(100));
         field_70180_af.func_75682_a(DW_FLAGS, Integer.valueOf(0));
+        field_70180_af.func_75682_a(DW_TARGET_QUEUE, Integer.valueOf(0));
     }
 
     public void initializeHome() {
@@ -147,6 +161,13 @@ public final class EntityMq9Drone extends Entity
     public int getTargetZ() { return field_70180_af.func_75679_c(DW_TARGET_Z); }
     public int getSelectedPayload() { return field_70180_af.func_75683_a(DW_SELECTED); }
     public int getPayloadMask() { return field_70180_af.func_75679_c(DW_PAYLOAD_MASK); }
+    public int getTargetCount() { return field_70180_af.func_75679_c(DW_TARGET_QUEUE) & 15; }
+    public int getTargetIndex() { return field_70180_af.func_75679_c(DW_TARGET_QUEUE) >>> 4 & 15; }
+
+    public int getFlareCount() {
+        ItemStack flares = inventory[FLARE_SLOT];
+        return DroneStrikeContent.isFlares(flares) ? flares.field_77994_a : 0;
+    }
 
     public int getPayloadAt(int slot) {
         if (slot < 0 || slot >= 6) return -1;
@@ -187,6 +208,8 @@ public final class EntityMq9Drone extends Entity
             return;
         }
         if (!homeInitialized) initializeHome();
+        if (flareCooldown > 0) flareCooldown--;
+        if (flareActiveTicks > 0) flareActiveTicks--;
         int charged = VehicleEnergyHelper.chargeFromStack(inventory[BATTERY_SLOT],
                 getPower(), ENERGY_CAPACITY);
         if (charged != getPower()) setPower(charged);
@@ -250,7 +273,8 @@ public final class EntityMq9Drone extends Entity
             releaseWeapon(payload);
             return;
         }
-        double[] aim = routeAim(homeX, homeZ, targetX + 0.5D, targetZ + 0.5D,
+        double[] aim = routeAim(routeStartX, routeStartZ,
+                targetX + 0.5D, targetZ + 0.5D,
                 field_70165_t, field_70161_v, routeLateral, routeWave);
         int terrain = field_70170_p.func_72976_f(floor(aim[0]), floor(aim[1]));
         double desiredY = Math.max(homeY + 36.0D, terrain + 30.0D);
@@ -290,7 +314,23 @@ public final class EntityMq9Drone extends Entity
                         ? "hbm:weapon.missileTakeOff" : "random.pop",
                 payload == ItemMq9Payload.HELLFIRE ? 2.0F : 0.8F,
                 payload == ItemMq9Payload.HELLFIRE ? 1.15F : 0.72F);
-        setState(STATE_RETURN);
+        if (!advanceMissionTarget()) {
+            setState(STATE_RETURN);
+        }
+    }
+
+    private boolean advanceMissionTarget() {
+        if (targetIndex + 1 >= targetCount || findSelectedPayload() < 0) {
+            return false;
+        }
+        targetIndex++;
+        routeStartX = field_70165_t;
+        routeStartZ = field_70161_v;
+        syncActiveTarget();
+        configureRoute();
+        weaponReleased = false;
+        setState(STATE_OUTBOUND);
+        return true;
     }
 
     private void tickReturn() {
@@ -353,6 +393,7 @@ public final class EntityMq9Drone extends Entity
         field_70125_A = 0.0F;
         weaponReleased = false;
         landingPhase = 0;
+        clearTargetQueue();
         setState(STATE_READY);
         field_70170_p.func_72956_a(this, "random.anvil_land", 0.55F, 1.18F);
     }
@@ -449,30 +490,36 @@ public final class EntityMq9Drone extends Entity
             tell(player, "No target. Use an HBM designator on the MQ-9.");
             return false;
         }
+        if (targetCount == 0) {
+            queueTarget(getTargetX(), getTargetY(), getTargetZ(), true);
+        }
         if (findSelectedPayload() < 0) {
             tell(player, "No compatible weapon loaded.");
             return false;
         }
-        double dx = getTargetX() + 0.5D - homeX;
-        double dz = getTargetZ() + 0.5D - homeZ;
-        double range = Math.sqrt(dx * dx + dz * dz);
-        if (range > MAX_MISSION_RANGE) {
-            tell(player, "Target beyond MQ-9 mission radius (2400 blocks).");
-            return false;
+        double range = 0.0D;
+        for (int i = 0; i < targetCount; ++i) {
+            double dx = missionTargetX[i] + 0.5D - homeX;
+            double dz = missionTargetZ[i] + 0.5D - homeZ;
+            double targetRange = Math.sqrt(dx * dx + dz * dz);
+            range = Math.max(range, targetRange);
+            if (targetRange > MAX_MISSION_RANGE) {
+                tell(player, "Target " + (i + 1)
+                        + " is beyond MQ-9 mission radius (2400 blocks).");
+                return false;
+            }
         }
         if (getPower() < LAUNCH_ENERGY) {
             tell(player, "Insufficient power for launch.");
             return false;
         }
-        targetX = getTargetX();
-        targetY = getTargetY();
-        targetZ = getTargetZ();
+        targetIndex = 0;
+        syncActiveTarget();
         startX = floor(homeX);
         startZ = floor(homeZ);
-        routeLateral = (field_70170_p.field_73012_v.nextDouble() * 2.0D - 1.0D)
-                * Math.min(150.0D, Math.max(34.0D, range * 0.12D));
-        routeWave = (field_70170_p.field_73012_v.nextDouble() * 2.0D - 1.0D)
-                * Math.min(70.0D, Math.max(16.0D, range * 0.055D));
+        routeStartX = homeX;
+        routeStartZ = homeZ;
+        configureRoute();
         weaponReleased = false;
         landingPhase = 0;
         setPower(getPower() - LAUNCH_ENERGY);
@@ -480,8 +527,19 @@ public final class EntityMq9Drone extends Entity
         MissileTrackingService.registerLaunch(this, homeX, homeY, homeZ,
                 targetX, targetZ);
         field_70170_p.func_72956_a(this, "hbm:weapon.missileTakeOffAlt", 1.35F, 0.72F);
-        tell(player, "MQ-9 mission launched. Range: " + (int) Math.round(range) + " blocks.");
+        tell(player, "MQ-9 mission launched: " + targetCount + " target(s), range "
+                + (int) Math.round(range) + " blocks.");
         return true;
+    }
+
+    private void configureRoute() {
+        double dx = targetX + 0.5D - routeStartX;
+        double dz = targetZ + 0.5D - routeStartZ;
+        double range = Math.sqrt(dx * dx + dz * dz);
+        routeLateral = (field_70170_p.field_73012_v.nextDouble() * 2.0D - 1.0D)
+                * Math.min(150.0D, Math.max(34.0D, range * 0.12D));
+        routeWave = (field_70170_p.field_73012_v.nextDouble() * 2.0D - 1.0D)
+                * Math.min(70.0D, Math.max(16.0D, range * 0.055D));
     }
 
     public void commandReturn(EntityPlayer player) {
@@ -491,8 +549,48 @@ public final class EntityMq9Drone extends Entity
         }
     }
 
+    public static double getFlareDecoyChance(int interceptorTier) {
+        return interceptorTier <= 1 ? 0.25D : interceptorTier == 2 ? 0.15D : 0.10D;
+    }
+
+    public boolean tryDeployFlares(int interceptorTier) {
+        if (field_70170_p.field_72995_K || !isFlying() || field_70128_L) return false;
+        if (flareActiveTicks <= 0) {
+            if (flareCooldown > 0 || !DroneStrikeContent.isFlares(inventory[FLARE_SLOT])) {
+                return false;
+            }
+            inventory[FLARE_SLOT].field_77994_a--;
+            if (inventory[FLARE_SLOT].field_77994_a <= 0) inventory[FLARE_SLOT] = null;
+            flareActiveTicks = 16;
+            flareCooldown = 44;
+            emitFlares();
+            func_70296_d();
+        }
+        return field_70170_p.field_73012_v.nextDouble()
+                < getFlareDecoyChance(interceptorTier);
+    }
+
+    private void emitFlares() {
+        field_70170_p.func_72956_a(this, "fireworks.launch", 1.4F, 1.15F);
+        if (!(field_70170_p instanceof WorldServer)) return;
+        WorldServer world = (WorldServer) field_70170_p;
+        double yaw = Math.toRadians(field_70177_z);
+        double rearX = field_70165_t + Math.sin(yaw) * 2.0D;
+        double rearZ = field_70161_v - Math.cos(yaw) * 2.0D;
+        world.func_147487_a("fireworksSpark", rearX, field_70163_u, rearZ,
+                28, 1.4D, 0.65D, 1.4D, 0.12D);
+        world.func_147487_a("flame", rearX, field_70163_u, rearZ,
+                12, 1.0D, 0.45D, 1.0D, 0.08D);
+        world.func_147487_a("smoke", rearX, field_70163_u, rearZ,
+                10, 0.8D, 0.35D, 0.8D, 0.025D);
+    }
+
     private void setTarget(EntityPlayer player, ItemStack stack,
             IDesignatorItem designator) {
+        if (!isReady()) {
+            tell(player, "Target list cannot be changed while MQ-9 is airborne.");
+            return;
+        }
         int x = floor(field_70165_t);
         int y = floor(field_70163_u);
         int z = floor(field_70161_v);
@@ -508,15 +606,58 @@ public final class EntityMq9Drone extends Entity
         int tx = floor(target.field_72450_a);
         int ty = floor(target.field_72448_b);
         int tz = floor(target.field_72449_c);
-        field_70180_af.func_75692_b(DW_TARGET_X, Integer.valueOf(tx));
-        field_70180_af.func_75692_b(DW_TARGET_Y, Integer.valueOf(ty));
-        field_70180_af.func_75692_b(DW_TARGET_Z, Integer.valueOf(tz));
-        field_70180_af.func_75692_b(DW_FLAGS, Integer.valueOf(FLAG_TARGET_VALID));
-        targetX = tx;
-        targetY = ty;
-        targetZ = tz;
+        boolean replace = player.func_70093_af();
+        if (!queueTarget(tx, ty, tz, replace)) {
+            tell(player, "MQ-9 target list is full (6/6). Shift + right-click to replace it.");
+            return;
+        }
         field_70170_p.func_72956_a(this, "hbm:item.techBoop", 0.9F, 1.1F);
-        tell(player, "MQ-9 target accepted: " + tx + ", " + ty + ", " + tz);
+        tell(player, "MQ-9 target " + targetCount + "/" + MAX_TARGETS
+                + (replace ? " (new route)" : "") + ": " + tx + ", " + ty + ", " + tz);
+    }
+
+    public boolean queueTarget(int x, int y, int z, boolean replace) {
+        if (replace) clearTargetQueue();
+        if (targetCount >= MAX_TARGETS) return false;
+        missionTargetX[targetCount] = x;
+        missionTargetY[targetCount] = y;
+        missionTargetZ[targetCount] = z;
+        targetCount++;
+        if (targetCount == 1) targetIndex = 0;
+        syncActiveTarget();
+        return true;
+    }
+
+    public void clearTargetQueue() {
+        targetCount = 0;
+        targetIndex = 0;
+        targetX = targetY = targetZ = 0;
+        field_70180_af.func_75692_b(DW_TARGET_X, Integer.valueOf(0));
+        field_70180_af.func_75692_b(DW_TARGET_Y, Integer.valueOf(0));
+        field_70180_af.func_75692_b(DW_TARGET_Z, Integer.valueOf(0));
+        field_70180_af.func_75692_b(DW_FLAGS, Integer.valueOf(0));
+        updateTargetQueueWatcher();
+    }
+
+    private void syncActiveTarget() {
+        if (targetCount <= 0) {
+            clearTargetQueue();
+            return;
+        }
+        targetIndex = Math.max(0, Math.min(targetIndex, targetCount - 1));
+        targetX = missionTargetX[targetIndex];
+        targetY = missionTargetY[targetIndex];
+        targetZ = missionTargetZ[targetIndex];
+        field_70180_af.func_75692_b(DW_TARGET_X, Integer.valueOf(targetX));
+        field_70180_af.func_75692_b(DW_TARGET_Y, Integer.valueOf(targetY));
+        field_70180_af.func_75692_b(DW_TARGET_Z, Integer.valueOf(targetZ));
+        field_70180_af.func_75692_b(DW_FLAGS, Integer.valueOf(FLAG_TARGET_VALID));
+        updateTargetQueueWatcher();
+    }
+
+    private void updateTargetQueueWatcher() {
+        field_70180_af.func_75692_b(DW_TARGET_QUEUE, Integer.valueOf(
+                targetCount & 15 | (targetIndex & 15) << 4));
     }
 
     @Override
@@ -552,6 +693,16 @@ public final class EntityMq9Drone extends Entity
             field_70180_af.func_75692_b(DW_SELECTED, Byte.valueOf((byte) selected));
             field_70170_p.func_72956_a(this, "hbm:item.techBleep", 0.65F,
                     0.88F + selected * 0.13F);
+            return true;
+        }
+        if (action == 2) {
+            if (!isReady()) {
+                tell(player, "Target list cannot be cleared while MQ-9 is airborne.");
+                return true;
+            }
+            clearTargetQueue();
+            field_70170_p.func_72956_a(this, "hbm:item.techBleep", 0.65F, 0.72F);
+            tell(player, "MQ-9 target list cleared.");
             return true;
         }
         return false;
@@ -643,9 +794,20 @@ public final class EntityMq9Drone extends Entity
         tag.func_74768_a("StateTicks", stateTicks);
         tag.func_74780_a("RouteLateral", routeLateral);
         tag.func_74780_a("RouteWave", routeWave);
+        tag.func_74780_a("RouteStartX", routeStartX);
+        tag.func_74780_a("RouteStartZ", routeStartZ);
         tag.func_74780_a("VehicleHealth", vehicleHealth);
         tag.func_74757_a("WeaponReleased", weaponReleased);
         tag.func_74768_a("LandingPhase", landingPhase);
+        tag.func_74768_a("TargetCount", targetCount);
+        tag.func_74768_a("TargetIndex", targetIndex);
+        tag.func_74768_a("FlareCooldown", flareCooldown);
+        tag.func_74768_a("FlareActiveTicks", flareActiveTicks);
+        for (int i = 0; i < targetCount; ++i) {
+            tag.func_74768_a("MissionTargetX" + i, missionTargetX[i]);
+            tag.func_74768_a("MissionTargetY" + i, missionTargetY[i]);
+            tag.func_74768_a("MissionTargetZ" + i, missionTargetZ[i]);
+        }
         for (int i = 0; i < inventory.length; ++i) {
             if (inventory[i] == null) continue;
             NBTTagCompound item = new NBTTagCompound();
@@ -678,11 +840,32 @@ public final class EntityMq9Drone extends Entity
         stateTicks = tag.func_74762_e("StateTicks");
         routeLateral = tag.func_74769_h("RouteLateral");
         routeWave = tag.func_74769_h("RouteWave");
+        routeStartX = tag.func_74764_b("RouteStartX")
+                ? tag.func_74769_h("RouteStartX") : homeX;
+        routeStartZ = tag.func_74764_b("RouteStartZ")
+                ? tag.func_74769_h("RouteStartZ") : homeZ;
         vehicleHealth = tag.func_74764_b("VehicleHealth")
                 ? Math.max(1.0D, Math.min(MAX_HEALTH, tag.func_74769_h("VehicleHealth")))
                 : MAX_HEALTH;
         weaponReleased = tag.func_74767_n("WeaponReleased");
         landingPhase = tag.func_74762_e("LandingPhase");
+        targetCount = Math.max(0, Math.min(MAX_TARGETS, tag.func_74762_e("TargetCount")));
+        targetIndex = Math.max(0, Math.min(Math.max(0, targetCount - 1),
+                tag.func_74762_e("TargetIndex")));
+        flareCooldown = Math.max(0, tag.func_74762_e("FlareCooldown"));
+        flareActiveTicks = Math.max(0, tag.func_74762_e("FlareActiveTicks"));
+        for (int i = 0; i < targetCount; ++i) {
+            missionTargetX[i] = tag.func_74762_e("MissionTargetX" + i);
+            missionTargetY[i] = tag.func_74762_e("MissionTargetY" + i);
+            missionTargetZ[i] = tag.func_74762_e("MissionTargetZ" + i);
+        }
+        if (targetCount == 0 && tag.func_74767_n("TargetValid")) {
+            missionTargetX[0] = tx;
+            missionTargetY[0] = ty;
+            missionTargetZ[0] = tz;
+            targetCount = 1;
+            targetIndex = 0;
+        }
         homeInitialized = true;
         startX = floor(homeX);
         startZ = floor(homeZ);
@@ -693,6 +876,7 @@ public final class EntityMq9Drone extends Entity
         }
         updatePayloadWatcher();
         updateHealthWatcher();
+        if (targetCount > 0) syncActiveTarget(); else updateTargetQueueWatcher();
     }
 
     @Override public int func_70302_i_() { return inventory.length; }
@@ -721,14 +905,15 @@ public final class EntityMq9Drone extends Entity
     @Override public void func_70299_a(int slot, ItemStack stack) {
         if (slot < 0 || slot >= inventory.length) return;
         inventory[slot] = stack;
-        if (inventory[slot] != null && inventory[slot].field_77994_a > 1) {
-            inventory[slot].field_77994_a = 1;
+        int limit = slot == FLARE_SLOT ? 16 : 1;
+        if (inventory[slot] != null && inventory[slot].field_77994_a > limit) {
+            inventory[slot].field_77994_a = limit;
         }
         updatePayloadWatcher();
     }
     @Override public String func_145825_b() { return "container.wartecMq9"; }
     @Override public boolean func_145818_k_() { return false; }
-    @Override public int func_70297_j_() { return 1; }
+    @Override public int func_70297_j_() { return 16; }
     @Override public void func_70296_d() { updatePayloadWatcher(); }
     @Override public boolean func_70300_a(EntityPlayer player) {
         return !field_70128_L && player.func_70092_e(field_70165_t,

@@ -16,9 +16,10 @@ public final class ContainerMq9Drone extends Container {
     public ContainerMq9Drone(InventoryPlayer playerInventory, EntityMq9Drone drone) {
         this.drone = drone;
         for (int slot = 0; slot < 6; ++slot) {
-            func_75146_a(new PayloadSlot(drone, slot, 67 + slot * 21, 57));
+            func_75146_a(new PayloadSlot(drone, slot, 44 + slot * 21, 57));
         }
-        func_75146_a(new BatterySlot(drone, EntityMq9Drone.BATTERY_SLOT, 201, 91));
+        func_75146_a(new BatterySlot(drone, EntityMq9Drone.BATTERY_SLOT, 205, 57));
+        func_75146_a(new FlaresSlot(drone, EntityMq9Drone.FLARE_SLOT, 178, 57));
         for (int row = 0; row < 3; ++row) {
             for (int column = 0; column < 9; ++column) {
                 func_75146_a(new Slot(playerInventory, column + row * 9 + 9,
@@ -78,10 +79,12 @@ public final class ContainerMq9Drone extends Container {
         if (slot == null || !slot.func_75216_d()) return null;
         ItemStack stack = slot.func_75211_c();
         ItemStack original = stack.func_77946_l();
-        if (index < 7) {
-            if (!func_75135_a(stack, 7, 43, true)) return null;
+        if (index < 8) {
+            if (!func_75135_a(stack, 8, 44, true)) return null;
         } else if (VehicleEnergyHelper.isBattery(stack)) {
             if (!func_75135_a(stack, 6, 7, false)) return null;
+        } else if (DroneStrikeContent.isFlares(stack)) {
+            if (!func_75135_a(stack, 7, 8, false)) return null;
         } else if (DroneStrikeContent.isPayload(stack)) {
             boolean moved = false;
             for (int target = 0; target < 6; ++target) {
@@ -106,6 +109,7 @@ public final class ContainerMq9Drone extends Container {
         @Override public boolean func_75214_a(ItemStack stack) {
             return DroneStrikeContent.isPayload(stack);
         }
+        @Override public int func_75219_a() { return 1; }
     }
 
     private static final class BatterySlot extends Slot {
@@ -115,5 +119,16 @@ public final class ContainerMq9Drone extends Container {
         @Override public boolean func_75214_a(ItemStack stack) {
             return VehicleEnergyHelper.isBattery(stack);
         }
+        @Override public int func_75219_a() { return 1; }
+    }
+
+    private static final class FlaresSlot extends Slot {
+        FlaresSlot(EntityMq9Drone drone, int slot, int x, int y) {
+            super(drone, slot, x, y);
+        }
+        @Override public boolean func_75214_a(ItemStack stack) {
+            return DroneStrikeContent.isFlares(stack);
+        }
+        @Override public int func_75219_a() { return 16; }
     }
 }

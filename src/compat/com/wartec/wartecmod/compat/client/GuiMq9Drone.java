@@ -25,12 +25,14 @@ public final class GuiMq9Drone extends GuiContainer {
                 field_147009_r + 91, 92, 20, "LAUNCH"));
         field_146292_n.add(new GuiButton(1, field_147003_i + 120,
                 field_147009_r + 91, 76, 20, "WEAPON"));
+        field_146292_n.add(new GuiButton(2, field_147003_i + 198,
+                field_147009_r + 91, 32, 20, "CLR"));
     }
 
     @Override
     protected void func_146284_a(GuiButton button) {
         if (!button.field_146124_l) return;
-        if (button.field_146127_k == 0 || button.field_146127_k == 1) {
+        if (button.field_146127_k >= 0 && button.field_146127_k <= 2) {
             field_146297_k.field_71442_b.func_78756_a(
                     field_147002_h.field_75152_c, button.field_146127_k);
         }
@@ -46,11 +48,12 @@ public final class GuiMq9Drone extends GuiContainer {
         Gui.func_73734_a(left + 16, top + 31, left + 220, top + 80, 0xFF343F43);
         Gui.func_73734_a(left + 22, top + 47, left + 214, top + 50, 0xFF92A7A9);
         for (int slot = 0; slot < 6; ++slot) {
-            drawSlot(left + 66 + slot * 21, top + 56);
-            Gui.func_73734_a(left + 74 + slot * 21, top + 39,
-                    left + 77 + slot * 21, top + 57, 0xFF69787B);
+            drawSlot(left + 43 + slot * 21, top + 56);
+            Gui.func_73734_a(left + 51 + slot * 21, top + 39,
+                    left + 54 + slot * 21, top + 57, 0xFF69787B);
         }
-        drawSlot(left + 200, top + 90);
+        drawSlot(left + 177, top + 56);
+        drawSlot(left + 204, top + 56);
         int powerWidth = (int) Math.round(168.0D * drone.getPower()
                 / EntityMq9Drone.ENERGY_CAPACITY);
         Gui.func_73734_a(left + 24, top + 118, left + 194, top + 125, 0xFF101719);
@@ -83,8 +86,11 @@ public final class GuiMq9Drone extends GuiContainer {
         String target = drone.hasTarget()
                 ? drone.getTargetX() + " / " + drone.getTargetY() + " / " + drone.getTargetZ()
                 : "NOT ASSIGNED";
-        field_146289_q.func_78276_b("TARGET: " + target, 15, 81, white);
-        field_146289_q.func_78276_b("BAT", 199, 81, white);
+        String queue = drone.hasTarget() ? (drone.getTargetIndex() + 1)
+                + "/" + drone.getTargetCount() : "0/" + EntityMq9Drone.MAX_TARGETS;
+        field_146289_q.func_78276_b("TARGET " + queue + ": " + target, 15, 81, white);
+        field_146289_q.func_78276_b("LTC", 176, 47, 0xF1C96B);
+        field_146289_q.func_78276_b("BAT", 203, 47, white);
         field_146289_q.func_78276_b("POWER " + drone.getPower() + "/"
                 + EntityMq9Drone.ENERGY_CAPACITY, 24, 113, white);
         field_146289_q.func_78276_b("HP " + drone.getHealthPercent() + "%", 164, 113, white);

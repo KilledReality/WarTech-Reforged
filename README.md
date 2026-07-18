@@ -28,11 +28,15 @@ new cruise missiles, and mobile artillery platforms.
 - **Storm Shadow** cruise missile, implemented as a new long-range guided weapon.
 - **Geran-2** attack drone with a dedicated rail catapult.
 - Reusable **MQ-9 Reaper** strike UAV with six persistent hardpoints, an HBM
-  battery slot, a 2,400-block mission radius, randomized outbound routing, and
-  automatic return and landing at its recorded launch point.
+  battery slot, a six-point strike queue, a 2,400-block mission radius,
+  randomized routing between targets, and automatic return and landing at its
+  recorded launch point.
 - MQ-9 payloads include the powered **AGM-114 Hellfire**, guided **GBU-12
   Paveway II**, and unguided **Mk 82**. The UAV calculates the Mk 82 release
   point before following its return route.
+- Loadable MQ-9 countermeasure flares can decoy tier-1, tier-2, and tier-3
+  interceptors with 25%, 15%, and 10% probability and can disrupt Pantsir gun
+  bursts while the flare cloud is active.
 - Geran-2 dynamically calculates its climb, cruise, and terminal descent so it
   can clear terrain and approach the selected target.
 - Geran-2 range is up to 1,000 blocks. It flies substantially slower than a

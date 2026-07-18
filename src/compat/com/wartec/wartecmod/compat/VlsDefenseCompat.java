@@ -4,6 +4,7 @@ import api.hbm.entity.IRadarDetectable;
 import api.hbm.entity.IRadarDetectable.RadarTargetType;
 import api.hbm.entity.IRadarDetectableNT;
 import com.hbm.interfaces.IBomb.BombReturnCode;
+import com.wartec.wartecmod.entity.missile.EntityMq9Drone;
 import com.wartec.wartecmod.items.wartecmodItems;
 import com.wartec.wartecmod.tileentity.vls.TileEntityVlsExhaust;
 import com.wartec.wartecmod.tileentity.vls.TileEntityVlsLaunchTube;
@@ -322,6 +323,18 @@ public final class VlsDefenseCompat {
             double dy = target.field_70163_u - interceptor.field_70163_u;
             double dz = target.field_70161_v - interceptor.field_70161_v;
             double distance = Math.sqrt(dx * dx + dy * dy + dz * dz);
+            if (!state.countermeasureChecked && distance <= 96.0D) {
+                state.countermeasureChecked = true;
+                if (target instanceof EntityMq9Drone
+                        && ((EntityMq9Drone) target).tryDeployFlares(tier)) {
+                    MissileTrackingService.releaseReservation(world, assignedTargetId,
+                            interceptor.func_145782_y());
+                    beginAbort(world, interceptor, tier, assignedTargetId, state);
+                    guidance.wartecSetTarget(-1);
+                    tickAbort(world, interceptor, tier, ABORT_STATES.get(interceptor));
+                    return;
+                }
+            }
             double targetSpeed = Math.sqrt(state.velocityX * state.velocityX
                     + state.velocityY * state.velocityY + state.velocityZ * state.velocityZ);
             double captureRadius = speed * 1.6D + 3.0D + Math.min(12.0D, targetSpeed * 0.75D);
@@ -815,6 +828,7 @@ public final class VlsDefenseCompat {
         double velocityY;
         double velocityZ;
         int samples;
+        boolean countermeasureChecked;
 
         GuidanceState(Entity interceptor, Entity target, long now) {
             targetId = target.func_145782_y();

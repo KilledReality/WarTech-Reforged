@@ -3,6 +3,7 @@ import com.wartec.wartecmod.compat.ItemMq9Payload;
 import com.wartec.wartecmod.compat.MissileTrackingService;
 import com.wartec.wartecmod.entity.missile.EntityMq9Drone;
 import com.wartec.wartecmod.entity.missile.EntityMq9Munition;
+import api.hbm.entity.IRadarDetectable.RadarTargetType;
 import java.util.ArrayList;
 import java.util.Random;
 import net.minecraft.entity.Entity;
@@ -15,6 +16,7 @@ public final class SmokeMq9Drone {
     public static void main(String[] args) {
         DroneStrikeContent.mq9Drone = new Item();
         DroneStrikeContent.mq9Payload = new Item();
+        DroneStrikeContent.mq9Flares = new Item();
         TestWorld world = new TestWorld();
         EntityMq9Drone drone = new EntityMq9Drone(world);
         drone.func_70107_b(0.5D, 1.0D, 0.5D);
@@ -22,7 +24,7 @@ public final class SmokeMq9Drone {
         world.field_72996_f.add(drone);
         require(drone.getBlipLevel() < 0
                         && drone.getTargetType()
-                        == api.hbm.entity.IRadarDetectable.RadarTargetType.PLAYER,
+                        == RadarTargetType.PLAYER,
                 "parked MQ-9 must not advertise itself as an airborne threat");
         require(MissileTrackingService.findPointDefenseThreat(world,
                         0.5D, 2.0D, 0.5D, 100.0D) == null,
@@ -37,10 +39,14 @@ public final class SmokeMq9Drone {
                         && drone.getPayloadAt(1) == ItemMq9Payload.GBU12
                         && drone.getPayloadAt(2) == ItemMq9Payload.MK82,
                 "all three payload subtypes must synchronize to their hardpoints");
-        drone.field_70180_af.func_75692_b(20, Integer.valueOf(0));
-        drone.field_70180_af.func_75692_b(21, Integer.valueOf(1));
-        drone.field_70180_af.func_75692_b(22, Integer.valueOf(180));
-        drone.field_70180_af.func_75692_b(26, Integer.valueOf(1));
+        drone.func_70299_a(EntityMq9Drone.FLARE_SLOT,
+                new TestStack(DroneStrikeContent.mq9Flares, 0, 3));
+        require(drone.queueTarget(0, 1, 180, true)
+                        && drone.queueTarget(0, 1, 260, false)
+                        && drone.queueTarget(0, 1, 340, false),
+                "MQ-9 must accept a six-point-capable target queue");
+        require(drone.getTargetCount() == 3 && drone.getTargetIndex() == 0,
+                "target queue state must synchronize to the control interface");
 
         EntityPlayer operator = new EntityPlayer(world);
         require(drone.launchMission(operator), "loaded MQ-9 mission must launch");
@@ -50,6 +56,13 @@ public final class SmokeMq9Drone {
                         && MissileTrackingService.findPointDefenseThreat(world,
                         0.5D, 2.0D, 0.5D, 100.0D) == drone,
                 "airborne MQ-9 must become a valid radar threat");
+        drone.tryDeployFlares(1);
+        require(drone.getFlareCount() == 2,
+                "deploying countermeasures must consume one flare pack charge");
+        require(EntityMq9Drone.getFlareDecoyChance(1) == 0.25D
+                        && EntityMq9Drone.getFlareDecoyChance(2) == 0.15D
+                        && EntityMq9Drone.getFlareDecoyChance(3) == 0.10D,
+                "flare decoy chances must match the tier balance contract");
 
         double closestLanding = Double.MAX_VALUE;
         double closestLandingY = Double.NaN;
@@ -72,18 +85,19 @@ public final class SmokeMq9Drone {
                 }
             }
         }
-        require(world.spawnedMunition != null,
-                "MQ-9 must release one precision weapon near the target");
-        require(world.spawnedMunition.getType() == ItemMq9Payload.HELLFIRE,
-                "released weapon must preserve its payload subtype");
-        require(world.spawnedMunition.func_70112_a(90000.0D),
+        require(world.spawnedMunitions.size() == 3,
+                "MQ-9 must release one loaded weapon at each queued target");
+        require(world.spawnedMunitions.get(0).getType() == ItemMq9Payload.HELLFIRE
+                        && world.spawnedMunitions.get(1).getType() == ItemMq9Payload.GBU12
+                        && world.spawnedMunitions.get(2).getType() == ItemMq9Payload.MK82,
+                "sequential strikes must preserve all payload subtypes");
+        require(world.spawnedMunitions.get(0).func_70112_a(90000.0D),
                 "released payload must remain visible at aviation combat ranges");
-        require(!world.spawnedMunition.func_70112_a(400000.0D),
+        require(!world.spawnedMunitions.get(0).func_70112_a(400000.0D),
                 "released payload render distance must remain bounded");
-        require(drone.func_70301_a(0) == null,
-                "released payload must disappear from the hardpoint");
-        require(drone.func_70301_a(1) != null && drone.func_70301_a(2) != null,
-                "a mission must consume only the selected hardpoint");
+        require(drone.func_70301_a(0) == null && drone.func_70301_a(1) == null
+                        && drone.func_70301_a(2) == null,
+                "multi-target mission must consume one hardpoint per strike point");
         require(drone.isReady(), "MQ-9 must return to and land at its home point; state="
                 + drone.getState() + " pos=" + drone.field_70165_t + ","
                 + drone.field_70163_u + "," + drone.field_70161_v
@@ -92,6 +106,8 @@ public final class SmokeMq9Drone {
         require(Math.abs(drone.field_70165_t - 0.5D) < 0.01D
                         && Math.abs(drone.field_70161_v - 0.5D) < 0.01D,
                 "landed MQ-9 must finish at its recorded home coordinates");
+        require(drone.getTargetCount() == 0,
+                "completed target queue must clear after landing");
         require(maximumLandingPitch < 25.0D,
                 "landing approach must stay shallow instead of becoming a vertical dive");
 
@@ -113,7 +129,8 @@ public final class SmokeMq9Drone {
     }
 
     private static final class TestWorld extends World {
-        EntityMq9Munition spawnedMunition;
+        final ArrayList<EntityMq9Munition> spawnedMunitions =
+                new ArrayList<EntityMq9Munition>();
 
         TestWorld() {
             field_72995_K = false;
@@ -126,7 +143,7 @@ public final class SmokeMq9Drone {
         public boolean func_72838_d(Entity entity) {
             field_72996_f.add(entity);
             if (entity instanceof EntityMq9Munition) {
-                spawnedMunition = (EntityMq9Munition) entity;
+                spawnedMunitions.add((EntityMq9Munition) entity);
             }
             return true;
         }
@@ -137,10 +154,14 @@ public final class SmokeMq9Drone {
         private final int metadata;
 
         TestStack(Item item, int metadata) {
+            this(item, metadata, 1);
+        }
+
+        TestStack(Item item, int metadata, int count) {
             super(item, 1, metadata);
             this.item = item;
             this.metadata = metadata;
-            field_77994_a = 1;
+            field_77994_a = count;
         }
 
         @Override public Item func_77973_b() { return item; }

@@ -10,6 +10,7 @@ import com.wartec.wartecmod.compat.RadarGuiHandler;
 import com.wartec.wartecmod.compat.VehicleEnergyHelper;
 import com.wartec.wartecmod.compat.VlsDefenseCompat;
 import com.wartec.wartecmod.compat.WarTecBootstrap;
+import com.wartec.wartecmod.entity.missile.EntityMq9Drone;
 import cpw.mods.fml.common.network.internal.FMLNetworkHandler;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.EntityPlayer;
@@ -469,9 +470,14 @@ public final class EntityMobileAirDefense extends Entity
         double chance = Math.min(tier == 1 ? 0.86D : 0.78D,
                 (baseChance * distanceFactor + lockBonus)
                 * consumed / GUN_BURST_ROUNDS);
-        boolean hit = (tier != 1 || gunTierOneSolution)
+        boolean decoyed = target instanceof EntityMq9Drone
+                && ((EntityMq9Drone) target).tryDeployFlares(1);
+        boolean hit = !decoyed && (tier != 1 || gunTierOneSolution)
                 && field_70170_p.field_73012_v.nextDouble() < chance;
         emitGunBurst(target, aimX, aimY, aimZ, hit);
+        if (decoyed) {
+            gunHitScore = Math.max(0, gunHitScore - 1);
+        }
         if (hit) {
             gunHitScore++;
             emitGunHit(target);

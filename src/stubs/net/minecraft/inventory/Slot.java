@@ -13,6 +13,7 @@ public class Slot {
     }
 
     public boolean func_75214_a(ItemStack stack) { return true; }
+    public int func_75219_a() { return field_75224_c.func_70297_j_(); }
     public boolean func_75216_d() { return field_75211_c != null; }
     public ItemStack func_75211_c() { return field_75211_c; }
     public void func_75215_d(ItemStack stack) { field_75211_c = stack; }

@@ -1,6 +1,6 @@
 # WarTech Reforged Controls Guide
 
-This guide applies to WarTech Reforged `1.3.0-hbm5751` with HBM NTM `1.0.27 X5751`. The default Minecraft controls are assumed. If key bindings were changed, use the bound keys instead.
+This guide applies to the WarTech Reforged `1.4.0` development line with HBM NTM `1.0.27 X5751`. The default Minecraft controls are assumed. If key bindings were changed, use the bound keys instead.
 
 ## English
 
@@ -57,6 +57,16 @@ The selector stores coordinates, not an entity. For AGM-88, select a point close
 - Apply a redstone signal to launch.
 - Valid target distance is approximately 20 to 1,000 blocks.
 - Climb, cruise, route separation, and terminal descent are calculated automatically.
+
+### MQ-9 Reaper
+
+- **RMB** on the parked MQ-9: open ground control.
+- Load up to six AGM-114, GBU-12, or Mk 82 weapons into the hardpoints, a compatible HBM battery into `BAT`, and up to 16 countermeasure packs into `LTC`.
+- Set coordinates on an HBM designator, then use **RMB on the MQ-9 while holding it** to append a strike point. Up to six points are retained.
+- Use **Shift+RMB with the designator** to discard the old route and start a new target list with the selected point. `CLR` in ground control clears the list.
+- Select a weapon and press `LAUNCH MISSION`, or use **Shift+RMB with an empty hand** on the parked MQ-9.
+- The MQ-9 attacks queued points in order, consuming one available weapon per point, then returns and lands automatically.
+- Flares deploy automatically against a nearby interceptor or a Pantsir gun burst. One pack starts a short countermeasure window; decoy probability is 25% against tier 1, 15% against tier 2, and 10% against tier 3.
 
 ### AGM-88 HARM
 
@@ -231,6 +241,16 @@ Use different team names for opposing sides. Equipment placed before joining a t
 - Подайте сигнал красного камня для запуска.
 - Допустимая дальность цели составляет примерно от 20 до 1 000 блоков.
 - Набор высоты, маршевый участок, разделение маршрутов и терминальное снижение рассчитываются автоматически.
+
+### MQ-9 Reaper
+
+- **ПКМ** по стоящему MQ-9: открыть наземный пункт управления.
+- Загрузите до шести AGM-114, GBU-12 или Mk 82 в узлы подвески, совместимый аккумулятор HBM в `BAT` и до 16 кассет ЛТЦ в `LTC`.
+- Настройте координаты на целеуказателе HBM, затем нажмите **ПКМ по MQ-9 с целеуказателем в руке**, чтобы добавить точку удара. Сохраняется до шести точек.
+- **Shift+ПКМ с целеуказателем** удаляет старый маршрут и начинает новый список с выбранной точки. Кнопка `CLR` в интерфейсе очищает список.
+- Выберите оружие и нажмите `LAUNCH MISSION` либо используйте **Shift+ПКМ пустой рукой** по стоящему MQ-9.
+- MQ-9 атакует точки по порядку, расходуя по одному доступному боеприпасу на точку, затем автоматически возвращается и садится.
+- ЛТЦ отстреливаются автоматически при приближении противоракеты или очереди Панциря. Одна кассета создаёт короткое окно помех; шанс отвода равен 25% для Т1, 15% для Т2 и 10% для Т3.
 
 ### AGM-88 HARM
 
