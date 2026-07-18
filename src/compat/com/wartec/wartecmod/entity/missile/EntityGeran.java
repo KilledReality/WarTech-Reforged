@@ -14,8 +14,11 @@ import net.minecraft.world.World;
 public final class EntityGeran extends EntitySubsonicCruiseMissileBase {
     private static final double CRUISE_SPEED = 1.15D;
     private static final double CLIMB_RATE = 0.38D;
-    private static final double DESCENT_RATE = 0.30D;
-    private static final double DESCENT_SLOPE = 0.22D;
+    private static final double DESCENT_RATE = 0.34D;
+    private static final double DESCENT_SLOPE = 0.27D;
+    private static final double TARGET_HEIGHT = 1.2D;
+    private static final double TERMINAL_GUIDANCE_DISTANCE = 72.0D;
+    private static final double FORCED_APPROACH_DISTANCE = 24.0D;
     private static final double ROUTE_CLEARANCE = 10.0D;
     private static final double LOOKAHEAD_DISTANCE = 220.0D;
     private static final int LAUNCH_CLEAR_TICKS = 30;
@@ -69,7 +72,7 @@ public final class EntityGeran extends EntitySubsonicCruiseMissileBase {
             updateFlightPlan(dx, dz, horizontalDistance, ground);
         }
 
-        boolean reachedTarget = horizontalDistance <= 3.0D
+        boolean reachedTarget = horizontalDistance <= 3.5D
                 && field_70163_u <= targetGroundY + 4.0D;
         boolean hitTerrain = field_70173_aa > LAUNCH_CLEAR_TICKS
                 && field_70163_u <= ground + 0.25D;
@@ -96,14 +99,20 @@ public final class EntityGeran extends EntitySubsonicCruiseMissileBase {
             field_70159_w = 0.0D;
             field_70179_y = 0.0D;
         }
-        MissileRouteCompat.applyCruiseGuidance(this, startX, startZ, targetX, targetZ);
+        if (!approachCommitted && horizontalDistance > TERMINAL_GUIDANCE_DISTANCE) {
+            MissileRouteCompat.applyCruiseGuidance(this, startX, startZ, targetX, targetZ);
+        }
 
-        double altitudeToLose = Math.max(0.0D, field_70163_u - (targetGroundY + 0.8D));
-        double descentStartDistance = altitudeToLose / DESCENT_SLOPE + 8.0D;
-        if (approachCommitted && !descentPathClear) {
+        double altitudeToLose = Math.max(0.0D,
+                field_70163_u - (targetGroundY + TARGET_HEIGHT));
+        double descentStartDistance = altitudeToLose / DESCENT_SLOPE + 1.5D;
+        if (approachCommitted && !descentPathClear
+                && horizontalDistance > FORCED_APPROACH_DISTANCE) {
             approachCommitted = false;
-        } else if (!approachCommitted && descentPathClear
-                && field_70163_u >= plannedCruiseY - 1.0D
+        } else if (!approachCommitted
+                && (descentPathClear || horizontalDistance <= FORCED_APPROACH_DISTANCE)
+                && (field_70163_u >= plannedCruiseY - 1.0D
+                        || horizontalDistance <= FORCED_APPROACH_DISTANCE)
                 && horizontalDistance <= descentStartDistance) {
             approachCommitted = true;
         }
@@ -111,8 +120,10 @@ public final class EntityGeran extends EntitySubsonicCruiseMissileBase {
         double desiredY = plannedCruiseY + MissileRouteCompat.getCruiseAltitudeOffset(
                 this, startX, startZ, targetX, targetZ);
         if (approachCommitted) {
-            double approachY = targetGroundY + 0.8D + horizontalDistance * DESCENT_SLOPE;
-            double localClearance = clamp(horizontalDistance * 0.08D, 0.8D, 8.0D);
+            double approachY = targetGroundY + TARGET_HEIGHT
+                    + horizontalDistance * DESCENT_SLOPE;
+            double localClearance = clamp(horizontalDistance * 0.06D,
+                    TARGET_HEIGHT, 7.0D);
             desiredY = Math.max(approachY, ground + localClearance);
         }
         double maximumDescent = approachCommitted ? DESCENT_RATE : 0.12D;
@@ -164,8 +175,8 @@ public final class EntityGeran extends EntitySubsonicCruiseMissileBase {
             int sampleX = (int) Math.floor(field_70165_t + dx * fraction);
             int sampleZ = (int) Math.floor(field_70161_v + dz * fraction);
             int terrain = field_70170_p.func_72976_f(sampleX, sampleZ);
-            double pathY = targetGroundY + 0.8D + remaining * DESCENT_SLOPE;
-            double clearance = clamp(remaining * 0.05D, 0.8D, 5.0D);
+            double pathY = targetGroundY + TARGET_HEIGHT + remaining * DESCENT_SLOPE;
+            double clearance = clamp(remaining * 0.05D, TARGET_HEIGHT, 5.0D);
             if (pathY < terrain + clearance) {
                 return false;
             }
