@@ -3,8 +3,10 @@ import com.wartec.wartecmod.compat.ItemPantsirAmmoBelt;
 import com.wartec.wartecmod.compat.RadarNetworkContent;
 import com.wartec.wartecmod.entity.vehicle.EntityMobileAirDefense;
 import com.wartec.wartecmod.items.wartecmodItems;
+import api.hbm.entity.IRadarDetectable;
 import java.util.ArrayList;
 import java.util.Random;
+import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
@@ -96,6 +98,25 @@ public final class SmokeMobileAirDefense {
         require(Math.abs(pantsir.getGunAimYaw() + 123.4F) < 0.11F
                         && Math.abs(pantsir.getGunAimPitch() - 45.6F) < 0.11F,
                 "packed gun aim must survive entity data synchronization");
+        gunYaw.setFloat(pantsir, 0.0F);
+        gunPitch.setFloat(pantsir, 0.0F);
+        syncGunAim.invoke(pantsir);
+        TestMissile incoming = new TestMissile(world, 71);
+        incoming.field_70165_t = 0.0D;
+        incoming.field_70163_u = 3.0D;
+        incoming.field_70161_v = 70.0D;
+        incoming.field_70179_y = -4.0D;
+        world.field_72996_f.add(incoming);
+        java.lang.reflect.Method tickGuns = EntityMobileAirDefense.class
+                .getDeclaredMethod("tickPantsirGuns");
+        tickGuns.setAccessible(true);
+        for (int tick = 0; tick < 6 && !incoming.field_70128_L; ++tick) {
+            tickGuns.invoke(pantsir);
+        }
+        require(incoming.field_70128_L,
+                "Pantsir guns must destroy a tier-1 missile within six reaction ticks");
+        require(pantsir.getGunRounds() <= 590,
+                "a real gun interception must consume a 30 mm burst");
 
         EntityPlayer driver = new EntityPlayer(world);
         driver.field_70701_bs = 1.0F;
@@ -141,6 +162,20 @@ public final class SmokeMobileAirDefense {
         @Override
         public Item func_77973_b() {
             return item;
+        }
+    }
+
+    private static final class TestMissile extends Entity implements IRadarDetectable {
+        private final int id;
+
+        TestMissile(World world, int id) {
+            super(world);
+            this.id = id;
+        }
+
+        @Override public int func_145782_y() { return id; }
+        @Override public RadarTargetType getTargetType() {
+            return RadarTargetType.MISSILE_TIER1;
         }
     }
 }

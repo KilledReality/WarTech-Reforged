@@ -600,8 +600,11 @@ public final class VlsDefenseCompat {
         if (world == null || world.field_72995_K || tier < 1 || tier > 3) {
             return false;
         }
-        Entity target = MissileTrackingService.findThreat(world, x, y, z,
-                tier, range, ownerKey);
+        boolean pointDefense = !verticalLaunch && tier == 1 && range <= 110.0D;
+        Entity target = pointDefense
+                ? MissileTrackingService.findPointDefenseThreat(world, x, y, z, range)
+                : MissileTrackingService.findThreat(world, x, y, z,
+                        tier, range, ownerKey);
         if (target == null) {
             return false;
         }

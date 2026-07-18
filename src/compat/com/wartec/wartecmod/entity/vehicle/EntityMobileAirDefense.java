@@ -36,7 +36,7 @@ public final class EntityMobileAirDefense extends Entity
     private static final int LAUNCH_ENERGY = 50000;
     private static final int GUN_BURST_ENERGY = 1800;
     private static final int GUN_BURST_ROUNDS = 10;
-    private static final double GUN_RANGE = 90.0D;
+    private static final double GUN_RANGE = 100.0D;
     private static final double MAX_HEALTH = 500.0D;
 
     private static final int DW_VARIANT = 18;
@@ -316,8 +316,7 @@ public final class EntityMobileAirDefense extends Entity
         if (slot < 0) {
             return;
         }
-        int interval = getFireMode() == FIRE_EMERGENCY
-                ? (isTor() ? 3 : 2) : (isTor() ? 8 : 5);
+        int interval = isTor() ? (getFireMode() == FIRE_EMERGENCY ? 3 : 8) : 1;
         if (field_70173_aa % interval != Math.abs(func_145782_y()) % interval) {
             return;
         }
@@ -334,7 +333,7 @@ public final class EntityMobileAirDefense extends Entity
                 getEngagementRange(), ownerKey, vertical)) {
             inventory[slot] = null;
             setPower(getPower() - LAUNCH_ENERGY);
-            launchCooldown = getFireMode() == FIRE_EMERGENCY ? 3 : 8;
+            launchCooldown = isTor() ? (getFireMode() == FIRE_EMERGENCY ? 3 : 8) : 4;
             updateAmmoWatcher();
             func_70296_d();
         }
@@ -388,8 +387,8 @@ public final class EntityMobileAirDefense extends Entity
                 - field_70177_z);
         float desiredPitch = clamp((float) Math.toDegrees(Math.atan2(dy, horizontal)),
                 -8.0F, 78.0F);
-        gunAimYaw = approachAngle(gunAimYaw, desiredYaw, 13.0F);
-        gunAimPitch = approach(gunAimPitch, desiredPitch, 8.0F);
+        gunAimYaw = approachAngle(gunAimYaw, desiredYaw, 30.0F);
+        gunAimPitch = approach(gunAimPitch, desiredPitch, 18.0F);
         syncGunAim();
 
         float yawError = Math.abs(wrapDegrees(desiredYaw - gunAimYaw));
@@ -399,7 +398,7 @@ public final class EntityMobileAirDefense extends Entity
         } else {
             gunLockTicks = Math.max(0, gunLockTicks - 2);
         }
-        if (gunLockTicks >= 3 && gunCooldown <= 0) {
+        if (gunLockTicks >= 1 && gunCooldown <= 0) {
             fireGunBurst(target, aimX, aimY, aimZ, distance);
         }
     }
@@ -427,22 +426,22 @@ public final class EntityMobileAirDefense extends Entity
             inventory[GUN_AMMO_SLOT] = null;
         }
         setPower(getPower() - GUN_BURST_ENERGY);
-        gunCooldown = 3;
+        gunCooldown = 2;
         gunFiringTicks = 2;
         setGunFiring(true);
         func_70296_d();
 
         int tier = MissileTrackingService.getThreatTier(target);
         boolean drone = MissileTrackingService.isDroneTarget(target);
-        double baseChance = drone ? 0.86D
-                : tier == 1 ? 0.62D : tier == 2 ? 0.22D : 0.045D;
+        double baseChance = drone ? 1.0D
+                : tier == 1 ? 0.96D : tier == 2 ? 0.22D : 0.045D;
         if (MissileTrackingService.isBallisticTarget(target)) {
             baseChance *= 0.45D;
         }
         double distanceFactor = 1.0D
-                - Math.min(0.60D, distance / GUN_RANGE * 0.55D);
-        double lockBonus = Math.min(0.18D, Math.max(0, gunLockTicks - 3) * 0.012D);
-        double chance = Math.min(drone ? 0.92D : 0.78D,
+                - Math.min(0.22D, distance / GUN_RANGE * 0.22D);
+        double lockBonus = Math.min(0.14D, Math.max(0, gunLockTicks - 1) * 0.014D);
+        double chance = Math.min(drone ? 0.98D : tier == 1 ? 0.94D : 0.78D,
                 (baseChance * distanceFactor + lockBonus)
                 * consumed / GUN_BURST_ROUNDS);
         boolean hit = field_70170_p.field_73012_v.nextDouble() < chance;
@@ -452,7 +451,7 @@ public final class EntityMobileAirDefense extends Entity
             emitGunHit(target);
         }
 
-        int requiredHits = drone ? 1 : tier == 1 ? 2 : tier == 2 ? 4 : 10;
+        int requiredHits = tier == 1 ? 1 : tier == 2 ? 4 : 10;
         if (MissileTrackingService.isBallisticTarget(target)) {
             requiredHits += 4;
         }
