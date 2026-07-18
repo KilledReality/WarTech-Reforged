@@ -133,7 +133,7 @@ public final class EntityGeran extends EntitySubsonicCruiseMissileBase {
                 field_70161_v + field_70179_y);
         rotation();
 
-        if ((field_70173_aa % 20) == 0) {
+        if ((field_70173_aa & 3) == 0) {
             loadNeighboringChunks((int) Math.floor(field_70165_t) >> 4,
                     (int) Math.floor(field_70161_v) >> 4);
         }

@@ -46,6 +46,7 @@ public final class WarTecBootstrap {
             AdvancedMissileContent.register();
             MobileArtilleryContent.register();
             RadarNetworkContent.register();
+            MissileChunkLoader.register();
             writeMarker(event, "loaded, registeredItems=" + registeredItems + ", registeredBlocks=" + registeredBlocks);
         } catch (Throwable t) {
             writeMarker(event, "failed: " + t);

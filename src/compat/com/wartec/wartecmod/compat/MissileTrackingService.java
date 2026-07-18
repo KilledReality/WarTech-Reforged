@@ -50,6 +50,7 @@ public final class MissileTrackingService {
         track.originKnown = true;
         track.targetKnown = true;
         track.explicitLaunch = true;
+        MissileChunkLoader.track(missile);
     }
 
     public static Entity findThreat(World world, double defenseX, double defenseY, double defenseZ,
@@ -61,8 +62,49 @@ public final class MissileTrackingService {
     public static Entity findCloseThreat(World world, double defenseX,
             double defenseY, double defenseZ, int interceptorTier,
             double range, long ownerKey) {
-        return findThreat(world, defenseX, defenseY, defenseZ,
-                interceptorTier, range, ownerKey, true);
+        return findPointDefenseThreat(world, defenseX, defenseY, defenseZ, range);
+    }
+
+    /** Immediate all-aspect acquisition for guns; missile reservations and launch origin do not apply. */
+    public static Entity findPointDefenseThreat(World world, double defenseX,
+            double defenseY, double defenseZ, double range) {
+        if (world == null || world.field_72995_K) {
+            return null;
+        }
+        Entity best = null;
+        double bestScore = Double.MAX_VALUE;
+        double rangeSquared = range * range;
+        for (Object value : world.field_72996_f) {
+            if (!(value instanceof Entity)) {
+                continue;
+            }
+            Entity entity = (Entity) value;
+            int tier = getTargetTier(entity);
+            if (tier == 0 || entity.field_70128_L) {
+                continue;
+            }
+            double dx = entity.field_70165_t - defenseX;
+            double dy = entity.field_70163_u - defenseY;
+            double dz = entity.field_70161_v - defenseZ;
+            double distanceSquared = dx * dx + dy * dy + dz * dz;
+            if (distanceSquared > rangeSquared) {
+                continue;
+            }
+            double radialVelocity = dx * entity.field_70159_w
+                    + dy * entity.field_70181_x + dz * entity.field_70179_y;
+            double score = distanceSquared + tier * rangeSquared * 0.12D;
+            if (radialVelocity < 0.0D) {
+                score *= 0.45D;
+            }
+            if (isDroneTarget(entity)) {
+                score *= 0.55D;
+            }
+            if (score < bestScore) {
+                bestScore = score;
+                best = entity;
+            }
+        }
+        return best;
     }
 
     private static Entity findThreat(World world, double defenseX,
@@ -495,6 +537,10 @@ public final class MissileTrackingService {
 
     public static int getThreatTier(Entity entity) {
         return getTargetTier(entity);
+    }
+
+    public static boolean isDroneTarget(Entity entity) {
+        return entity != null && entity.getClass().getName().endsWith(".EntityGeran");
     }
 
     public static boolean tryReserve(World world, int targetId, long ownerKey) {

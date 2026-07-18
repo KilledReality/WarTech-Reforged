@@ -36,7 +36,7 @@ public final class EntityMobileAirDefense extends Entity
     private static final int LAUNCH_ENERGY = 50000;
     private static final int GUN_BURST_ENERGY = 1800;
     private static final int GUN_BURST_ROUNDS = 10;
-    private static final double GUN_RANGE = 60.0D;
+    private static final double GUN_RANGE = 90.0D;
     private static final double MAX_HEALTH = 500.0D;
 
     private static final int DW_VARIANT = 18;
@@ -375,7 +375,7 @@ public final class EntityMobileAirDefense extends Entity
         double dy = target.field_70163_u + 0.45D - (field_70163_u + 3.15D);
         double dz = target.field_70161_v - field_70161_v;
         double distance = Math.sqrt(dx * dx + dy * dy + dz * dz);
-        double leadTicks = Math.max(0.5D, Math.min(6.0D, distance / 10.0D));
+        double leadTicks = Math.max(0.35D, Math.min(4.0D, distance / 14.0D));
         double aimX = target.field_70165_t + target.field_70159_w * leadTicks;
         double aimY = target.field_70163_u + 0.45D
                 + target.field_70181_x * leadTicks;
@@ -388,8 +388,8 @@ public final class EntityMobileAirDefense extends Entity
                 - field_70177_z);
         float desiredPitch = clamp((float) Math.toDegrees(Math.atan2(dy, horizontal)),
                 -8.0F, 78.0F);
-        gunAimYaw = approachAngle(gunAimYaw, desiredYaw, 8.0F);
-        gunAimPitch = approach(gunAimPitch, desiredPitch, 5.0F);
+        gunAimYaw = approachAngle(gunAimYaw, desiredYaw, 13.0F);
+        gunAimPitch = approach(gunAimPitch, desiredPitch, 8.0F);
         syncGunAim();
 
         float yawError = Math.abs(wrapDegrees(desiredYaw - gunAimYaw));
@@ -399,7 +399,7 @@ public final class EntityMobileAirDefense extends Entity
         } else {
             gunLockTicks = Math.max(0, gunLockTicks - 2);
         }
-        if (gunLockTicks >= 6 && gunCooldown <= 0) {
+        if (gunLockTicks >= 3 && gunCooldown <= 0) {
             fireGunBurst(target, aimX, aimY, aimZ, distance);
         }
     }
@@ -427,20 +427,22 @@ public final class EntityMobileAirDefense extends Entity
             inventory[GUN_AMMO_SLOT] = null;
         }
         setPower(getPower() - GUN_BURST_ENERGY);
-        gunCooldown = 4;
+        gunCooldown = 3;
         gunFiringTicks = 2;
         setGunFiring(true);
         func_70296_d();
 
         int tier = MissileTrackingService.getThreatTier(target);
-        double baseChance = tier == 1 ? 0.42D : tier == 2 ? 0.16D : 0.035D;
+        boolean drone = MissileTrackingService.isDroneTarget(target);
+        double baseChance = drone ? 0.86D
+                : tier == 1 ? 0.62D : tier == 2 ? 0.22D : 0.045D;
         if (MissileTrackingService.isBallisticTarget(target)) {
             baseChance *= 0.45D;
         }
         double distanceFactor = 1.0D
                 - Math.min(0.60D, distance / GUN_RANGE * 0.55D);
-        double lockBonus = Math.min(0.16D, Math.max(0, gunLockTicks - 6) * 0.008D);
-        double chance = Math.min(0.72D,
+        double lockBonus = Math.min(0.18D, Math.max(0, gunLockTicks - 3) * 0.012D);
+        double chance = Math.min(drone ? 0.92D : 0.78D,
                 (baseChance * distanceFactor + lockBonus)
                 * consumed / GUN_BURST_ROUNDS);
         boolean hit = field_70170_p.field_73012_v.nextDouble() < chance;
@@ -450,7 +452,7 @@ public final class EntityMobileAirDefense extends Entity
             emitGunHit(target);
         }
 
-        int requiredHits = tier == 1 ? 2 : tier == 2 ? 4 : 10;
+        int requiredHits = drone ? 1 : tier == 1 ? 2 : tier == 2 ? 4 : 10;
         if (MissileTrackingService.isBallisticTarget(target)) {
             requiredHits += 4;
         }
