@@ -2,9 +2,11 @@ package com.wartec.wartecmod.savedata.satellites;
 
 import com.hbm.saveddata.SatelliteSavedData;
 import com.hbm.saveddata.satellites.Satellite;
+import com.hbm.items.ISatChip;
 import com.wartec.wartecmod.compat.MissileTrackingService;
 import com.wartec.wartecmod.entity.missile.EntityKineticRod;
 import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.ChatComponentText;
 import net.minecraft.world.World;
@@ -46,7 +48,26 @@ public final class SatelliteKinetic extends Satellite {
 
     @Override
     public void onClick(World world, int x, int z) {
-        releaseRod(world, null, x, z);
+        releaseRod(world, findControllerPlayer(world), x, z);
+    }
+
+    private EntityPlayer findControllerPlayer(World world) {
+        if (world == null) {
+            return null;
+        }
+        SatelliteSavedData data = SatelliteSavedData.getData(world);
+        for (Object value : world.field_73010_i) {
+            if (!(value instanceof EntityPlayer)) {
+                continue;
+            }
+            EntityPlayer player = (EntityPlayer) value;
+            ItemStack held = player.func_70694_bm();
+            if (held != null && ISatChip.getFreqS(held) != 0
+                    && data.getSatFromFreq(ISatChip.getFreqS(held)) == this) {
+                return player;
+            }
+        }
+        return null;
     }
 
     private void releaseRod(World world, EntityPlayer player, int x, int z) {

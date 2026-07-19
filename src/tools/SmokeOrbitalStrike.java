@@ -87,6 +87,7 @@ public final class SmokeOrbitalStrike {
             field_72995_K = false;
             field_73012_v = new Random(87104L);
             field_72996_f = new ArrayList();
+            field_73010_i = new ArrayList();
             field_147482_g = new ArrayList();
         }
 

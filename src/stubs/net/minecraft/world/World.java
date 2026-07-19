@@ -11,6 +11,7 @@ import net.minecraft.world.chunk.Chunk;
 public class World {
     public boolean field_72995_K;
     public List field_72996_f;
+    public List field_73010_i;
     public List field_147482_g;
     public Random field_73012_v;
     public long func_82737_E() { return 0L; }
