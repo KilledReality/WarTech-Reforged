@@ -1,14 +1,25 @@
 import api.hbm.entity.IRadarDetectable.RadarTargetType;
+import com.hbm.items.ISatChip;
+import com.wartec.wartecmod.compat.ItemKineticSatellite;
 import com.wartec.wartecmod.compat.MissileTrackingService;
 import com.wartec.wartecmod.entity.missile.EntityKineticRod;
 import com.wartec.wartecmod.savedata.satellites.SatelliteKinetic;
 import java.util.ArrayList;
 import java.util.Random;
 import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.item.ItemStack;
 import net.minecraft.world.World;
 
 public final class SmokeOrbitalStrike {
     public static void main(String[] args) {
+        ItemKineticSatellite satelliteItem = new ItemKineticSatellite();
+        ItemStack satelliteStack = new ItemStack(satelliteItem);
+        require(satelliteItem instanceof ISatChip,
+                "orbital payload item must be accepted by the HBM Soyuz satellite slot");
+        satelliteItem.setFreq(satelliteStack, 87104);
+        require(satelliteItem.getFreq(satelliteStack) == 87104,
+                "orbital payload must store the frequency used by HBM designators");
+
         TestWorld world = new TestWorld();
         EntityKineticRod rod = new EntityKineticRod(world, 120, 64, -80);
         require(rod.getTargetType() == RadarTargetType.MISSILE_TIER3,

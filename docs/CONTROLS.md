@@ -190,9 +190,10 @@ Use different team names for opposing sides. Equipment placed before joining a t
 
 ### ODIN kinetic bombardment satellite
 
-1. Launch the **ODIN Kinetic Bombardment Satellite** through the standard HBM satellite deployment system.
-2. Open its standard HBM coordinate-control interface and select the impact coordinates.
-3. Confirm the coordinate action. The satellite releases one tungsten rod above the selected point.
+1. Put **ODIN** in the right-hand random-frequency slot of the HBM Satellite Linker and remove it after a non-zero frequency/ID appears in its tooltip.
+2. Put ODIN in the linker's left slot and an HBM satellite laser designator in the middle slot. The linker copies ODIN's frequency to the designator.
+3. Launch ODIN through the standard HBM Soyuz satellite deployment system. The Soyuz reads this frequency as the satellite ID.
+4. Hold the linked laser designator, aim at a block within its range, and use RMB. The satellite releases one tungsten rod above the selected point.
 
 Each satellite carries four rods and enforces a 60-second interval between releases. A descending rod is a Tier 3 ballistic radar contact, keeps its flight chunks loaded, and can be intercepted during the warning and terminal-descent phases. The impact is a large non-nuclear kinetic explosion: it creates no radiation or nuclear mushroom cloud.
 
@@ -387,8 +388,9 @@ Each satellite carries four rods and enforces a 60-second interval between relea
 
 ### Спутник кинетической бомбардировки «ОДИН»
 
-1. Запустите **спутник кинетической бомбардировки «ОДИН»** через штатную систему запуска спутников HBM.
-2. Откройте его штатный координатный интерфейс HBM и выберите координаты удара.
-3. Подтвердите координатное действие. Спутник сбросит один вольфрамовый стержень над выбранной точкой.
+1. Поместите **«ОДИН»** в правый слот генерации случайной частоты спутникового связующего HBM и заберите его после появления ненулевой частоты/ID в подсказке предмета.
+2. Поместите «ОДИН» в левый слот связующего, а спутниковый лазерный целеуказатель HBM — в средний. Связующее скопирует частоту «ОДИНА» в целеуказатель.
+3. Запустите «ОДИН» через штатную ракету-носитель Soyuz HBM. Soyuz использует записанную частоту как ID спутника.
+4. Возьмите привязанный лазерный целеуказатель, наведитесь на блок в пределах его дальности и нажмите ПКМ. Спутник сбросит один вольфрамовый стержень над выбранной точкой.
 
 Один спутник несёт четыре стержня; между сбросами действует интервал 60 секунд. Падающий стержень отображается на РЛС как баллистическая цель Tier 3, самостоятельно прогружает чанки полёта и может быть перехвачен во время предупреждения и терминального снижения. Удар представляет собой мощный неядерный кинетический взрыв без радиации и ядерного гриба.
