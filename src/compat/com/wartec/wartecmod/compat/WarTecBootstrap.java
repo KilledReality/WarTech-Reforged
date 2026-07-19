@@ -13,7 +13,7 @@ import cpw.mods.fml.common.network.NetworkRegistry;
 @Mod(
     modid = "wartecfix",
     name = "WarTech Reforged Compatibility",
-    version = "1.4.0-dev-hbm5751",
+    version = "1.4.0-hbm5751",
     dependencies = "required-after:hbm;after:wartecmod"
 )
 public final class WarTecBootstrap {

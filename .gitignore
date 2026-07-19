@@ -33,3 +33,7 @@ logs/
 *.iml
 .DS_Store
 Thumbs.db
+
+# Maintainer-only release notes (kept locally, never published)
+/RELEASE_CHECKLIST.md
+/PUBLISHING_GUIDE.md

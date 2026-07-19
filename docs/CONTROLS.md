@@ -98,6 +98,22 @@ Interceptor engagement ranges:
 
 If the first interceptor misses or fails, another launcher waits roughly five to seven seconds before reacting to the same threat. A failed interceptor still leaves toward the threat, then diverts away and can explode or ignite terrain on impact.
 
+### Tor-M1 and Pantsir-S2 mobile air defense
+
+- Place the vehicle item on solid ground. **RMB while retracted** enters the driver's seat.
+- **W / S**: accelerate and reverse. **A / D**: steer. **Left Shift**: dismount.
+- **Shift+RMB**: deploy or retract the system without moving it to the player.
+- **RMB while deployed**: open the combat interface.
+- **RMB with a compatible HBM battery**: transfer energy directly. A battery can also remain in the dedicated GUI slot and is drained during operation.
+- Use the GUI radar control to switch the integrated radar on or off. Select `HOLD`, `AUTO`, or `EMERGENCY` as the fire mode.
+- `HOLD` tracks contacts without launching. `AUTO` performs normal autonomous engagement. `EMERGENCY` allows a shorter reaction interval and faster follow-up launches.
+
+**9K331 Tor-M1:** load up to eight **WTI-2 Lance** interceptors. Its integrated X-band radar detects to 340 blocks with a 260-block ceiling; missile engagement range is 220 blocks. Tor uses vertical launch and does not accept Pantsir cannon belts.
+
+**96K6 Pantsir-S2:** load up to twelve **WTI-1 Falcon** interceptors and one 30 mm ammunition belt. Its radar detects to 260 blocks with a 190-block ceiling; missile and cannon engagement range is 100 blocks. The twin cannon is a last-ditch layer with finite rounds, visible tracers, sound, energy consumption, and a non-guaranteed hit chance. MQ-9 flare clouds can disturb both its missiles and gun solution.
+
+Both systems must be deployed, powered, radar-enabled, armed, and outside `HOLD` to fire. The interface labels the exact compatible interceptor and reports energy, health, contacts, ammunition, and operating state.
+
 ### Renault TRM mobile radar
 
 - **RMB with an empty hand**: open the radar interface.
@@ -193,9 +209,15 @@ Use different team names for opposing sides. Equipment placed before joining a t
 1. Put **ODIN** in the right-hand random-frequency slot of the HBM Satellite Linker and remove it after a non-zero frequency/ID appears in its tooltip.
 2. Put ODIN in the linker's left slot and the desired HBM controller in the middle slot. Link a **Satellite Interface** to select a strike point on its map, a **satellite laser designator** for direct RMB strikes, or a **Satellite Coordinate Interface (`sat_coord`)** for typed coordinates. Each controller item stores its own frequency and must be linked separately.
 3. Launch ODIN through the standard HBM Soyuz satellite deployment system. The Soyuz reads this frequency as the satellite ID.
-4. Hold the linked laser designator, aim at a block within its range, and use RMB. The satellite releases one tungsten rod above the selected point.
+4. Choose one linked control method:
+   - **Satellite Interface:** open it, select the linked ODIN frequency, and click the desired point on the map.
+   - **Satellite Coordinate Interface (`sat_coord`):** enter the target coordinates and send the command.
+   - **Satellite laser designator:** aim at a block within range and use RMB.
+5. Chat confirms an accepted strike and reports rods remaining. During cooldown it reports the remaining seconds; when empty it reports that no rods remain.
 
 Each satellite carries four rods and enforces a 60-second interval between releases. A descending rod is a Tier 3 ballistic radar contact, keeps its flight chunks loaded, and can be intercepted during the warning and terminal-descent phases. The impact is a large non-nuclear kinetic explosion: it creates no radiation or nuclear mushroom cloud.
+
+Tier-3 long-range tracking is intentionally not instantaneous: the contact must exist for about 2.5 seconds and rise at least 18 blocks above local terrain before a stable radar track is distributed. This prevents an interceptor launch in the exact tick of departure while preserving a useful warning window.
 
 ---
 
@@ -296,6 +318,22 @@ Each satellite carries four rods and enforces a 60-second interval between relea
 
 Если первый перехватчик промахнулся или отказал, другая пусковая реагирует на ту же угрозу примерно через пять-семь секунд. Неудачный перехватчик всё равно уходит в сторону цели, затем отклоняется и при падении может взорваться либо поджечь местность.
 
+### Мобильные комплексы «Тор-М1» и «Панцирь-С2»
+
+- Установите предмет машины на твёрдую поверхность. **ПКМ в походном положении**: занять водительское место.
+- **W / S**: движение вперёд и назад. **A / D**: поворот. **Левый Shift**: выйти.
+- **Shift+ПКМ**: развернуть или свернуть комплекс без телепортации к игроку.
+- **ПКМ в развёрнутом положении**: открыть боевой интерфейс.
+- **ПКМ с совместимым аккумулятором HBM**: напрямую передать энергию. Аккумулятор также можно оставить в отдельном слоте интерфейса; во время работы он реально разряжается.
+- Кнопка РЛС включает или выключает встроенный радар. Режим огня выбирается между `HOLD`, `AUTO` и `EMERGENCY`.
+- `HOLD` только сопровождает цели. `AUTO` ведёт обычный автоматический огонь. `EMERGENCY` уменьшает время реакции и интервал между повторными пусками.
+
+**9К331 «Тор-М1»:** до восьми перехватчиков **WTI-2 «Копьё»**. Встроенная РЛС X-диапазона обнаруживает цели на дальности до 340 блоков и высоте до 260 блоков; дальность пуска составляет 220 блоков. Пуск вертикальный, ленты пушек «Панциря» не принимаются.
+
+**96К6 «Панцирь-С2»:** до двенадцати перехватчиков **WTI-1 «Сокол»** и одна лента 30-мм боеприпасов. РЛС обнаруживает цели на дальности до 260 блоков и высоте до 190 блоков; ракетный и пушечный рубеж составляет 100 блоков. Спаренные пушки являются последним рубежом: расходуют боекомплект и энергию, имеют видимые трассеры и звук, а попадание не гарантировано. Облако ЛТЦ MQ-9 мешает и ракетам, и расчёту пушечного упреждения.
+
+Оба комплекса стреляют только в развёрнутом состоянии, при наличии энергии, включённой РЛС, подходящего боекомплекта и режиме не `HOLD`. Интерфейс прямо показывает совместимую ракету, энергию, прочность, цели, боекомплект и состояние комплекса.
+
 ### Мобильная РЛС Renault TRM
 
 - **ПКМ пустой рукой**: открыть интерфейс РЛС.
@@ -391,6 +429,12 @@ Each satellite carries four rods and enforces a 60-second interval between relea
 1. Поместите **«ОДИН»** в правый слот генерации случайной частоты спутникового связующего HBM и заберите его после появления ненулевой частоты/ID в подсказке предмета.
 2. Поместите «ОДИН» в левый слот связующего, а нужный контроллер HBM — в средний. Привяжите **спутниковый интерфейс** для выбора точки удара на карте, **спутниковый лазерный целеуказатель** для прямого удара по ПКМ или **координатный интерфейс спутника (`sat_coord`)** для ручного ввода координат. Каждый предмет-контроллер хранит собственную частоту и привязывается отдельно.
 3. Запустите «ОДИН» через штатную ракету-носитель Soyuz HBM. Soyuz использует записанную частоту как ID спутника.
-4. Возьмите привязанный лазерный целеуказатель, наведитесь на блок в пределах его дальности и нажмите ПКМ. Спутник сбросит один вольфрамовый стержень над выбранной точкой.
+4. Используйте один из отдельно привязанных способов управления:
+   - **Спутниковый интерфейс:** откройте его, выберите частоту «ОДИНА» и нажмите на нужную точку карты.
+   - **Координатный интерфейс (`sat_coord`):** введите координаты цели и отправьте команду.
+   - **Спутниковый лазерный целеуказатель:** наведитесь на блок в пределах дальности и нажмите ПКМ.
+5. Чат подтверждает принятый удар и сообщает остаток стержней. Во время перезарядки он показывает оставшиеся секунды, а после исчерпания боезапаса сообщает об отсутствии стержней.
 
 Один спутник несёт четыре стержня; между сбросами действует интервал 60 секунд. Падающий стержень отображается на РЛС как баллистическая цель Tier 3, самостоятельно прогружает чанки полёта и может быть перехвачен во время предупреждения и терминального снижения. Удар представляет собой мощный неядерный кинетический взрыв без радиации и ядерного гриба.
+
+Дальняя РЛС получает устойчивую трассу Tier 3 не мгновенно: цель должна существовать около 2,5 секунды и подняться минимум на 18 блоков над локальным рельефом. Поэтому противоракета не стартует в ту же игровую секунду, но окно для перехвата сохраняется.
