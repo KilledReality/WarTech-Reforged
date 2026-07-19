@@ -40,10 +40,16 @@ public final class EntityMq9Munition extends Entity
             int targetZ) {
         this(world);
         setType(type);
-        this.targetX = targetX;
+        int dispersion = getMaximumDispersionBlocks(type);
+        this.targetX = targetX + triangularOffset(world, dispersion);
         this.targetY = targetY;
-        this.targetZ = targetZ;
+        this.targetZ = targetZ + triangularOffset(world, dispersion);
         syncTarget();
+    }
+
+    public static int getMaximumDispersionBlocks(int type) {
+        return type == ItemMq9Payload.HELLFIRE ? 0
+                : type == ItemMq9Payload.GBU12 ? 1 : 6;
     }
 
     @Override
@@ -114,7 +120,7 @@ public final class EntityMq9Munition extends Entity
         if (getType() == ItemMq9Payload.HELLFIRE) {
             guidePowered(dx, dy, dz, distance);
         } else if (getType() == ItemMq9Payload.GBU12) {
-            guideBomb(dx, dy, dz, distance, 0.16D);
+            guideBomb(dx, dy, dz, distance, 0.20D);
         } else {
             fallUnguided();
         }
@@ -127,7 +133,7 @@ public final class EntityMq9Munition extends Entity
     private void guidePowered(double dx, double dy, double dz, double distance) {
         double speed = Math.min(1.42D, 0.65D + field_70173_aa * 0.045D);
         double inverse = distance < 0.001D ? 0.0D : 1.0D / distance;
-        double turn = distance < 45.0D ? 0.28D : 0.16D;
+        double turn = distance < 45.0D ? 0.44D : 0.20D;
         field_70159_w = blend(field_70159_w, dx * inverse * speed, turn);
         field_70181_x = blend(field_70181_x, dy * inverse * speed, turn);
         field_70179_y = blend(field_70179_y, dz * inverse * speed, turn);
@@ -138,11 +144,15 @@ public final class EntityMq9Munition extends Entity
             double turn) {
         double horizontal = Math.sqrt(dx * dx + dz * dz);
         if (horizontal < 0.001D) horizontal = 0.001D;
-        double horizontalSpeed = 0.82D;
-        field_70159_w = blend(field_70159_w, dx / horizontal * horizontalSpeed, turn);
-        field_70179_y = blend(field_70179_y, dz / horizontal * horizontalSpeed, turn);
+        double horizontalSpeed = distance < 35.0D ? 0.74D : 0.82D;
+        double effectiveTurn = distance < 55.0D ? 0.36D : turn;
+        field_70159_w = blend(field_70159_w,
+                dx / horizontal * horizontalSpeed, effectiveTurn);
+        field_70179_y = blend(field_70179_y,
+                dz / horizontal * horizontalSpeed, effectiveTurn);
         double desiredVertical = clamp(dy * 0.055D, -0.72D, 0.08D);
-        field_70181_x = blend(field_70181_x - 0.025D, desiredVertical, turn);
+        field_70181_x = blend(field_70181_x - 0.025D,
+                desiredVertical, effectiveTurn);
     }
 
     private void fallUnguided() {
@@ -263,6 +273,11 @@ public final class EntityMq9Munition extends Entity
     }
 
     private static int floor(double value) { return (int) Math.floor(value); }
+    private static int triangularOffset(World world, int maximum) {
+        if (maximum <= 0 || world == null || world.field_73012_v == null) return 0;
+        return world.field_73012_v.nextInt(maximum + 1)
+                - world.field_73012_v.nextInt(maximum + 1);
+    }
     private static double blend(double current, double target, double amount) {
         return current + (target - current) * amount;
     }

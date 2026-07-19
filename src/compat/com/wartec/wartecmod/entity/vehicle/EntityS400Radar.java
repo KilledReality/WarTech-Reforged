@@ -22,7 +22,7 @@ public final class EntityS400Radar extends Entity
     public static final double RADAR_CEILING = 900.0D;
     public static final int CONTACT_LIMIT = 32;
     public static final int ENERGY_CAPACITY = 5000000;
-    private static final int ENERGY_USE = 120;
+    private static final int ENERGY_USE = 300;
     private static final int DW_DEPLOYED = 18;
     private static final int DW_ACTIVE = 19;
     private static final int DW_CONTACTS = 20;
@@ -47,7 +47,7 @@ public final class EntityS400Radar extends Entity
         field_70180_af.func_75682_a(DW_DEPLOYED, Byte.valueOf((byte) 0));
         field_70180_af.func_75682_a(DW_ACTIVE, Byte.valueOf((byte) 0));
         field_70180_af.func_75682_a(DW_CONTACTS, Integer.valueOf(0));
-        field_70180_af.func_75682_a(DW_POWER, Integer.valueOf(1000000));
+        field_70180_af.func_75682_a(DW_POWER, Integer.valueOf(0));
         field_70180_af.func_75682_a(DW_BLIP_COUNT, Integer.valueOf(0));
         for (int i = 0; i < BLIP_LIMIT; ++i) {
             field_70180_af.func_75682_a(DW_BLIP_BASE + i, Integer.valueOf(0));

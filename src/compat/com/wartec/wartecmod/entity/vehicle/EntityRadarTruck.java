@@ -20,7 +20,7 @@ public final class EntityRadarTruck extends Entity
     public static final double RADAR_RANGE = 600.0D;
     public static final double RADAR_CEILING = 500.0D;
     public static final int ENERGY_CAPACITY = 1000000;
-    private static final int ENERGY_USE = 35;
+    private static final int ENERGY_USE = 100;
     private static final int DW_ACTIVE = 18;
     private static final int DW_CONTACTS = 19;
     private static final int DW_POWER = 20;
@@ -43,7 +43,7 @@ public final class EntityRadarTruck extends Entity
     protected void func_70088_a() {
         field_70180_af.func_75682_a(DW_ACTIVE, Byte.valueOf((byte) 1));
         field_70180_af.func_75682_a(DW_CONTACTS, Integer.valueOf(0));
-        field_70180_af.func_75682_a(DW_POWER, Integer.valueOf(250000));
+        field_70180_af.func_75682_a(DW_POWER, Integer.valueOf(0));
         field_70180_af.func_75682_a(DW_BLIP_COUNT, Integer.valueOf(0));
         for (int i = 0; i < BLIP_LIMIT; ++i) {
             field_70180_af.func_75682_a(DW_BLIP_BASE + i, Integer.valueOf(0));

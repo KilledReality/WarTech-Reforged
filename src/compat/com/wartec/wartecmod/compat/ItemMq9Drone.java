@@ -16,8 +16,9 @@ public final class ItemMq9Drone extends Item {
     @Override
     public void func_77624_a(ItemStack stack, EntityPlayer player,
             List lines, boolean advanced) {
-        lines.add("Reusable long-range strike UAV | 6 hardpoints");
-        lines.add("HBM designator + RMB: assign target");
+        lines.add("Reusable strike UAV | 6 hardpoints | max range 2,400 blocks");
+        lines.add("HBM designator + RMB: append target (up to 6)");
+        lines.add("Designator + Shift + RMB: replace target route");
         lines.add("RMB: payload interface | Shift + RMB: launch");
         lines.add("Returns to its launch point after weapon release");
     }

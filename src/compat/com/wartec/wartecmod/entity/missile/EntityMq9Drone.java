@@ -38,9 +38,9 @@ public final class EntityMq9Drone extends Entity
     public static final int MAX_TARGETS = 6;
     public static final int ENERGY_CAPACITY = 800000;
     private static final int INVENTORY_SIZE = 8;
-    private static final int ENERGY_PER_TICK = 12;
+    private static final int ENERGY_PER_TICK = 80;
     private static final int LAUNCH_ENERGY = 35000;
-    private static final double MAX_MISSION_RANGE = 2400.0D;
+    public static final int MAX_MISSION_RANGE = 2400;
     private static final double CRUISE_SPEED = 0.78D;
     private static final double MAX_HEALTH = 120.0D;
     private static final double APPROACH_DISTANCE = 72.0D;
@@ -102,7 +102,7 @@ public final class EntityMq9Drone extends Entity
     @Override
     protected void func_70088_a() {
         field_70180_af.func_75682_a(DW_STATE, Byte.valueOf((byte) STATE_READY));
-        field_70180_af.func_75682_a(DW_POWER, Integer.valueOf(250000));
+        field_70180_af.func_75682_a(DW_POWER, Integer.valueOf(0));
         field_70180_af.func_75682_a(DW_TARGET_X, Integer.valueOf(0));
         field_70180_af.func_75682_a(DW_TARGET_Y, Integer.valueOf(0));
         field_70180_af.func_75682_a(DW_TARGET_Z, Integer.valueOf(0));
@@ -266,8 +266,7 @@ public final class EntityMq9Drone extends Entity
         double dz = targetZ + 0.5D - field_70161_v;
         double distance = Math.sqrt(dx * dx + dz * dz);
         int payload = findSelectedPayload();
-        double releaseRange = payload == ItemMq9Payload.HELLFIRE ? 82.0D
-                : payload == ItemMq9Payload.GBU12 ? 68.0D : 38.0D;
+        double releaseRange = getReleaseRange(payload);
         if (distance <= releaseRange) {
             setState(STATE_ATTACK);
             releaseWeapon(payload);
@@ -282,6 +281,19 @@ public final class EntityMq9Drone extends Entity
             desiredY = Math.max(desiredY, getTargetY() + 42.0D);
         }
         guideTo(aim[0], desiredY, aim[1], CRUISE_SPEED, 0.075D, 0.22D);
+    }
+
+    private double getReleaseRange(int payload) {
+        if (payload == ItemMq9Payload.HELLFIRE) return 82.0D;
+        if (payload == ItemMq9Payload.GBU12) return 62.0D;
+        double altitude = Math.max(2.0D, field_70163_u - (getTargetY() + 1.0D));
+        double vertical = field_70181_x;
+        double gravity = 0.045D;
+        double fallTicks = (vertical + Math.sqrt(vertical * vertical
+                + 2.0D * gravity * altitude)) / gravity;
+        double horizontalSpeed = Math.sqrt(field_70159_w * field_70159_w
+                + field_70179_y * field_70179_y);
+        return clamp(horizontalSpeed * fallTicks * 0.96D, 20.0D, 62.0D);
     }
 
     private void releaseWeapon(int payload) {
@@ -308,7 +320,7 @@ public final class EntityMq9Drone extends Entity
         inventory[slot].field_77994_a--;
         if (inventory[slot].field_77994_a <= 0) inventory[slot] = null;
         updatePayloadWatcher();
-        setPower(Math.max(0, getPower() - 1800));
+        setPower(Math.max(0, getPower() - 2500));
         field_70170_p.func_72956_a(this,
                 payload == ItemMq9Payload.HELLFIRE
                         ? "hbm:weapon.missileTakeOff" : "random.pop",
@@ -639,6 +651,18 @@ public final class EntityMq9Drone extends Entity
         updateTargetQueueWatcher();
     }
 
+    public boolean removeLastTarget() {
+        if (targetCount <= 0) return false;
+        targetCount--;
+        if (targetCount <= 0) {
+            clearTargetQueue();
+        } else {
+            targetIndex = Math.min(targetIndex, targetCount - 1);
+            syncActiveTarget();
+        }
+        return true;
+    }
+
     private void syncActiveTarget() {
         if (targetCount <= 0) {
             clearTargetQueue();
@@ -696,6 +720,19 @@ public final class EntityMq9Drone extends Entity
             return true;
         }
         if (action == 2) {
+            if (!isReady()) {
+                tell(player, "Target list cannot be changed while MQ-9 is airborne.");
+                return true;
+            }
+            if (removeLastTarget()) {
+                field_70170_p.func_72956_a(this, "hbm:item.techBleep", 0.65F, 0.82F);
+                tell(player, "Last MQ-9 target removed. Remaining: " + targetCount + ".");
+            } else {
+                tell(player, "MQ-9 target list is already empty.");
+            }
+            return true;
+        }
+        if (action == 3) {
             if (!isReady()) {
                 tell(player, "Target list cannot be cleared while MQ-9 is airborne.");
                 return true;
@@ -819,7 +856,7 @@ public final class EntityMq9Drone extends Entity
     @Override
     protected void func_70037_a(NBTTagCompound tag) {
         setState(tag.func_74771_c("State"));
-        setPower(tag.func_74764_b("Power") ? tag.func_74762_e("Power") : 250000);
+        setPower(tag.func_74764_b("Power") ? tag.func_74762_e("Power") : 0);
         int tx = tag.func_74762_e("TargetX");
         int ty = tag.func_74762_e("TargetY");
         int tz = tag.func_74762_e("TargetZ");

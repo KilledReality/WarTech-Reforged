@@ -27,7 +27,7 @@ public final class ItemRenderMobileArtillery implements IItemRenderer {
         GL11.glPushMatrix();
         if (type == ItemRenderType.INVENTORY) {
             GL11.glTranslatef(0.0F, -0.35F, 0.0F);
-            GL11.glScalef(1.15F, 1.15F, 1.15F);
+            GL11.glScalef(0.64F, 0.64F, 0.64F);
         } else if (type == ItemRenderType.EQUIPPED_FIRST_PERSON) {
             GL11.glTranslatef(0.7F, 0.4F, 0.2F);
             GL11.glScalef(0.34F, 0.34F, 0.34F);

@@ -97,7 +97,7 @@ public final class EntityMobileAirDefense extends Entity
     protected void func_70088_a() {
         field_70180_af.func_75682_a(DW_VARIANT, Byte.valueOf((byte) VARIANT_TOR));
         field_70180_af.func_75682_a(DW_DEPLOYED, Byte.valueOf((byte) 0));
-        field_70180_af.func_75682_a(DW_POWER, Integer.valueOf(450000));
+        field_70180_af.func_75682_a(DW_POWER, Integer.valueOf(0));
         field_70180_af.func_75682_a(DW_CONTACTS, Integer.valueOf(0));
         field_70180_af.func_75682_a(DW_FIRE_MODE, Byte.valueOf((byte) FIRE_AUTO));
         field_70180_af.func_75682_a(DW_RADAR_ENABLED, Byte.valueOf((byte) 1));
@@ -600,7 +600,7 @@ public final class EntityMobileAirDefense extends Entity
     }
 
     private int getRadarEnergyUse() {
-        return isTor() ? 42 : 48;
+        return isTor() ? 180 : 220;
     }
 
     private long getLauncherKey() {
@@ -962,7 +962,7 @@ public final class EntityMobileAirDefense extends Entity
         field_70180_af.func_75692_b(DW_FIRE_MODE,
                 Byte.valueOf((byte) Math.max(0, Math.min(2,
                         tag.func_74771_c("FireMode")))));
-        setPower(tag.func_74764_b("Power") ? tag.func_74762_e("Power") : 450000);
+        setPower(tag.func_74764_b("Power") ? tag.func_74762_e("Power") : 0);
         vehicleHealth = tag.func_74764_b("VehicleHealth")
                 ? Math.max(1.0D, Math.min(MAX_HEALTH,
                         tag.func_74769_h("VehicleHealth"))) : MAX_HEALTH;

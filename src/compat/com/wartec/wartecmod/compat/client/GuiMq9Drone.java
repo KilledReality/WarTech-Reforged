@@ -21,18 +21,20 @@ public final class GuiMq9Drone extends GuiContainer {
     @Override
     public void func_73866_w_() {
         super.func_73866_w_();
-        field_146292_n.add(new GuiButton(0, field_147003_i + 24,
-                field_147009_r + 91, 92, 20, "LAUNCH"));
-        field_146292_n.add(new GuiButton(1, field_147003_i + 120,
-                field_147009_r + 91, 76, 20, "WEAPON"));
-        field_146292_n.add(new GuiButton(2, field_147003_i + 198,
-                field_147009_r + 91, 32, 20, "CLR"));
+        field_146292_n.add(new GuiButton(0, field_147003_i + 12,
+                field_147009_r + 91, 76, 20, "LAUNCH"));
+        field_146292_n.add(new GuiButton(1, field_147003_i + 90,
+                field_147009_r + 91, 60, 20, "WEAPON"));
+        field_146292_n.add(new GuiButton(2, field_147003_i + 152,
+                field_147009_r + 91, 38, 20, "LAST"));
+        field_146292_n.add(new GuiButton(3, field_147003_i + 192,
+                field_147009_r + 91, 32, 20, "ALL"));
     }
 
     @Override
     protected void func_146284_a(GuiButton button) {
         if (!button.field_146124_l) return;
-        if (button.field_146127_k >= 0 && button.field_146127_k <= 2) {
+        if (button.field_146127_k >= 0 && button.field_146127_k <= 3) {
             field_146297_k.field_71442_b.func_78756_a(
                     field_147002_h.field_75152_c, button.field_146127_k);
         }
@@ -81,6 +83,8 @@ public final class GuiMq9Drone extends GuiContainer {
         field_146289_q.func_78276_b("MQ-9 REAPER GROUND CONTROL", 15, 10, white);
         field_146289_q.func_78276_b("STATUS: " + drone.getStateName(), 15, 21,
                 drone.isReady() ? 0x65F28A : cyan);
+        field_146289_q.func_78276_b("RANGE: " + EntityMq9Drone.MAX_MISSION_RANGE,
+                151, 21, cyan);
         field_146289_q.func_78276_b(ItemMq9Payload.getPayloadStatus(
                 drone.getSelectedPayload()), 15, 31, 0xF1C96B);
         String target = drone.hasTarget()

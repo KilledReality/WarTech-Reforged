@@ -27,7 +27,7 @@ public final class ItemRenderS400Radar implements IItemRenderer {
         GL11.glPushMatrix();
         if (type == ItemRenderType.INVENTORY) {
             GL11.glTranslatef(0.0F, -0.3F, 0.0F);
-            GL11.glScalef(1.4F, 1.4F, 1.4F);
+            GL11.glScalef(0.84F, 0.84F, 0.84F);
         } else if (type == ItemRenderType.EQUIPPED_FIRST_PERSON) {
             GL11.glTranslatef(0.65F, 0.35F, 0.15F);
             GL11.glScalef(0.38F, 0.38F, 0.38F);

@@ -61,11 +61,13 @@ The selector stores coordinates, not an entity. For AGM-88, select a point close
 ### MQ-9 Reaper
 
 - **RMB** on the parked MQ-9: open ground control.
-- Load up to six AGM-114, GBU-12, or Mk 82 weapons into the hardpoints, a compatible HBM battery into `BAT`, and up to 16 countermeasure packs into `LTC`.
+- Load up to six AGM-114, GBU-12, or Mk 82 weapons into the hardpoints, a compatible charged HBM battery into `BAT`, and up to 16 countermeasure packs into `LTC`. A newly placed MQ-9 has `0 HE` and cannot launch without being charged.
 - Set coordinates on an HBM designator, then use **RMB on the MQ-9 while holding it** to append a strike point. Up to six points are retained.
-- Use **Shift+RMB with the designator** to discard the old route and start a new target list with the selected point. `CLR` in ground control clears the list.
+- Use **Shift+RMB with the designator** to discard the old route and start a new target list with the selected point. `LAST` removes the last queued point; `ALL` clears the complete list.
 - Select a weapon and press `LAUNCH MISSION`, or use **Shift+RMB with an empty hand** on the parked MQ-9.
 - The MQ-9 attacks queued points in order, consuming one available weapon per point, then returns and lands automatically.
+- Maximum mission radius is **2,400 blocks from the recorded takeoff point**. Every queued point must be inside this radius.
+- AGM-114 is the most accurate weapon, GBU-12 retains a small guided dispersion, and unguided Mk 82 has the widest impact spread. Its release point is calculated from current altitude and velocity.
 - Flares deploy automatically against a nearby interceptor or a Pantsir gun burst. One pack starts a short countermeasure window; decoy probability is 25% against tier 1, 15% against tier 2, and 10% against tier 3.
 
 ### AGM-88 HARM
@@ -245,11 +247,13 @@ Use different team names for opposing sides. Equipment placed before joining a t
 ### MQ-9 Reaper
 
 - **ПКМ** по стоящему MQ-9: открыть наземный пункт управления.
-- Загрузите до шести AGM-114, GBU-12 или Mk 82 в узлы подвески, совместимый аккумулятор HBM в `BAT` и до 16 кассет ЛТЦ в `LTC`.
+- Загрузите до шести AGM-114, GBU-12 или Mk 82 в узлы подвески, заряженный совместимый аккумулятор HBM в `BAT` и до 16 кассет ЛТЦ в `LTC`. Новый MQ-9 появляется с `0 HE` и без зарядки не запускается.
 - Настройте координаты на целеуказателе HBM, затем нажмите **ПКМ по MQ-9 с целеуказателем в руке**, чтобы добавить точку удара. Сохраняется до шести точек.
-- **Shift+ПКМ с целеуказателем** удаляет старый маршрут и начинает новый список с выбранной точки. Кнопка `CLR` в интерфейсе очищает список.
+- **Shift+ПКМ с целеуказателем** удаляет старый маршрут и начинает новый список с выбранной точки. `LAST` удаляет последнюю точку, а `ALL` полностью очищает очередь.
 - Выберите оружие и нажмите `LAUNCH MISSION` либо используйте **Shift+ПКМ пустой рукой** по стоящему MQ-9.
 - MQ-9 атакует точки по порядку, расходуя по одному доступному боеприпасу на точку, затем автоматически возвращается и садится.
+- Максимальный радиус миссии составляет **2 400 блоков от записанной точки взлёта**. Каждая точка очереди должна находиться внутри этого радиуса.
+- AGM-114 имеет максимальную точность, GBU-12 сохраняет небольшую погрешность управляемого боеприпаса, а неуправляемая Mk 82 обладает наибольшим разбросом. Момент её сброса рассчитывается по текущей высоте и скорости.
 - ЛТЦ отстреливаются автоматически при приближении противоракеты или очереди Панциря. Одна кассета создаёт короткое окно помех; шанс отвода равен 25% для Т1, 15% для Т2 и 10% для Т3.
 
 ### AGM-88 HARM

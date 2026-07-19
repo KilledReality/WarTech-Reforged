@@ -37,7 +37,7 @@ public final class EntityElectronicWarfareUnit extends Entity implements IAntiRa
     protected void func_70088_a() {
         field_70180_af.func_75682_a(DW_MODE, Byte.valueOf((byte) MODE_JAMMER));
         field_70180_af.func_75682_a(DW_ACTIVE, Byte.valueOf((byte) 1));
-        field_70180_af.func_75682_a(DW_POWER, Integer.valueOf(500000));
+        field_70180_af.func_75682_a(DW_POWER, Integer.valueOf(0));
         field_70180_af.func_75682_a(DW_CONTACTS, Integer.valueOf(0));
         field_70180_af.func_75682_a(DW_BAND,
                 Byte.valueOf((byte) ElectronicWarfareService.BAND_WIDEBAND));

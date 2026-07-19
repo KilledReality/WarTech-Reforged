@@ -23,7 +23,7 @@ import net.minecraft.world.World;
 public final class EntityCommandTruck extends Entity
         implements IAntiRadiationTarget, IInventory {
     public static final int ENERGY_CAPACITY = 2000000;
-    private static final int ENERGY_USE = 40;
+    private static final int ENERGY_USE = 120;
     private static final int DW_DEPLOYED = 18;
     private static final int DW_POWER = 19;
     private static final int DW_RADARS = 20;
@@ -56,7 +56,7 @@ public final class EntityCommandTruck extends Entity
     @Override
     protected void func_70088_a() {
         field_70180_af.func_75682_a(DW_DEPLOYED, Byte.valueOf((byte) 0));
-        field_70180_af.func_75682_a(DW_POWER, Integer.valueOf(500000));
+        field_70180_af.func_75682_a(DW_POWER, Integer.valueOf(0));
         field_70180_af.func_75682_a(DW_RADARS, Integer.valueOf(0));
         field_70180_af.func_75682_a(DW_LAUNCHERS, Integer.valueOf(0));
         field_70180_af.func_75682_a(DW_CONTACTS, Integer.valueOf(0));

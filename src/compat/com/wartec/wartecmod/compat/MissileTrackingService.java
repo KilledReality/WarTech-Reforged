@@ -559,7 +559,7 @@ public final class MissileTrackingService {
             return false;
         }
         Reservation current = tracks.reservations.get(key);
-        if (current != null && current.expiresAt >= now && current.ownerKey != ownerKey) {
+        if (current != null && current.expiresAt >= now) {
             return false;
         }
         tracks.reservations.put(key, new Reservation(ownerKey, 0, now + RESERVATION_TIME));

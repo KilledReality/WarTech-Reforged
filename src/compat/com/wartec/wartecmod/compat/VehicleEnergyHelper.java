@@ -20,7 +20,7 @@ public final class VehicleEnergyHelper {
         }
         IBatteryItem battery = (IBatteryItem) stack.func_77973_b();
         long available = Math.max(0L, battery.getCharge(stack));
-        long rate = Math.max(100000L, battery.getDischargeRate(stack));
+        long rate = Math.max(1L, battery.getDischargeRate(stack));
         long transfer = Math.min(Math.min(available, rate), capacity - (long) stored);
         if (transfer <= 0L) {
             return stored;

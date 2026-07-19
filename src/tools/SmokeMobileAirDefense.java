@@ -1,5 +1,6 @@
 import com.wartec.wartecmod.compat.ContainerMobileAirDefense;
 import com.wartec.wartecmod.compat.ItemPantsirAmmoBelt;
+import com.wartec.wartecmod.compat.MissileTrackingService;
 import com.wartec.wartecmod.compat.RadarNetworkContent;
 import com.wartec.wartecmod.entity.vehicle.EntityMobileAirDefense;
 import com.wartec.wartecmod.items.wartecmodItems;
@@ -22,6 +23,8 @@ public final class SmokeMobileAirDefense {
 
         TestWorld world = new TestWorld();
         EntityMobileAirDefense tor = new EntityMobileAirDefense(world);
+        require(tor.getPower() == 0,
+                "new air-defense vehicles must require a real energy source");
         require(tor.isTor() && tor.getMissileCapacity() == 8,
                 "Tor must expose eight missile cells");
         require(tor.getRequiredInterceptorTier() == 2
@@ -55,6 +58,7 @@ public final class SmokeMobileAirDefense {
 
         EntityMobileAirDefense pantsir = new EntityMobileAirDefense(world);
         pantsir.setVariant(EntityMobileAirDefense.VARIANT_PANTSIR);
+        pantsir.setPower(EntityMobileAirDefense.ENERGY_CAPACITY);
         require(!pantsir.isTor() && pantsir.getMissileCapacity() == 12,
                 "Pantsir must expose twelve missile cells");
         require(pantsir.getRequiredInterceptorTier() == 1
@@ -79,6 +83,17 @@ public final class SmokeMobileAirDefense {
                         && ItemPantsirAmmoBelt.getRounds(testBelt) == 590,
                 "Pantsir belt must persist consumed rounds in NBT");
         require(pantsir.isGunsEnabled(), "Pantsir guns must default to automatic mode");
+        TestMissile reservationTarget = new TestMissile(world, 91);
+        world.field_72996_f.add(reservationTarget);
+        MissileTrackingService.registerLaunch(reservationTarget,
+                120.0D, 4.0D, 0.0D, 0, 0);
+        boolean firstReservation = MissileTrackingService.tryReserve(world, 91, 7001L);
+        boolean duplicateReservation = MissileTrackingService.tryReserve(world, 91, 7001L);
+        require(firstReservation, "a launcher must reserve an unassigned target");
+        require(!duplicateReservation,
+                "one launcher must not reserve and salvo repeatedly at the same target");
+        MissileTrackingService.releaseReservation(world, 91, 0);
+        reservationTarget.func_70106_y();
         pantsir.handleGuiAction(2, player);
         require(!pantsir.isGunsEnabled(), "gun GUI control must switch guns to hold");
         pantsir.handleGuiAction(2, player);

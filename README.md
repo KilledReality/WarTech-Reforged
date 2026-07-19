@@ -33,10 +33,15 @@ new cruise missiles, and mobile artillery platforms.
   recorded launch point.
 - MQ-9 payloads include the powered **AGM-114 Hellfire**, guided **GBU-12
   Paveway II**, and unguided **Mk 82**. The UAV calculates the Mk 82 release
-  point before following its return route.
+  point from its actual altitude and velocity before following its return
+  route. AGM-114 uses exact terminal guidance, GBU-12 has a small guided
+  dispersion, and Mk 82 retains a wider unguided accuracy envelope.
 - Loadable MQ-9 countermeasure flares can decoy tier-1, tier-2, and tier-3
   interceptors with 25%, 15%, and 10% probability and can disrupt Pantsir gun
   bursts while the flare cloud is active.
+- New powered vehicles and radar systems spawn empty and draw real HBM HE at
+  their operating rate. Installed batteries are drained according to their
+  own discharge-rate limit instead of receiving an artificial transfer floor.
 - Geran-2 dynamically calculates its climb, cruise, and terminal descent so it
   can clear terrain and approach the selected target.
 - Geran-2 range is up to 1,000 blocks. It flies substantially slower than a
