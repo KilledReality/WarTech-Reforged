@@ -16,9 +16,9 @@ public final class SmokeOrbitalStrike {
         ItemStack satelliteStack = new ItemStack(satelliteItem);
         require(satelliteItem instanceof ISatChip,
                 "orbital payload item must be accepted by the HBM Soyuz satellite slot");
-        satelliteItem.setFreq(satelliteStack, 87104);
-        require(satelliteItem.getFreq(satelliteStack) == 87104,
-                "orbital payload must store the frequency used by HBM designators");
+        ISatChip.setFreqS(satelliteStack, 87104);
+        require(ISatChip.getFreqS(satelliteStack) == 87104,
+                "Soyuz/linker static ISatChip path must read the ODIN frequency");
 
         TestWorld world = new TestWorld();
         EntityKineticRod rod = new EntityKineticRod(world, 120, 64, -80);
@@ -31,6 +31,14 @@ public final class SmokeOrbitalStrike {
         require(rod.func_70112_a(900000.0D)
                         && !rod.func_70112_a(1200000.0D),
                 "orbital rod render distance must cover radar combat range but remain bounded");
+
+        TestTier3Entity boostPhase = new TestTier3Entity(world);
+        boostPhase.func_70107_b(0.5D, 70.0D, 0.5D);
+        require(MissileTrackingService.getThreatTier(boostPhase) == 0,
+                "Tier 3 missile must remain below radar activation height near its launcher");
+        boostPhase.func_70107_b(0.5D, 82.0D, 0.5D);
+        require(MissileTrackingService.getThreatTier(boostPhase) == 3,
+                "Tier 3 missile must become trackable after reaching a sensible altitude");
 
         double initialY = rod.field_70163_u;
         for (int tick = 0; tick < 72; ++tick) {
@@ -76,6 +84,18 @@ public final class SmokeOrbitalStrike {
         @Override
         public int func_72976_f(int x, int z) {
             return 64;
+        }
+    }
+
+    private static final class TestTier3Entity extends net.minecraft.entity.Entity
+            implements api.hbm.entity.IRadarDetectable {
+        TestTier3Entity(World world) {
+            super(world);
+        }
+
+        @Override
+        public RadarTargetType getTargetType() {
+            return RadarTargetType.MISSILE_TIER3;
         }
     }
 }

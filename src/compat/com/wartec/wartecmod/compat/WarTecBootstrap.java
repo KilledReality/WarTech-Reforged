@@ -6,6 +6,7 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import cpw.mods.fml.common.Mod;
 import cpw.mods.fml.common.event.FMLInitializationEvent;
+import cpw.mods.fml.common.event.FMLPostInitializationEvent;
 import cpw.mods.fml.common.event.FMLPreInitializationEvent;
 import cpw.mods.fml.common.network.NetworkRegistry;
 
@@ -83,6 +84,11 @@ public final class WarTecBootstrap {
                 t.printStackTrace();
             }
         }
+    }
+
+    @Mod.EventHandler
+    public void postInit(FMLPostInitializationEvent event) {
+        OrbitalStrikeContent.registerSatelliteType();
     }
 
     private static Object get(Class<?> owner, String name) throws Exception {

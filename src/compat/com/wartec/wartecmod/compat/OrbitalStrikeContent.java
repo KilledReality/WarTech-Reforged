@@ -11,6 +11,7 @@ import net.minecraft.item.Item;
 /** Registration for the orbital kinetic bombardment system. */
 public final class OrbitalStrikeContent {
     public static Item kineticSatellite;
+    private static boolean satelliteTypeRegistered;
 
     private OrbitalStrikeContent() {
     }
@@ -23,8 +24,19 @@ public final class OrbitalStrikeContent {
                 .func_77637_a(wartecmod.tabwartecmodcruisemissiles)
                 .func_111206_d("hbm:sat_laser");
         GameRegistry.registerItem(kineticSatellite, "KineticBombardmentSatellite");
-        Satellite.registerSatellite(SatelliteKinetic.class, kineticSatellite);
         EntityRegistry.registerModEntity(EntityKineticRod.class, "entity_Kinetic_Rod", 39,
                 wartecmod.instance, 1400, 1, true);
+    }
+
+    /** Appends ODIN after legacy WarTech satellites so existing type IDs stay stable. */
+    public static void registerSatelliteType() {
+        if (satelliteTypeRegistered) {
+            return;
+        }
+        if (kineticSatellite == null) {
+            register();
+        }
+        Satellite.registerSatellite(SatelliteKinetic.class, kineticSatellite);
+        satelliteTypeRegistered = true;
     }
 }

@@ -140,6 +140,6 @@ container.wartecMobileAirDefense=Mobile Air Defense Control
 item.KineticBombardmentSatellite.name=ODIN Kinetic Bombardment Satellite
 item.KineticBombardmentSatellite.role=Coordinate-controlled orbital kinetic strike platform
 item.KineticBombardmentSatellite.payload=Payload: 4 tungsten rods; 60 s interval between strikes
-item.KineticBombardmentSatellite.control=Assign an HBM satellite frequency and copy it to a laser designator before launch
+item.KineticBombardmentSatellite.control=Copy its HBM frequency to each laser designator or coordinate interface before launch
 item.KineticBombardmentSatellite.warning=Non-nuclear impact; the descending rod is a Tier 3 radar target
 entity.entity_Kinetic_Rod.name=Orbital Kinetic Rod

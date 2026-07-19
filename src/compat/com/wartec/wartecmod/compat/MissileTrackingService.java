@@ -834,7 +834,9 @@ public final class MissileTrackingService {
         }
         for (Class<?> type = entity.getClass(); type != null; type = type.getSuperclass()) {
             String name = type.getName();
-            if ("com.wartec.wartecmod.entity.missile.EntityHypersonicCruiseMissileBase".equals(name)) return 3;
+            if ("com.wartec.wartecmod.entity.missile.EntityHypersonicCruiseMissileBase".equals(name)) {
+                return applyRadarActivationEnvelope(entity, 3);
+            }
             if ("com.wartec.wartecmod.entity.missile.EntitySupersonicCruiseMissileBase".equals(name)) return 2;
             if ("com.wartec.wartecmod.entity.missile.EntitySubsonicCruiseMissileBase".equals(name)) return 1;
         }
@@ -852,7 +854,19 @@ public final class MissileTrackingService {
             return 0;
         }
         if (level < 0 || level > 9) return 0;
-        return level <= 1 ? 1 : level == 2 ? 2 : 3;
+        int tier = level <= 1 ? 1 : level == 2 ? 2 : 3;
+        return applyRadarActivationEnvelope(entity, tier);
+    }
+
+    /** Tier 3 boost-phase weapons do not become radar tracks while still hugging the launcher. */
+    private static int applyRadarActivationEnvelope(Entity entity, int tier) {
+        if (tier < 3 || entity.field_70170_p == null) {
+            return tier;
+        }
+        int x = (int) Math.floor(entity.field_70165_t);
+        int z = (int) Math.floor(entity.field_70161_v);
+        int groundY = entity.field_70170_p.func_72976_f(x, z);
+        return entity.field_70163_u - groundY >= 18.0D ? tier : 0;
     }
 
     private static WorldTracks getWorldTracks(World world) {

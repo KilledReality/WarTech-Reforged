@@ -5,10 +5,11 @@ import net.minecraft.nbt.NBTTagCompound;
 public class ItemStack {
     public int field_77994_a;
     public NBTTagCompound field_77990_d;
-    public ItemStack(Item item) {}
-    public ItemStack(Item item, int count) {}
-    public ItemStack(Item item, int count, int metadata) {}
-    public Item func_77973_b() { return null; }
+    private final Item item;
+    public ItemStack(Item item) { this.item = item; }
+    public ItemStack(Item item, int count) { this.item = item; this.field_77994_a = count; }
+    public ItemStack(Item item, int count, int metadata) { this.item = item; this.field_77994_a = count; }
+    public Item func_77973_b() { return item; }
     public int func_77960_j() { return 0; }
     public boolean func_77942_o() { return field_77990_d != null; }
     public ItemStack func_77979_a(int amount) { return null; }
