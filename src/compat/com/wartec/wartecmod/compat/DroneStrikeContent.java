@@ -11,6 +11,7 @@ public final class DroneStrikeContent {
     public static Item mq9Drone;
     public static Item mq9Payload;
     public static Item mq9Flares;
+    public static Item salvageWrench;
 
     private DroneStrikeContent() {
     }
@@ -28,9 +29,13 @@ public final class DroneStrikeContent {
         mq9Flares = new ItemMq9Flares()
                 .func_77637_a(wartecmod.tabwartecmodcruisemissiles)
                 .func_111206_d("hbm:ammo_standard.g26_flare_supply");
+        salvageWrench = new ItemSalvageWrench()
+                .func_77637_a(wartecmod.tabwartecmodcruisemissiles)
+                .func_111206_d("hbm:wrench");
         GameRegistry.registerItem(mq9Drone, "MQ9ReaperDrone");
         GameRegistry.registerItem(mq9Payload, "MQ9Payload");
         GameRegistry.registerItem(mq9Flares, "MQ9Flares");
+        GameRegistry.registerItem(salvageWrench, "WarTecSalvageWrench");
         EntityRegistry.registerModEntity(EntityMq9Drone.class, "entity_MQ9_Drone", 37,
                 wartecmod.instance, 1200, 1, true);
         EntityRegistry.registerModEntity(EntityMq9Munition.class, "entity_MQ9_Munition", 38,
@@ -45,5 +50,9 @@ public final class DroneStrikeContent {
 
     public static boolean isFlares(net.minecraft.item.ItemStack stack) {
         return stack != null && stack.func_77973_b() == mq9Flares;
+    }
+
+    public static boolean isSalvageWrench(net.minecraft.item.ItemStack stack) {
+        return stack != null && stack.func_77973_b() == salvageWrench;
     }
 }

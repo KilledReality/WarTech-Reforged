@@ -44,6 +44,8 @@ new cruise missiles, and mobile artillery platforms.
 - A destroyed MQ-9 no longer vanishes in mid-air. It enters a smoking descent,
   impacts with fire and an explosion, drops its surviving inventory, and leaves
   a persistent, collidable airframe wreck at the crash site.
+- The reusable WarTech salvage wrench removes landed MQ-9 wrecks with
+  Shift + right-click, without causing another explosion or duplicating drops.
 - New powered vehicles and radar systems spawn empty and draw real HBM HE at
   their operating rate. Installed batteries are drained according to their
   own discharge-rate limit instead of receiving an artificial transfer floor.

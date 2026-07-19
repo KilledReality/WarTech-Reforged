@@ -1,5 +1,6 @@
 import com.wartec.wartecmod.compat.DroneStrikeContent;
 import com.wartec.wartecmod.compat.ItemMq9Payload;
+import com.wartec.wartecmod.compat.ItemSalvageWrench;
 import com.wartec.wartecmod.compat.MissileTrackingService;
 import com.wartec.wartecmod.compat.VehicleEnergyHelper;
 import com.wartec.wartecmod.entity.missile.EntityMq9Drone;
@@ -20,6 +21,7 @@ public final class SmokeMq9Drone {
         DroneStrikeContent.mq9Drone = new Item();
         DroneStrikeContent.mq9Payload = new Item();
         DroneStrikeContent.mq9Flares = new Item();
+        DroneStrikeContent.salvageWrench = new ItemSalvageWrench();
         TestBattery testBattery = new TestBattery(50L, 7L);
         require(VehicleEnergyHelper.chargeFromStack(
                         new TestStack(testBattery, 0), 0, 100) == 7
@@ -101,6 +103,16 @@ public final class SmokeMq9Drone {
         }
         require(crashDrone.isWrecked() && !crashDrone.field_70128_L,
                 "the destroyed MQ-9 must leave a persistent wreck at the impact point");
+        TestPlayer inspector = new TestPlayer(crashWorld,
+                new TestStack(DroneStrikeContent.salvageWrench, 0), false);
+        crashDrone.func_130002_c(inspector);
+        require(!crashDrone.field_70128_L,
+                "a normal wrench click must not accidentally remove the wreck");
+        TestPlayer salvager = new TestPlayer(crashWorld,
+                new TestStack(DroneStrikeContent.salvageWrench, 0), true);
+        crashDrone.func_130002_c(salvager);
+        require(crashDrone.field_70128_L,
+                "Shift + RMB with the salvage wrench must remove an MQ-9 wreck");
         require(EntityMq9Munition.getMaximumDispersionBlocks(ItemMq9Payload.HELLFIRE) == 0
                         && EntityMq9Munition.getMaximumDispersionBlocks(ItemMq9Payload.GBU12) == 1
                         && EntityMq9Munition.getMaximumDispersionBlocks(ItemMq9Payload.MK82) == 6,
@@ -247,6 +259,20 @@ public final class SmokeMq9Drone {
 
         @Override public Item func_77973_b() { return item; }
         @Override public int func_77960_j() { return metadata; }
+    }
+
+    private static final class TestPlayer extends EntityPlayer {
+        private final ItemStack held;
+        private final boolean sneaking;
+
+        TestPlayer(World world, ItemStack held, boolean sneaking) {
+            super(world);
+            this.held = held;
+            this.sneaking = sneaking;
+        }
+
+        @Override public ItemStack func_71045_bC() { return held; }
+        @Override public boolean func_70093_af() { return sneaking; }
     }
 
     private static final class TestBattery extends Item implements IBatteryItem {

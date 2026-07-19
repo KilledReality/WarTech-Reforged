@@ -70,6 +70,7 @@ The selector stores coordinates, not an entity. For AGM-88, select a point close
 - AGM-114 is the most accurate weapon, GBU-12 retains a small guided dispersion, and unguided Mk 82 has the widest impact spread. Its release point is calculated from current altitude and velocity.
 - Flares deploy visibly during the final approach of an interceptor or shortly before a locked Pantsir gun burst. One pack starts a short countermeasure window; decoy probability is 25% against tier 1, 15% against tier 2, and 10% against tier 3. A failed decoy remains visible but does not prevent the hit.
 - A lethally damaged airborne MQ-9 enters a smoking descent, explodes and burns on impact, drops its surviving inventory, and leaves a persistent collidable wreck instead of disappearing.
+- Hold the reusable **WarTech Salvage Wrench** and use **Shift+RMB** on a landed MQ-9 wreck to dismantle and remove it without another explosion.
 
 ### AGM-88 HARM
 
@@ -255,6 +256,7 @@ Use different team names for opposing sides. Equipment placed before joining a t
 - MQ-9 атакует точки по порядку, расходуя по одному доступному боеприпасу на точку, затем автоматически возвращается и садится.
 - ЛТЦ заметно отстреливаются на конечном сближении ракеты-перехватчика либо незадолго до очереди уже наведённых пушек «Панциря». Одна кассета создаёт короткое окно противодействия; шанс отвода составляет 25% против ракет 1-го тира, 15% против 2-го и 10% против 3-го. Неудачный отстрел виден, но не предотвращает попадание.
 - Получивший смертельный урон MQ-9 не исчезает: он падает с дымом и огнём, взрывается при ударе, выбрасывает уцелевшее содержимое и оставляет физический обломок корпуса.
+- Возьмите многоразовый **демонтажный ключ WarTech** и нажмите **Shift+ПКМ** по лежащему обломку MQ-9, чтобы разобрать и убрать его без повторного взрыва.
 - Максимальный радиус миссии составляет **2 400 блоков от записанной точки взлёта**. Каждая точка очереди должна находиться внутри этого радиуса.
 - AGM-114 имеет максимальную точность, GBU-12 сохраняет небольшую погрешность управляемого боеприпаса, а неуправляемая Mk 82 обладает наибольшим разбросом. Момент её сброса рассчитывается по текущей высоте и скорости.
 - ЛТЦ отстреливаются автоматически при приближении противоракеты или очереди Панциря. Одна кассета создаёт короткое окно помех; шанс отвода равен 25% для Т1, 15% для Т2 и 10% для Т3.

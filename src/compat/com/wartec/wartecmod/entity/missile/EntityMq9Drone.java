@@ -789,12 +789,20 @@ public final class EntityMq9Drone extends Entity
     @Override
     public boolean func_130002_c(EntityPlayer player) {
         if (field_70170_p.field_72995_K) return true;
+        ItemStack held = player.func_71045_bC();
         if (getState() == STATE_CRASHED) {
+            if (wreckLanded && DroneStrikeContent.isSalvageWrench(held)) {
+                if (player.func_70093_af()) {
+                    salvageWreck(player);
+                } else {
+                    tell(player, "Shift + right-click with the salvage wrench to dismantle this wreck.");
+                }
+                return true;
+            }
             tell(player, wreckLanded ? "MQ-9 airframe is destroyed."
                     : "MQ-9 is going down.");
             return true;
         }
-        ItemStack held = player.func_71045_bC();
         if (held != null && held.func_77973_b() instanceof IDesignatorItem) {
             setTarget(player, held, (IDesignatorItem) held.func_77973_b());
             return true;
@@ -812,6 +820,23 @@ public final class EntityMq9Drone extends Entity
         FMLNetworkHandler.openGui(player, WarTecBootstrap.instance,
                 RadarGuiHandler.GUI_ID_MQ9, field_70170_p, func_145782_y(), 0, 0);
         return true;
+    }
+
+    private void salvageWreck(EntityPlayer player) {
+        if (!wreckLanded || field_70128_L) return;
+        field_70170_p.func_72908_a(field_70165_t, field_70163_u, field_70161_v,
+                "random.anvil_use", 1.2F, 1.35F);
+        if (field_70170_p instanceof WorldServer) {
+            WorldServer world = (WorldServer) field_70170_p;
+            world.func_147487_a("crit", field_70165_t,
+                    field_70163_u + 0.45D, field_70161_v,
+                    24, 1.5D, 0.45D, 1.5D, 0.08D);
+            world.func_147487_a("smoke", field_70165_t,
+                    field_70163_u + 0.25D, field_70161_v,
+                    8, 1.0D, 0.25D, 1.0D, 0.02D);
+        }
+        tell(player, "MQ-9 wreck dismantled.");
+        func_70106_y();
     }
 
     public boolean handleGuiAction(int action, EntityPlayer player) {
