@@ -188,6 +188,14 @@ Use different team names for opposing sides. Equipment placed before joining a t
 - **AGM-88 ignores a target:** designate near an active hostile emitter and verify scoreboard-team ownership.
 - **Geran-2 does not launch:** use a Geran-2 item, a configured selector, enough energy, a 20-1,000 block target, and a redstone signal.
 
+### ODIN kinetic bombardment satellite
+
+1. Launch the **ODIN Kinetic Bombardment Satellite** through the standard HBM satellite deployment system.
+2. Open its standard HBM coordinate-control interface and select the impact coordinates.
+3. Confirm the coordinate action. The satellite releases one tungsten rod above the selected point.
+
+Each satellite carries four rods and enforces a 60-second interval between releases. A descending rod is a Tier 3 ballistic radar contact, keeps its flight chunks loaded, and can be intercepted during the warning and terminal-descent phases. The impact is a large non-nuclear kinetic explosion: it creates no radiation or nuclear mushroom cloud.
+
 ---
 
 ## Русский
@@ -376,3 +384,11 @@ Use different team names for opposing sides. Equipment placed before joining a t
 - **Не открывается интерфейс турели HEMTT:** установите ровно один модуль и разверните платформу перед обычным ПКМ.
 - **AGM-88 игнорирует цель:** укажите точку рядом с активным вражеским излучателем и проверьте принадлежность к scoreboard-команде.
 - **«Герань-2» не запускается:** нужны предмет «Герань-2», настроенный целеуказатель, достаточная энергия, цель на расстоянии 20-1 000 блоков и сигнал красного камня.
+
+### Спутник кинетической бомбардировки «ОДИН»
+
+1. Запустите **спутник кинетической бомбардировки «ОДИН»** через штатную систему запуска спутников HBM.
+2. Откройте его штатный координатный интерфейс HBM и выберите координаты удара.
+3. Подтвердите координатное действие. Спутник сбросит один вольфрамовый стержень над выбранной точкой.
+
+Один спутник несёт четыре стержня; между сбросами действует интервал 60 секунд. Падающий стержень отображается на РЛС как баллистическая цель Tier 3, самостоятельно прогружает чанки полёта и может быть перехвачен во время предупреждения и терминального снижения. Удар представляет собой мощный неядерный кинетический взрыв без радиации и ядерного гриба.

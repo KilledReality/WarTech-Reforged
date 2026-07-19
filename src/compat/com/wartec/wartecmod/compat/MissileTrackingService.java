@@ -529,7 +529,8 @@ public final class MissileTrackingService {
         for (Class<?> type = entity.getClass(); type != null; type = type.getSuperclass()) {
             String name = type.getName();
             if ("com.wartec.wartecmod.entity.missile.EntityBallisticMissileBase".equals(name)
-                    || "com.wartec.wartecmod.entity.missile.EntityGlideWeaponBase".equals(name)) {
+                    || "com.wartec.wartecmod.entity.missile.EntityGlideWeaponBase".equals(name)
+                    || "com.wartec.wartecmod.entity.missile.EntityKineticRod".equals(name)) {
                 return true;
             }
         }

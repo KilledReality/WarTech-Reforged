@@ -47,6 +47,7 @@ public final class WarTecBootstrap {
             MobileArtilleryContent.register();
             RadarNetworkContent.register();
             DroneStrikeContent.register();
+            OrbitalStrikeContent.register();
             MissileChunkLoader.register();
             writeMarker(event, "loaded, registeredItems=" + registeredItems + ", registeredBlocks=" + registeredBlocks);
         } catch (Throwable t) {
@@ -73,6 +74,9 @@ public final class WarTecBootstrap {
                         .getMethod("register")
                         .invoke(null);
                 Class.forName("com.wartec.wartecmod.compat.client.DroneStrikeClient")
+                        .getMethod("register")
+                        .invoke(null);
+                Class.forName("com.wartec.wartecmod.compat.client.OrbitalStrikeClient")
                         .getMethod("register")
                         .invoke(null);
             } catch (Throwable t) {

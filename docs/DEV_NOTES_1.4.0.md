@@ -77,3 +77,14 @@ and preserve ammunition, energy, operating mode, and ownership in NBT.
 Оба комплекса входят в существующую сеть ПВО, используют общую систему
 резервирования целей и задержки повторного перехвата, а также сохраняют
 боекомплект, энергию, режим работы и принадлежность в NBT.
+
+## Orbital kinetic bombardment / Орбитальная кинетическая бомбардировка
+
+- Added the **ODIN Kinetic Bombardment Satellite**, integrated with HBM's existing satellite launch and coordinate-control infrastructure.
+- Each platform contains four tungsten rods with a 60-second command cooldown.
+- Rods enter from high altitude, load their own chunks, expose a Tier 3 ballistic radar track, and remain interceptable by the WarTech air-defense network.
+- Impact uses a large terrain-damaging kinetic blast without nuclear radiation or a mushroom cloud.
+- Добавлен спутник кинетической бомбардировки **«ОДИН»**, работающий через штатный запуск и координатный интерфейс спутников HBM.
+- На платформе находятся четыре вольфрамовых стержня; интервал между командами составляет 60 секунд.
+- Стержень входит с большой высоты, самостоятельно прогружает чанки, отображается на РЛС как баллистическая цель Tier 3 и может быть перехвачен сетью ПВО WarTech.
+- При попадании создаётся мощный разрушающий ландшафт кинетический взрыв без радиации и ядерного гриба.
