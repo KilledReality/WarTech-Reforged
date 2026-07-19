@@ -28,6 +28,8 @@ public final class MissileTrackingService {
     private static final double RADAR_NETWORK_RANGE = 800.0D;
     private static final double COMMAND_RADAR_LINK_RANGE = 1400.0D;
     private static final double COMMAND_LAUNCHER_LINK_RANGE = 900.0D;
+    private static final int TIER_3_TRACK_ESTABLISHMENT_TICKS = 50;
+    private static final double TIER_3_MIN_RADAR_ALTITUDE = 18.0D;
     private static final Map<World, WorldTracks> WORLDS = new WeakHashMap<World, WorldTracks>();
     private static final Map<Class<?>, CoordinateFields> COORDINATE_FIELDS =
             new WeakHashMap<Class<?>, CoordinateFields>();
@@ -858,15 +860,18 @@ public final class MissileTrackingService {
         return applyRadarActivationEnvelope(entity, tier);
     }
 
-    /** Tier 3 boost-phase weapons do not become radar tracks while still hugging the launcher. */
+    /** Tier 3 boost-phase weapons need both altitude and time for a stable radar track. */
     private static int applyRadarActivationEnvelope(Entity entity, int tier) {
         if (tier < 3 || entity.field_70170_p == null) {
             return tier;
         }
+        if (entity.field_70173_aa < TIER_3_TRACK_ESTABLISHMENT_TICKS) {
+            return 0;
+        }
         int x = (int) Math.floor(entity.field_70165_t);
         int z = (int) Math.floor(entity.field_70161_v);
         int groundY = entity.field_70170_p.func_72976_f(x, z);
-        return entity.field_70163_u - groundY >= 18.0D ? tier : 0;
+        return entity.field_70163_u - groundY >= TIER_3_MIN_RADAR_ALTITUDE ? tier : 0;
     }
 
     private static WorldTracks getWorldTracks(World world) {

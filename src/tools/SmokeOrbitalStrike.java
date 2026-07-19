@@ -34,11 +34,16 @@ public final class SmokeOrbitalStrike {
 
         TestTier3Entity boostPhase = new TestTier3Entity(world);
         boostPhase.func_70107_b(0.5D, 70.0D, 0.5D);
+        boostPhase.field_70173_aa = 50;
         require(MissileTrackingService.getThreatTier(boostPhase) == 0,
                 "Tier 3 missile must remain below radar activation height near its launcher");
         boostPhase.func_70107_b(0.5D, 82.0D, 0.5D);
+        boostPhase.field_70173_aa = 49;
+        require(MissileTrackingService.getThreatTier(boostPhase) == 0,
+                "Tier 3 missile must not produce an immediate stable track at launch");
+        boostPhase.field_70173_aa = 50;
         require(MissileTrackingService.getThreatTier(boostPhase) == 3,
-                "Tier 3 missile must become trackable after reaching a sensible altitude");
+                "Tier 3 missile must become trackable after reaching altitude and track age");
 
         double initialY = rod.field_70163_u;
         for (int tick = 0; tick < 72; ++tick) {
@@ -54,6 +59,10 @@ public final class SmokeOrbitalStrike {
                 "rod must accelerate after the radar warning phase");
 
         SatelliteKinetic satellite = new SatelliteKinetic();
+        require(satellite.satIface == com.hbm.saveddata.satellites.Satellite.Interfaces.SAT_PANEL
+                        && satellite.ifaceAcs.contains(
+                                com.hbm.saveddata.satellites.Satellite.InterfaceActions.CAN_CLICK),
+                "ODIN must provide service to the HBM map-based satellite interface");
         require(satellite.getRodsLeft() == SatelliteKinetic.ROD_CAPACITY,
                 "new satellite must contain four rods");
         NBTTagCompound tag = new NBTTagCompound();

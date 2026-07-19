@@ -191,7 +191,7 @@ Use different team names for opposing sides. Equipment placed before joining a t
 ### ODIN kinetic bombardment satellite
 
 1. Put **ODIN** in the right-hand random-frequency slot of the HBM Satellite Linker and remove it after a non-zero frequency/ID appears in its tooltip.
-2. Put ODIN in the linker's left slot and the desired HBM controller in the middle slot. Link a **satellite laser designator** for direct RMB strikes, or link a **Satellite Coordinate Interface (`sat_coord`)** to use the coordinate GUI. Each controller item stores its own frequency and must be linked separately.
+2. Put ODIN in the linker's left slot and the desired HBM controller in the middle slot. Link a **Satellite Interface** to select a strike point on its map, a **satellite laser designator** for direct RMB strikes, or a **Satellite Coordinate Interface (`sat_coord`)** for typed coordinates. Each controller item stores its own frequency and must be linked separately.
 3. Launch ODIN through the standard HBM Soyuz satellite deployment system. The Soyuz reads this frequency as the satellite ID.
 4. Hold the linked laser designator, aim at a block within its range, and use RMB. The satellite releases one tungsten rod above the selected point.
 
@@ -389,7 +389,7 @@ Each satellite carries four rods and enforces a 60-second interval between relea
 ### Спутник кинетической бомбардировки «ОДИН»
 
 1. Поместите **«ОДИН»** в правый слот генерации случайной частоты спутникового связующего HBM и заберите его после появления ненулевой частоты/ID в подсказке предмета.
-2. Поместите «ОДИН» в левый слот связующего, а нужный контроллер HBM — в средний. Для прямого удара по ПКМ привяжите **спутниковый лазерный целеуказатель**; для использования GUI отдельно привяжите **координатный интерфейс спутника (`sat_coord`)**. Каждый предмет-контроллер хранит собственную частоту и привязывается отдельно.
+2. Поместите «ОДИН» в левый слот связующего, а нужный контроллер HBM — в средний. Привяжите **спутниковый интерфейс** для выбора точки удара на карте, **спутниковый лазерный целеуказатель** для прямого удара по ПКМ или **координатный интерфейс спутника (`sat_coord`)** для ручного ввода координат. Каждый предмет-контроллер хранит собственную частоту и привязывается отдельно.
 3. Запустите «ОДИН» через штатную ракету-носитель Soyuz HBM. Soyuz использует записанную частоту как ID спутника.
 4. Возьмите привязанный лазерный целеуказатель, наведитесь на блок в пределах его дальности и нажмите ПКМ. Спутник сбросит один вольфрамовый стержень над выбранной точкой.
 

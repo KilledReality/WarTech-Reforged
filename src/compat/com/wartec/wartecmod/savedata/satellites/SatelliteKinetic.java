@@ -18,7 +18,10 @@ public final class SatelliteKinetic extends Satellite {
     private long nextStrikeTick;
 
     public SatelliteKinetic() {
-        satIface = Interfaces.SAT_COORD;
+        ifaceAcs.add(InterfaceActions.HAS_MAP);
+        ifaceAcs.add(InterfaceActions.SHOW_COORDS);
+        ifaceAcs.add(InterfaceActions.CAN_CLICK);
+        satIface = Interfaces.SAT_PANEL;
     }
 
     @Override
@@ -38,6 +41,15 @@ public final class SatelliteKinetic extends Satellite {
 
     @Override
     public void onCoordAction(World world, EntityPlayer player, int x, int y, int z) {
+        releaseRod(world, player, x, z);
+    }
+
+    @Override
+    public void onClick(World world, int x, int z) {
+        releaseRod(world, null, x, z);
+    }
+
+    private void releaseRod(World world, EntityPlayer player, int x, int z) {
         if (world == null || world.field_72995_K) {
             return;
         }
