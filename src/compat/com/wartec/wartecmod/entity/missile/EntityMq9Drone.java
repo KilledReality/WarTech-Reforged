@@ -21,6 +21,7 @@ import net.minecraft.util.AxisAlignedBB;
 import net.minecraft.util.ChatComponentText;
 import net.minecraft.util.DamageSource;
 import net.minecraft.util.Vec3;
+import net.minecraft.init.Blocks;
 import net.minecraft.world.World;
 import net.minecraft.world.WorldServer;
 
@@ -84,6 +85,8 @@ public final class EntityMq9Drone extends Entity
     private int targetIndex;
     private int flareCooldown;
     private int flareActiveTicks;
+    private boolean wreckLanded;
+    private boolean crashInventoryDropped;
     private double clientTargetX;
     private double clientTargetY;
     private double clientTargetZ;
@@ -210,6 +213,12 @@ public final class EntityMq9Drone extends Entity
         if (!homeInitialized) initializeHome();
         if (flareCooldown > 0) flareCooldown--;
         if (flareActiveTicks > 0) flareActiveTicks--;
+        if (getState() == STATE_CRASHED) {
+            stateTicks++;
+            if (!wreckLanded) MissileChunkLoader.track(this);
+            crashTick();
+            return;
+        }
         int charged = VehicleEnergyHelper.chargeFromStack(inventory[BATTERY_SLOT],
                 getPower(), ENERGY_CAPACITY);
         if (charged != getPower()) setPower(charged);
@@ -412,14 +421,102 @@ public final class EntityMq9Drone extends Entity
 
     private void crashTick() {
         setState(STATE_CRASHED);
+        if (wreckLanded) {
+            field_70159_w = field_70181_x = field_70179_y = 0.0D;
+            return;
+        }
         field_70159_w *= 0.98D;
         field_70179_y *= 0.98D;
-        field_70181_x -= 0.06D;
+        field_70181_x = Math.max(-1.25D, field_70181_x - 0.045D);
         func_70107_b(field_70165_t + field_70159_w,
                 field_70163_u + field_70181_x,
                 field_70161_v + field_70179_y);
+        field_70125_A = Math.min(42.0F, field_70125_A + 1.35F);
+        emitCrashTrail();
         int ground = field_70170_p.func_72976_f(floor(field_70165_t), floor(field_70161_v));
-        if (field_70163_u <= ground + 0.8D) destroyDrone(true);
+        if (field_70163_u <= ground + 0.8D) finishCrash(ground);
+        updateBounds();
+    }
+
+    public boolean beginCombatCrash() {
+        if (field_70170_p.field_72995_K || field_70128_L
+                || getState() == STATE_CRASHED) return false;
+        vehicleHealth = 0.0D;
+        updateHealthWatcher();
+        setState(STATE_CRASHED);
+        field_70181_x = Math.min(field_70181_x, -0.08D);
+        field_70170_p.func_72908_a(field_70165_t, field_70163_u, field_70161_v,
+                "random.explode", 5.0F, 1.18F);
+        emitCrashTrail();
+        return true;
+    }
+
+    public boolean isWrecked() {
+        return getState() == STATE_CRASHED && wreckLanded;
+    }
+
+    private void finishCrash(int ground) {
+        wreckLanded = true;
+        func_70107_b(field_70165_t, ground + 0.25D, field_70161_v);
+        field_70159_w = field_70181_x = field_70179_y = 0.0D;
+        field_70125_A = 18.0F + field_70170_p.field_73012_v.nextFloat() * 12.0F;
+        dropCrashInventory();
+        field_70170_p.func_72885_a(null, field_70165_t, field_70163_u,
+                field_70161_v, 4.0F, true, true);
+        field_70170_p.func_72908_a(field_70165_t, field_70163_u, field_70161_v,
+                "random.explode", 12.0F, 0.72F);
+        igniteCrashArea();
+        if (field_70170_p instanceof WorldServer) {
+            WorldServer world = (WorldServer) field_70170_p;
+            world.func_147487_a("hugeexplosion", field_70165_t,
+                    field_70163_u + 0.5D, field_70161_v,
+                    1, 0.0D, 0.0D, 0.0D, 0.0D);
+            world.func_147487_a("largesmoke", field_70165_t,
+                    field_70163_u + 0.7D, field_70161_v,
+                    48, 2.2D, 1.1D, 2.2D, 0.08D);
+            world.func_147487_a("flame", field_70165_t,
+                    field_70163_u + 0.5D, field_70161_v,
+                    30, 1.6D, 0.8D, 1.6D, 0.10D);
+        }
+        updateBounds();
+    }
+
+    private void emitCrashTrail() {
+        if (!(field_70170_p instanceof WorldServer)) return;
+        WorldServer world = (WorldServer) field_70170_p;
+        world.func_147487_a("largesmoke", field_70165_t,
+                field_70163_u + 0.2D, field_70161_v,
+                7, 0.7D, 0.35D, 0.7D, 0.045D);
+        world.func_147487_a("flame", field_70165_t,
+                field_70163_u + 0.1D, field_70161_v,
+                3, 0.35D, 0.2D, 0.35D, 0.04D);
+    }
+
+    private void dropCrashInventory() {
+        if (crashInventoryDropped) return;
+        crashInventoryDropped = true;
+        for (int i = 0; i < inventory.length; ++i) {
+            if (inventory[i] != null) {
+                func_70099_a(inventory[i], 0.8F);
+                inventory[i] = null;
+            }
+        }
+        updatePayloadWatcher();
+    }
+
+    private void igniteCrashArea() {
+        int centerX = floor(field_70165_t);
+        int centerZ = floor(field_70161_v);
+        for (int attempt = 0; attempt < 10; ++attempt) {
+            int x = centerX + field_70170_p.field_73012_v.nextInt(7) - 3;
+            int z = centerZ + field_70170_p.field_73012_v.nextInt(7) - 3;
+            int y = field_70170_p.func_72976_f(x, z);
+            if (field_70170_p.func_147437_c(x, y, z)
+                    && !field_70170_p.func_147437_c(x, y - 1, z)) {
+                field_70170_p.func_147465_d(x, y, z,
+                        Blocks.field_150480_ab, 0, 3);
+            }
+        }
     }
 
     private void guideTo(double x, double y, double z, double speed,
@@ -565,7 +662,7 @@ public final class EntityMq9Drone extends Entity
         return interceptorTier <= 1 ? 0.25D : interceptorTier == 2 ? 0.15D : 0.10D;
     }
 
-    public boolean tryDeployFlares(int interceptorTier) {
+    public boolean deployFlaresForThreat() {
         if (field_70170_p.field_72995_K || !isFlying() || field_70128_L) return false;
         if (flareActiveTicks <= 0) {
             if (flareCooldown > 0 || !DroneStrikeContent.isFlares(inventory[FLARE_SLOT])) {
@@ -578,6 +675,11 @@ public final class EntityMq9Drone extends Entity
             emitFlares();
             func_70296_d();
         }
+        return true;
+    }
+
+    public boolean tryDeployFlares(int interceptorTier) {
+        if (!deployFlaresForThreat()) return false;
         return field_70170_p.field_73012_v.nextDouble()
                 < getFlareDecoyChance(interceptorTier);
     }
@@ -687,6 +789,11 @@ public final class EntityMq9Drone extends Entity
     @Override
     public boolean func_130002_c(EntityPlayer player) {
         if (field_70170_p.field_72995_K) return true;
+        if (getState() == STATE_CRASHED) {
+            tell(player, wreckLanded ? "MQ-9 airframe is destroyed."
+                    : "MQ-9 is going down.");
+            return true;
+        }
         ItemStack held = player.func_71045_bC();
         if (held != null && held.func_77973_b() instanceof IDesignatorItem) {
             setTarget(player, held, (IDesignatorItem) held.func_77973_b());
@@ -748,25 +855,11 @@ public final class EntityMq9Drone extends Entity
     @Override
     public boolean func_70097_a(DamageSource source, float amount) {
         if (field_70170_p.field_72995_K || field_70128_L || amount <= 0.0F) return true;
+        if (getState() == STATE_CRASHED) return true;
         vehicleHealth -= amount;
         updateHealthWatcher();
-        if (vehicleHealth <= 0.0D) destroyDrone(true);
+        if (vehicleHealth <= 0.0D) beginCombatCrash();
         return true;
-    }
-
-    private void destroyDrone(boolean explode) {
-        if (field_70128_L) return;
-        for (int i = 0; i < inventory.length; ++i) {
-            if (inventory[i] != null) {
-                func_70099_a(inventory[i], 0.4F);
-                inventory[i] = null;
-            }
-        }
-        func_70106_y();
-        if (explode) {
-            field_70170_p.func_72885_a(this, field_70165_t, field_70163_u,
-                    field_70161_v, 4.5F, true, true);
-        }
     }
 
     @Override
@@ -840,6 +933,8 @@ public final class EntityMq9Drone extends Entity
         tag.func_74768_a("TargetIndex", targetIndex);
         tag.func_74768_a("FlareCooldown", flareCooldown);
         tag.func_74768_a("FlareActiveTicks", flareActiveTicks);
+        tag.func_74757_a("WreckLanded", wreckLanded);
+        tag.func_74757_a("CrashInventoryDropped", crashInventoryDropped);
         for (int i = 0; i < targetCount; ++i) {
             tag.func_74768_a("MissionTargetX" + i, missionTargetX[i]);
             tag.func_74768_a("MissionTargetY" + i, missionTargetY[i]);
@@ -882,7 +977,8 @@ public final class EntityMq9Drone extends Entity
         routeStartZ = tag.func_74764_b("RouteStartZ")
                 ? tag.func_74769_h("RouteStartZ") : homeZ;
         vehicleHealth = tag.func_74764_b("VehicleHealth")
-                ? Math.max(1.0D, Math.min(MAX_HEALTH, tag.func_74769_h("VehicleHealth")))
+                ? Math.max(getState() == STATE_CRASHED ? 0.0D : 1.0D,
+                        Math.min(MAX_HEALTH, tag.func_74769_h("VehicleHealth")))
                 : MAX_HEALTH;
         weaponReleased = tag.func_74767_n("WeaponReleased");
         landingPhase = tag.func_74762_e("LandingPhase");
@@ -891,6 +987,8 @@ public final class EntityMq9Drone extends Entity
                 tag.func_74762_e("TargetIndex")));
         flareCooldown = Math.max(0, tag.func_74762_e("FlareCooldown"));
         flareActiveTicks = Math.max(0, tag.func_74762_e("FlareActiveTicks"));
+        wreckLanded = tag.func_74767_n("WreckLanded");
+        crashInventoryDropped = tag.func_74767_n("CrashInventoryDropped");
         for (int i = 0; i < targetCount; ++i) {
             missionTargetX[i] = tag.func_74762_e("MissionTargetX" + i);
             missionTargetY[i] = tag.func_74762_e("MissionTargetY" + i);
@@ -968,7 +1066,9 @@ public final class EntityMq9Drone extends Entity
     }
     @Override public int getBlipLevel() { return isFlying() ? 1 : -1; }
 
-    @Override public boolean func_70104_M() { return isReady(); }
+    @Override public boolean func_70104_M() {
+        return isReady() || getState() == STATE_CRASHED;
+    }
     @Override public boolean func_70067_L() { return !field_70128_L; }
     @Override public float func_70111_Y() { return 0.45F; }
     @Override public boolean func_70112_a(double distance) {
@@ -976,11 +1076,12 @@ public final class EntityMq9Drone extends Entity
     }
     @Override public AxisAlignedBB func_70046_E() { return field_70121_D; }
     @Override public AxisAlignedBB func_70114_g(Entity entity) {
-        return isReady() ? entity.field_70121_D : null;
+        return isReady() || getState() == STATE_CRASHED
+                ? entity.field_70121_D : null;
     }
 
     private void updateBounds() {
-        double half = isReady() ? 1.8D : 0.8D;
+        double half = isReady() || getState() == STATE_CRASHED ? 1.8D : 0.8D;
         field_70121_D.func_72324_b(field_70165_t - half, field_70163_u - 0.2D,
                 field_70161_v - half, field_70165_t + half,
                 field_70163_u + 1.0D, field_70161_v + half);

@@ -59,6 +59,10 @@ public final class RenderMq9Drone extends Render {
                 + (raw.field_70125_A - raw.field_70127_C) * partialTicks;
         GL11.glRotatef(-renderYaw - 90.0F, 0.0F, 1.0F, 0.0F);
         GL11.glRotatef(-renderPitch, 0.0F, 0.0F, 1.0F);
+        if (drone.getState() == EntityMq9Drone.STATE_CRASHED) {
+            GL11.glRotatef(13.0F, 1.0F, 0.0F, 0.0F);
+            GL11.glRotatef(-11.0F, 0.0F, 0.0F, 1.0F);
+        }
         renderAirframe(raw.field_70173_aa + partialTicks, AIRFRAME_SCALE);
         renderPayloads(drone);
         GL11.glPopAttrib();

@@ -323,7 +323,7 @@ public final class VlsDefenseCompat {
             double dy = target.field_70163_u - interceptor.field_70163_u;
             double dz = target.field_70161_v - interceptor.field_70161_v;
             double distance = Math.sqrt(dx * dx + dy * dy + dz * dz);
-            if (!state.countermeasureChecked && distance <= 96.0D) {
+            if (!state.countermeasureChecked && distance <= 120.0D) {
                 state.countermeasureChecked = true;
                 if (target instanceof EntityMq9Drone
                         && ((EntityMq9Drone) target).tryDeployFlares(tier)) {
@@ -774,9 +774,12 @@ public final class VlsDefenseCompat {
         double z = target.field_70161_v;
         boolean fireEffect = world.field_73012_v.nextFloat() < 0.25F;
         MissileTrackingService.releaseReservation(world, target.func_145782_y(), interceptor.func_145782_y());
-        target.func_70106_y();
+        boolean mq9Crash = target instanceof EntityMq9Drone
+                && ((EntityMq9Drone) target).beginCombatCrash();
+        if (!mq9Crash) target.func_70106_y();
         interceptor.func_70106_y();
-        world.func_72885_a(null, x, y, z, 2.0F, fireEffect, false);
+        world.func_72885_a(null, x, y, z, mq9Crash ? 1.15F : 2.0F,
+                fireEffect && !mq9Crash, false);
         world.func_72908_a(x, y, z, "random.explode", 12.0F, 0.75F);
         if (world instanceof WorldServer) {
             WorldServer server = (WorldServer) world;

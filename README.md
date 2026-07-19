@@ -38,7 +38,12 @@ new cruise missiles, and mobile artillery platforms.
   dispersion, and Mk 82 retains a wider unguided accuracy envelope.
 - Loadable MQ-9 countermeasure flares can decoy tier-1, tier-2, and tier-3
   interceptors with 25%, 15%, and 10% probability and can disrupt Pantsir gun
-  bursts while the flare cloud is active.
+  bursts while the flare cloud is active. Flares are visibly deployed during
+  the final threat approach, before the interceptor or cannon burst reaches
+  the aircraft.
+- A destroyed MQ-9 no longer vanishes in mid-air. It enters a smoking descent,
+  impacts with fire and an explosion, drops its surviving inventory, and leaves
+  a persistent, collidable airframe wreck at the crash site.
 - New powered vehicles and radar systems spawn empty and draw real HBM HE at
   their operating rate. Installed batteries are drained according to their
   own discharge-rate limit instead of receiving an artificial transfer floor.

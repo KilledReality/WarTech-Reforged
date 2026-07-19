@@ -423,6 +423,10 @@ public final class EntityMobileAirDefense extends Entity
         } else {
             gunLockTicks = Math.max(0, gunLockTicks - 2);
         }
+        if (target instanceof EntityMq9Drone
+                && gunLockTicks == Math.max(2, GUN_LOCK_TIME - 4)) {
+            ((EntityMq9Drone) target).deployFlaresForThreat();
+        }
         if (gunLockTicks >= GUN_LOCK_TIME && gunCooldown <= 0) {
             fireGunBurst(target, aimX, aimY, aimZ, distance);
         }
@@ -536,10 +540,12 @@ public final class EntityMobileAirDefense extends Entity
         MissileTrackingService.releaseReservation(field_70170_p,
                 target.func_145782_y(), getLauncherKey());
         boolean fire = field_70170_p.field_73012_v.nextDouble() < 0.30D;
+        boolean mq9Crash = target instanceof EntityMq9Drone
+                && ((EntityMq9Drone) target).beginCombatCrash();
         field_70170_p.func_72885_a(this, target.field_70165_t,
                 target.field_70163_u + 0.25D, target.field_70161_v,
-                1.35F, fire, false);
-        target.func_70106_y();
+                mq9Crash ? 0.9F : 1.35F, fire && !mq9Crash, false);
+        if (!mq9Crash) target.func_70106_y();
         resetGunTracking();
     }
 

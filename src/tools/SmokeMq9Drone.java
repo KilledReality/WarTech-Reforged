@@ -76,6 +76,31 @@ public final class SmokeMq9Drone {
                         && EntityMq9Drone.getFlareDecoyChance(2) == 0.15D
                         && EntityMq9Drone.getFlareDecoyChance(3) == 0.10D,
                 "flare decoy chances must match the tier balance contract");
+        TestWorld crashWorld = new TestWorld();
+        EntityMq9Drone crashDrone = new EntityMq9Drone(crashWorld);
+        crashDrone.func_70107_b(0.5D, 28.0D, 0.5D);
+        crashDrone.initializeHome();
+        crashWorld.field_72996_f.add(crashDrone);
+        crashDrone.func_70299_a(0, new TestStack(DroneStrikeContent.mq9Payload,
+                ItemMq9Payload.HELLFIRE));
+        crashDrone.func_70299_a(EntityMq9Drone.FLARE_SLOT,
+                new TestStack(DroneStrikeContent.mq9Flares, 0, 2));
+        crashDrone.setPower(EntityMq9Drone.ENERGY_CAPACITY);
+        require(crashDrone.queueTarget(0, 1, 180, true)
+                        && crashDrone.launchMission(operator),
+                "combat-crash fixture must become airborne");
+        require(crashDrone.deployFlaresForThreat()
+                        && crashDrone.getFlareCount() == 1,
+                "an incoming threat must trigger visible flares before impact");
+        require(crashDrone.beginCombatCrash()
+                        && !crashDrone.field_70128_L,
+                "a lethal intercept must begin a visible crash instead of deleting the MQ-9");
+        for (int tick = 0; tick < 240 && !crashDrone.isWrecked(); ++tick) {
+            crashDrone.field_70173_aa++;
+            crashDrone.func_70071_h_();
+        }
+        require(crashDrone.isWrecked() && !crashDrone.field_70128_L,
+                "the destroyed MQ-9 must leave a persistent wreck at the impact point");
         require(EntityMq9Munition.getMaximumDispersionBlocks(ItemMq9Payload.HELLFIRE) == 0
                         && EntityMq9Munition.getMaximumDispersionBlocks(ItemMq9Payload.GBU12) == 1
                         && EntityMq9Munition.getMaximumDispersionBlocks(ItemMq9Payload.MK82) == 6,
