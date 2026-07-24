@@ -200,12 +200,13 @@ public final class EntityS400Radar extends Entity
         if (field_70170_p.field_72995_K || field_70128_L || amount <= 0.0F) {
             return true;
         }
-        if (source.func_76346_g() instanceof EntityPlayer
+        if (source != null && source.func_76346_g() instanceof EntityPlayer
                 && ((EntityPlayer) source.func_76346_g()).field_71075_bZ.field_75098_d) {
             destroyRadar();
             return true;
         }
-        radarHealth -= amount;
+        radarHealth -= source != null && source.func_94541_c()
+                ? amount * 0.20D : amount;
         if (radarHealth <= 0.0D) {
             destroyRadar();
         }

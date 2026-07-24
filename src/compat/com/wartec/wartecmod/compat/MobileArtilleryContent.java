@@ -24,7 +24,7 @@ public final class MobileArtilleryContent {
         mobileTurretProxy = new BlockMobileTurretProxy();
         GameRegistry.registerBlock(mobileTurretProxy, "MobileTurretProxy");
         mobileArtillery = new ItemMobileArtillery()
-                .func_77637_a(wartecmod.tabwartecmodcruisemissiles)
+                .func_77637_a(ReforgedCreativeTabs.SUPPORT)
                 .func_111206_d("wartecmod:mobile_artillery");
         GameRegistry.registerItem(mobileArtillery, "MobileArtillery");
         GameRegistry.registerTileEntity(MobileTileArty.class, "wartecMobileGreg");

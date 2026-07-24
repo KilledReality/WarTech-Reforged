@@ -17,6 +17,7 @@ import java.util.Random;
 import net.minecraft.world.World;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.Entity;
+import net.minecraft.util.DamageSource;
 import api.hbm.entity.IRadarDetectable;
 import api.hbm.entity.IRadarDetectable.RadarTargetType;
 
@@ -31,10 +32,10 @@ public final class SmokeElectronicWarfare {
         EntityRadarTruck radar = new EntityRadarTruck(world);
         EntityS400Radar longRangeRadar = new EntityS400Radar(world);
         EntityCommandTruck command = new EntityCommandTruck(world);
-        require(radar.getPower() == 250000 && radar.isRadarOperational(),
-                "mobile radar must start powered and operational");
-        require(longRangeRadar.getPower() == 1000000 && !longRangeRadar.isDeployed(),
-                "S-400 radar must start charged but retracted");
+        require(radar.getPower() == 0 && !radar.isRadarOperational(),
+                "mobile radar must require a battery before becoming operational");
+        require(longRangeRadar.getPower() == 0 && !longRangeRadar.isDeployed(),
+                "S-400 radar must start empty and retracted");
         EntityPlayer player = new EntityPlayer(world);
         ContainerRadarVehicle radarContainer = new ContainerRadarVehicle(
                 player.field_71071_by, radar);
@@ -95,6 +96,16 @@ public final class SmokeElectronicWarfare {
         require((short) (blips[0] >>> 16) == 100 && (short) blips[0] == 40,
                 "radar blip must preserve relative target coordinates");
         MissileTrackingService.removeRadar(world, 99);
+
+        DamageSource explosion = new DamageSource() {
+            @Override public boolean func_94541_c() { return true; }
+        };
+        EntityS400Radar blastRadar = new EntityS400Radar(world);
+        EntityCommandTruck blastCommand = new EntityCommandTruck(world);
+        blastRadar.func_70097_a(explosion, 35.0F);
+        blastCommand.func_70097_a(explosion, 35.0F);
+        require(blastRadar.field_70128_L && blastCommand.field_70128_L,
+                "combat explosions must destroy fragile radar and command vehicles");
 
         RouteProfile firstRoute = AntiRadiationRoutePlanner.create(world.field_73012_v);
         RouteProfile secondRoute = AntiRadiationRoutePlanner.create(world.field_73012_v);

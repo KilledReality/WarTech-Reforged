@@ -3,6 +3,7 @@ package com.wartec.wartecmod.compat.client;
 import com.wartec.wartecmod.compat.ContainerMq9Drone;
 import com.wartec.wartecmod.compat.ItemMq9Payload;
 import com.wartec.wartecmod.entity.missile.EntityMq9Drone;
+import com.wartec.wartecmod.entity.missile.EntityTacticalAircraft;
 import net.minecraft.client.gui.Gui;
 import net.minecraft.client.gui.GuiButton;
 import net.minecraft.client.gui.inventory.GuiContainer;
@@ -29,12 +30,16 @@ public final class GuiMq9Drone extends GuiContainer {
                 field_147009_r + 91, 38, 20, "LAST"));
         field_146292_n.add(new GuiButton(3, field_147003_i + 192,
                 field_147009_r + 91, 32, 20, "ALL"));
+        if (drone instanceof EntityTacticalAircraft) {
+            field_146292_n.add(new GuiButton(4, field_147003_i + 158,
+                    field_147009_r + 6, 66, 18, "MODE"));
+        }
     }
 
     @Override
     protected void func_146284_a(GuiButton button) {
         if (!button.field_146124_l) return;
-        if (button.field_146127_k >= 0 && button.field_146127_k <= 3) {
+        if (button.field_146127_k >= 0 && button.field_146127_k <= 4) {
             field_146297_k.field_71442_b.func_78756_a(
                     field_147002_h.field_75152_c, button.field_146127_k);
         }
@@ -51,13 +56,17 @@ public final class GuiMq9Drone extends GuiContainer {
         Gui.func_73734_a(left + 22, top + 47, left + 214, top + 50, 0xFF92A7A9);
         for (int slot = 0; slot < 6; ++slot) {
             drawSlot(left + 43 + slot * 21, top + 56);
+            if (!drone.isPayloadSlotAvailable(slot)) {
+                Gui.func_73734_a(left + 44 + slot * 21, top + 57,
+                        left + 60 + slot * 21, top + 73, 0xD0181B1C);
+            }
             Gui.func_73734_a(left + 51 + slot * 21, top + 39,
                     left + 54 + slot * 21, top + 57, 0xFF69787B);
         }
         drawSlot(left + 177, top + 56);
         drawSlot(left + 204, top + 56);
         int powerWidth = (int) Math.round(168.0D * drone.getPower()
-                / EntityMq9Drone.ENERGY_CAPACITY);
+                / drone.getEnergyCapacity());
         Gui.func_73734_a(left + 24, top + 118, left + 194, top + 125, 0xFF101719);
         Gui.func_73734_a(left + 25, top + 119, left + 25 + powerWidth,
                 top + 124, 0xFF43D47B);
@@ -80,35 +89,62 @@ public final class GuiMq9Drone extends GuiContainer {
     protected void func_146979_b(int mouseX, int mouseY) {
         int white = 0xE7ECEC;
         int cyan = 0x77E3ED;
-        field_146289_q.func_78276_b("MQ-9 REAPER GROUND CONTROL", 15, 10, white);
+        field_146289_q.func_78276_b(drone.getAircraftName() + " MISSION CONTROL",
+                15, 10, white);
         field_146289_q.func_78276_b("STATUS: " + drone.getStateName(), 15, 21,
                 drone.isReady() ? 0x65F28A : cyan);
-        field_146289_q.func_78276_b("RANGE: " + EntityMq9Drone.MAX_MISSION_RANGE,
-                151, 21, cyan);
         field_146289_q.func_78276_b(ItemMq9Payload.getPayloadStatus(
                 drone.getSelectedPayload()), 15, 31, 0xF1C96B);
+        field_146289_q.func_78276_b("HARDPOINTS " + drone.getHardpointCount()
+                + " | RANGE " + drone.getMissionRange(), 15, 41, 0xB8C6C8);
         String target = drone.hasTarget()
                 ? drone.getTargetX() + " / " + drone.getTargetY() + " / " + drone.getTargetZ()
                 : "NOT ASSIGNED";
         String queue = drone.hasTarget() ? (drone.getTargetIndex() + 1)
-                + "/" + drone.getTargetCount() : "0/" + EntityMq9Drone.MAX_TARGETS;
+                + "/" + drone.getTargetCount() : "0/" + drone.getMaximumTargets();
         field_146289_q.func_78276_b("TARGET " + queue + ": " + target, 15, 81, white);
         field_146289_q.func_78276_b("LTC", 176, 47, 0xF1C96B);
         field_146289_q.func_78276_b("BAT", 203, 47, white);
         field_146289_q.func_78276_b("POWER " + drone.getPower() + "/"
-                + EntityMq9Drone.ENERGY_CAPACITY, 24, 113, white);
+                + drone.getEnergyCapacity(), 24, 113, white);
         field_146289_q.func_78276_b("HP " + drone.getHealthPercent() + "%", 164, 113, white);
         field_146289_q.func_78276_b("INVENTORY", 24, 130, white);
         for (Object value : field_146292_n) {
             if (!(value instanceof GuiButton)) continue;
             GuiButton button = (GuiButton) value;
             if (button.field_146127_k == 0) {
-                button.field_146126_j = drone.isReady() ? "LAUNCH MISSION" : "RETURN TO BASE";
+                boolean auto = drone instanceof EntityTacticalAircraft
+                        && ((EntityTacticalAircraft) drone).isInterceptorMode();
+                button.field_146126_j = drone.isReady()
+                        ? (auto ? "AUTO ARMED" : "LAUNCH MISSION") : "RETURN TO BASE";
             } else if (button.field_146127_k == 1) {
                 int type = drone.getSelectedPayload();
-                button.field_146126_j = type == ItemMq9Payload.HELLFIRE ? "AGM-114"
-                        : type == ItemMq9Payload.GBU12 ? "GBU-12" : "MK 82";
+                button.field_146126_j = shortName(type);
+            } else if (button.field_146127_k == 4) {
+                EntityTacticalAircraft fighter = (EntityTacticalAircraft) drone;
+                button.field_146126_j = fighter.isInterceptorMode()
+                        ? "INTERCEPT" : "STRIKE";
+                button.field_146124_l = fighter.isReady();
             }
         }
+    }
+
+    private static String shortName(int type) {
+        switch (type) {
+            case ItemMq9Payload.GBU12: return "GBU-12";
+            case ItemMq9Payload.MK82: return "MK 82";
+            case ItemMq9Payload.HJ10: return "HJ-10";
+            case ItemMq9Payload.AGM65: return "AGM-65";
+            case ItemMq9Payload.KH29: return "KH-29";
+            case ItemMq9Payload.KAB500L: return "KAB-500L";
+            case ItemMq9Payload.JDAM: return "JDAM";
+            case ItemMq9Payload.AAM: return "WT-AAM";
+            default: return "AGM-114";
+        }
+    }
+
+    private String compatibilityLabel() {
+        return drone.getCarrierClass() == com.wartec.wartecmod.compat.AviationOrdnance.CARRIER_MQ9
+                ? "LIGHT / GLIDE LOADS" : "FULL TACTICAL LOADS";
     }
 }

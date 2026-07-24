@@ -2,8 +2,8 @@
   {
     "modid": "wartecmod",
     "name": "WarTech Reforged",
-    "description": "Reforged Warfare Technology for HBM NTM 1.0.27 X5751, with restored missile systems and expanded air defense content.",
-    "version": "1.4.0-hbm5751",
+    "description": "Reforged Warfare Technology for HBM NTM 1.0.27 X5751 and NTM Space X5758 H261, with restored missile systems and expanded air defense content.",
+    "version": "1.5.0-universal-hbm",
     "mcversion": "1.7.10",
     "url": "",
     "updateUrl": "",
@@ -15,8 +15,8 @@
   {
     "modid": "wartecfix",
     "name": "WarTech Reforged Compatibility",
-    "description": "Compatibility bootstrap for WarTech Reforged and HBM NTM X5751.",
-    "version": "1.4.0-hbm5751",
+    "description": "Compatibility bootstrap for WarTech Reforged, HBM NTM X5751, and NTM Space X5758 H261.",
+    "version": "1.5.0-universal-hbm",
     "mcversion": "1.7.10",
     "url": "",
     "updateUrl": "",

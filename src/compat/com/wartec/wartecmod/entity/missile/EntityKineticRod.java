@@ -17,6 +17,11 @@ public final class EntityKineticRod extends Entity implements IRadarDetectable {
     private static final int DW_TARGET_Z = 20;
     private static final int ENTRY_DELAY_TICKS = 70;
     private static final int MAX_LIFETIME_TICKS = 320;
+    private static final float IMPACT_POWER = 24.0F;
+    private static final float ENTITY_RANGE_MODIFIER = 4.8F;
+    private static final float IGNITION_CHANCE = 0.55F;
+    private static final int IGNITION_ATTEMPTS = 28;
+    private static final int IGNITION_RADIUS = 10;
 
     public int startX;
     public int startZ;
@@ -127,18 +132,21 @@ public final class EntityKineticRod extends Entity implements IRadarDetectable {
         int impactY = field_70170_p.func_72976_f(targetX, targetZ);
         new ExplosionLargeAdvanced().ExplosionAdvanced(field_70170_p,
                 targetX + 0.5D, impactY + 0.5D, targetZ + 0.5D,
-                16.0F, 3.2F, true);
+                IMPACT_POWER, ENTITY_RANGE_MODIFIER, true);
         igniteImpactArea();
     }
 
     private void igniteImpactArea() {
         if (field_70170_p.field_73012_v == null
-                || field_70170_p.field_73012_v.nextFloat() >= 0.40F) {
+                || field_70170_p.field_73012_v.nextFloat() >= IGNITION_CHANCE) {
             return;
         }
-        for (int attempt = 0; attempt < 18; ++attempt) {
-            int x = targetX + field_70170_p.field_73012_v.nextInt(15) - 7;
-            int z = targetZ + field_70170_p.field_73012_v.nextInt(15) - 7;
+        int diameter = IGNITION_RADIUS * 2 + 1;
+        for (int attempt = 0; attempt < IGNITION_ATTEMPTS; ++attempt) {
+            int x = targetX + field_70170_p.field_73012_v.nextInt(diameter)
+                    - IGNITION_RADIUS;
+            int z = targetZ + field_70170_p.field_73012_v.nextInt(diameter)
+                    - IGNITION_RADIUS;
             int y = field_70170_p.func_72976_f(x, z);
             if (field_70170_p.func_147437_c(x, y, z)
                     && !field_70170_p.func_147437_c(x, y - 1, z)) {

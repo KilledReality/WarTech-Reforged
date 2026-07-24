@@ -14,7 +14,8 @@ public final class ItemSalvageWrench extends Item {
     @Override
     public void func_77624_a(ItemStack stack, EntityPlayer player,
             List lines, boolean advanced) {
-        lines.add("Shift + RMB on a destroyed MQ-9: dismantle wreck");
-        lines.add("Reusable recovery tool");
+        lines.add("Shift + RMB: dismantle a WarTech installation");
+        lines.add("Returns the unit and its stored contents");
+        lines.add("Aircraft must be landed");
     }
 }

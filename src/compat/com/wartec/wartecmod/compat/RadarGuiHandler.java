@@ -5,8 +5,10 @@ import java.lang.reflect.Constructor;
 import com.wartec.wartecmod.entity.vehicle.EntityCommandTruck;
 import com.wartec.wartecmod.entity.vehicle.EntityMobileAirDefense;
 import com.wartec.wartecmod.entity.missile.EntityMq9Drone;
+import com.wartec.wartecmod.entity.missile.EntityTu95Bomber;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.tileentity.TileEntity;
 import net.minecraft.world.World;
 
 public final class RadarGuiHandler implements IGuiHandler {
@@ -14,6 +16,8 @@ public final class RadarGuiHandler implements IGuiHandler {
     public static final int GUI_ID_COMMAND = 72;
     public static final int GUI_ID_MOBILE_AIR_DEFENSE = 73;
     public static final int GUI_ID_MQ9 = 74;
+    public static final int GUI_ID_TU95 = 75;
+    public static final int GUI_ID_COMMUNICATION_MAST = 76;
 
     @Override
     public Object getServerGuiElement(int id, EntityPlayer player, World world,
@@ -31,7 +35,15 @@ public final class RadarGuiHandler implements IGuiHandler {
             return new ContainerMobileAirDefense(player.field_71071_by, system);
         }
         EntityMq9Drone drone = findMq9(id, world, x);
-        return drone == null ? null : new ContainerMq9Drone(player.field_71071_by, drone);
+        if (drone != null) return new ContainerMq9Drone(player.field_71071_by, drone);
+        EntityTu95Bomber bomber = findTu95(id, world, x);
+        if (bomber != null) {
+            return new ContainerTu95Bomber(player.field_71071_by, bomber);
+        }
+        TileEntityCommunicationRelay relay = findCommunicationRelay(
+                id, world, x, y, z);
+        return relay == null ? null
+                : new ContainerCommunicationRelay(player.field_71071_by, relay);
     }
 
     @Override
@@ -74,6 +86,25 @@ public final class RadarGuiHandler implements IGuiHandler {
                         EntityMq9Drone.class);
                 return constructor.newInstance(player.field_71071_by, drone);
             }
+            EntityTu95Bomber bomber = findTu95(id, world, x);
+            if (bomber != null) {
+                Class<?> gui = Class.forName(
+                        "com.wartec.wartecmod.compat.client.GuiTu95Bomber");
+                Constructor<?> constructor = gui.getConstructor(
+                        net.minecraft.entity.player.InventoryPlayer.class,
+                        EntityTu95Bomber.class);
+                return constructor.newInstance(player.field_71071_by, bomber);
+            }
+            TileEntityCommunicationRelay relay = findCommunicationRelay(
+                    id, world, x, y, z);
+            if (relay != null) {
+                Class<?> gui = Class.forName(
+                        "com.wartec.wartecmod.compat.client.GuiCommunicationRelay");
+                Constructor<?> constructor = gui.getConstructor(
+                        net.minecraft.entity.player.InventoryPlayer.class,
+                        TileEntityCommunicationRelay.class);
+                return constructor.newInstance(player.field_71071_by, relay);
+            }
         } catch (Throwable ignored) {
         }
         return null;
@@ -105,5 +136,19 @@ public final class RadarGuiHandler implements IGuiHandler {
         if (id != GUI_ID_MQ9 || world == null) return null;
         Entity entity = world.func_73045_a(entityId);
         return entity instanceof EntityMq9Drone ? (EntityMq9Drone) entity : null;
+    }
+
+    private static EntityTu95Bomber findTu95(int id, World world, int entityId) {
+        if (id != GUI_ID_TU95 || world == null) return null;
+        Entity entity = world.func_73045_a(entityId);
+        return entity instanceof EntityTu95Bomber ? (EntityTu95Bomber) entity : null;
+    }
+
+    private static TileEntityCommunicationRelay findCommunicationRelay(int id,
+            World world, int x, int y, int z) {
+        if (id != GUI_ID_COMMUNICATION_MAST || world == null) return null;
+        TileEntity tile = world.func_147438_o(x, y, z);
+        return tile instanceof TileEntityCommunicationRelay
+                ? (TileEntityCommunicationRelay) tile : null;
     }
 }

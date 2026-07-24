@@ -23,6 +23,19 @@ Creator: WarTec HBM X5751 compatibility project
 License: Original project asset
 
 The models and textures remain subject to their respective licenses.
+
+F-16C tactical aircraft
+Source: user-provided package "f16-c-falcon.zip"
+License: exact source page, creator, and license must be verified before release
+
+Sukhoi Su-27PU tactical aircraft
+Source: user-provided package "sukhoi-su-27pu-ussr.zip"
+License: exact source page, creator, and license must be verified before release
+
+Fighter missile and bomb collection
+Source: user-provided package "missile-bomb-collection-fighter-jets-free.zip"
+Assets used: AGM-114, GBU-12, HJ-10, AGM-65, Kh-29, KAB-500L, JDAM
+License: exact source page, creator, and license must be verified before release
 HEMTT Lowpoly
 Creator: Calviking073
 Source: https://sketchfab.com/3d-models/hemtt-lowpoly-3a7c7f888dfe458a8274a300c8893f17

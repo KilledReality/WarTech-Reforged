@@ -1,11 +1,11 @@
 package net.minecraft.entity.player;
 
-import net.minecraft.entity.Entity;
+import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.IChatComponent;
 import net.minecraft.world.World;
 
-public class EntityPlayer extends Entity {
+public class EntityPlayer extends EntityLivingBase {
     public float field_70701_bs, field_70702_br;
     public PlayerCapabilities field_71075_bZ = new PlayerCapabilities();
     public InventoryPlayer field_71071_by = new InventoryPlayer();

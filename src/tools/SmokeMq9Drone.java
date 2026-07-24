@@ -173,10 +173,11 @@ public final class SmokeMq9Drone {
         mk82.setLaunchMotion(0.0D, 0.0D, 0.78D);
         mk82.field_70173_aa++;
         mk82.func_70071_h_();
-        require(Math.abs(mk82.field_70159_w) < 0.0001D
-                        && mk82.field_70181_x < -0.04D
-                        && mk82.field_70179_y > 0.77D,
-                "Mk 82 must follow an unguided ballistic fall after release");
+        double mk82Horizontal = Math.sqrt(mk82.field_70159_w * mk82.field_70159_w
+                + mk82.field_70179_y * mk82.field_70179_y);
+        require(mk82.field_70181_x < -0.04D
+                        && mk82Horizontal > 0.77D && mk82Horizontal < 0.79D,
+                "Mk 82 must retain release speed while following an unguided fall");
         double hellfireError = simulateImpact(ItemMq9Payload.HELLFIRE,
                 0.0D, 38.0D, 0.0D, 0.0D, 0.78D, 0, 1, 100);
         double gbuError = simulateImpact(ItemMq9Payload.GBU12,

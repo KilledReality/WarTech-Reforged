@@ -4,7 +4,9 @@ import api.hbm.entity.IRadarDetectable;
 import api.hbm.entity.IRadarDetectable.RadarTargetType;
 import api.hbm.entity.IRadarDetectableNT;
 import com.wartec.wartecmod.entity.missile.EntityMq9Drone;
+import com.wartec.wartecmod.entity.missile.EntityTu95Bomber;
 import java.lang.reflect.Field;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -25,9 +27,12 @@ public final class MissileTrackingService {
     private static final long RADAR_TIMEOUT = 30L;
     private static final long COMMAND_TIMEOUT = 40L;
     private static final long LAUNCHER_TIMEOUT = 40L;
+    private static final long COMMUNICATION_RELAY_TIMEOUT = 40L;
     private static final double RADAR_NETWORK_RANGE = 800.0D;
     private static final double COMMAND_RADAR_LINK_RANGE = 1400.0D;
     private static final double COMMAND_LAUNCHER_LINK_RANGE = 900.0D;
+    public static final double COMMUNICATION_RELAY_RANGE = 2400.0D;
+    private static final int MAX_COMMUNICATION_RELAYS = 64;
     private static final int TIER_3_TRACK_ESTABLISHMENT_TICKS = 50;
     private static final double TIER_3_MIN_RADAR_ALTITUDE = 18.0D;
     private static final Map<World, WorldTracks> WORLDS = new WeakHashMap<World, WorldTracks>();
@@ -39,6 +44,11 @@ public final class MissileTrackingService {
 
     public static void registerLaunch(Entity missile, double originX, double originY, double originZ,
             int targetX, int targetZ) {
+        registerLaunch(missile, originX, originY, originZ, targetX, targetZ, "");
+    }
+
+    public static void registerLaunch(Entity missile, double originX, double originY, double originZ,
+            int targetX, int targetZ, String team) {
         if (missile == null || missile.field_70170_p == null || missile.field_70170_p.field_72995_K) {
             return;
         }
@@ -53,26 +63,65 @@ public final class MissileTrackingService {
         track.originKnown = true;
         track.targetKnown = true;
         track.explicitLaunch = true;
+        String resolvedTeam = normalizeTeam(team);
+        if (resolvedTeam.length() == 0) {
+            resolvedTeam = NetworkTeamHelper.getEntityTeam(missile);
+        }
+        if (resolvedTeam.length() == 0) {
+            resolvedTeam = findNetworkTeamNear(tracks, originX, originY, originZ,
+                    world.func_82737_E());
+        }
+        track.team = resolvedTeam;
+        if (missile instanceof ITeamOwned && resolvedTeam.length() > 0) {
+            ((ITeamOwned) missile).setOwnerTeam(resolvedTeam);
+        }
         MissileChunkLoader.track(missile);
     }
 
     public static Entity findThreat(World world, double defenseX, double defenseY, double defenseZ,
             int interceptorTier, double range, long ownerKey) {
         return findThreat(world, defenseX, defenseY, defenseZ,
-                interceptorTier, range, ownerKey, false);
+                interceptorTier, range, ownerKey, "");
+    }
+
+    public static Entity findThreat(World world, double defenseX, double defenseY, double defenseZ,
+            int interceptorTier, double range, long ownerKey, String defenseTeam) {
+        return findThreat(world, defenseX, defenseY, defenseZ,
+                interceptorTier, range, ownerKey, false, defenseTeam);
     }
 
     public static Entity findCloseThreat(World world, double defenseX,
             double defenseY, double defenseZ, int interceptorTier,
             double range, long ownerKey) {
-        return findPointDefenseThreat(world, defenseX, defenseY, defenseZ, range);
+        return findPointDefenseThreat(world, defenseX, defenseY, defenseZ, range, "");
+    }
+
+    public static Entity findCloseThreat(World world, double defenseX,
+            double defenseY, double defenseZ, int interceptorTier,
+            double range, long ownerKey, String defenseTeam) {
+        return findPointDefenseThreat(world, defenseX, defenseY, defenseZ,
+                range, defenseTeam);
     }
 
     /** Immediate all-aspect acquisition for guns; missile reservations and launch origin do not apply. */
     public static Entity findPointDefenseThreat(World world, double defenseX,
             double defenseY, double defenseZ, double range) {
+        return findPointDefenseThreat(world, defenseX, defenseY, defenseZ, range, "");
+    }
+
+    public static Entity findPointDefenseThreat(World world, double defenseX,
+            double defenseY, double defenseZ, double range, String defenseTeam) {
         if (world == null || world.field_72995_K) {
             return null;
+        }
+        String resolvedTeam = normalizeTeam(defenseTeam);
+        if (resolvedTeam.length() == 0) {
+            WorldTracks tracks = getWorldTracks(world);
+            long now = world.func_82737_E();
+            expireNetworkNodes(tracks, now);
+            CommandStation command = findLinkedCommand(tracks,
+                    defenseX, defenseY, defenseZ, now);
+            if (command != null) resolvedTeam = command.team;
         }
         Entity best = null;
         double bestScore = Double.MAX_VALUE;
@@ -83,7 +132,8 @@ public final class MissileTrackingService {
             }
             Entity entity = (Entity) value;
             int tier = getTargetTier(entity);
-            if (tier == 0 || entity.field_70128_L) {
+            if (tier == 0 || entity.field_70128_L
+                    || NetworkTeamHelper.isFriendly(resolvedTeam, entity)) {
                 continue;
             }
             double dx = entity.field_70165_t - defenseX;
@@ -110,9 +160,73 @@ public final class MissileTrackingService {
         return best;
     }
 
+    /** Radar-cued hostile contact suitable for a fighter interception mission. */
+    public static Entity findAirInterceptTarget(World world, double x, double y,
+            double z, double range, String fighterTeam, long ownerKey) {
+        if (world == null || world.field_72995_K) return null;
+        WorldTracks tracks = getWorldTracks(world);
+        long now = world.func_82737_E();
+        refresh(world, tracks, now);
+        expireReservations(world, tracks, now);
+        expireRadars(tracks, now);
+        expireNetworkNodes(tracks, now);
+        CommandStation command = findLinkedCommand(tracks, x, y, z, now,
+                fighterTeam);
+        if (command == null) return null;
+        String team = normalizeTeam(fighterTeam);
+        if (team.length() == 0) team = command.team;
+
+        Entity best = null;
+        double bestScore = Double.MAX_VALUE;
+        double rangeSquared = range * range;
+        for (Track track : tracks.tracks.values()) {
+            Entity entity = track.entity;
+            int tier = getTargetTier(entity);
+            if (tier == 0 || entity.field_70128_L || isFriendlyTrack(team, track)
+                    || !isAirInterceptable(entity)
+                    || !hasCommandRadarContact(track, tracks, command, now)) {
+                continue;
+            }
+            Integer key = Integer.valueOf(track.entityId);
+            Long blocked = tracks.blockedUntil.get(key);
+            Reservation reservation = tracks.reservations.get(key);
+            if (blocked != null && blocked.longValue() > now) continue;
+            if (reservation != null && reservation.expiresAt >= now
+                    && reservation.ownerKey != ownerKey) continue;
+            double dx = entity.field_70165_t - x;
+            double dy = entity.field_70163_u - y;
+            double dz = entity.field_70161_v - z;
+            double distanceSquared = dx * dx + dy * dy + dz * dz;
+            if (distanceSquared > rangeSquared) continue;
+            double closing = dx * entity.field_70159_w + dz * entity.field_70179_y;
+            double score = distanceSquared + tier * rangeSquared * 0.06D;
+            if (closing < 0.0D) score *= 0.62D;
+            if (score < bestScore) {
+                bestScore = score;
+                best = entity;
+            }
+        }
+        return best;
+    }
+
+    private static boolean isAirInterceptable(Entity entity) {
+        if (entity == null || isBallisticTarget(entity)) return false;
+        if (entity instanceof EntityMq9Drone) {
+            return ((EntityMq9Drone) entity).isFlying();
+        }
+        if (entity instanceof EntityTu95Bomber) {
+            return ((EntityTu95Bomber) entity).isFlying();
+        }
+        String name = entity.getClass().getName();
+        return name.endsWith(".EntityGeran")
+                || name.contains("CruiseMissile")
+                || name.endsWith(".EntityKh555");
+    }
+
     private static Entity findThreat(World world, double defenseX,
             double defenseY, double defenseZ, int interceptorTier,
-            double range, long ownerKey, boolean shareReservedTargets) {
+            double range, long ownerKey, boolean shareReservedTargets,
+            String requestedDefenseTeam) {
         if (world == null || world.field_72995_K) {
             return null;
         }
@@ -122,18 +236,23 @@ public final class MissileTrackingService {
         expireReservations(world, tracks, now);
         expireNetworkNodes(tracks, now);
         updateLauncher(tracks, ownerKey, defenseX, defenseY, defenseZ,
-                interceptorTier, now);
+                interceptorTier, requestedDefenseTeam, now);
 
         Entity best = null;
         double bestScore = Double.MAX_VALUE;
         double rangeSquared = range * range;
         expireRadars(tracks, now);
         CommandStation command = findLinkedCommand(tracks,
-                defenseX, defenseY, defenseZ, now);
+                defenseX, defenseY, defenseZ, now, requestedDefenseTeam);
+        String defenseTeam = normalizeTeam(requestedDefenseTeam);
+        if (defenseTeam.length() == 0 && command != null) {
+            defenseTeam = command.team;
+        }
         for (Track track : tracks.tracks.values()) {
             Entity entity = track.entity;
             int targetTier = getTargetTier(entity);
-            if (targetTier == 0 || entity.field_70128_L) {
+            if (targetTier == 0 || entity.field_70128_L
+                    || isFriendlyTrack(defenseTeam, track)) {
                 continue;
             }
             Integer trackKey = Integer.valueOf(track.entityId);
@@ -162,7 +281,7 @@ public final class MissileTrackingService {
             boolean networkContact = command != null
                     ? hasCommandRadarContact(track, tracks, command, now)
                     : hasLinkedRadarContact(track, tracks,
-                            defenseX, defenseY, defenseZ, now);
+                            defenseX, defenseY, defenseZ, now, defenseTeam);
             if (!networkContact
                     && acquisitionDistanceSquared > CLOSE_THREAT_RADIUS * CLOSE_THREAT_RADIUS) {
                 clearThreatState(track, ownerKey);
@@ -196,13 +315,18 @@ public final class MissileTrackingService {
 
     public static void updateLauncherPresence(World world, double x, double y,
             double z, int tier, long ownerKey) {
+        updateLauncherPresence(world, x, y, z, tier, ownerKey, "");
+    }
+
+    public static void updateLauncherPresence(World world, double x, double y,
+            double z, int tier, long ownerKey, String team) {
         if (world == null || world.field_72995_K) {
             return;
         }
         WorldTracks tracks = getWorldTracks(world);
         long now = world.func_82737_E();
         expireNetworkNodes(tracks, now);
-        updateLauncher(tracks, ownerKey, x, y, z, tier, now);
+        updateLauncher(tracks, ownerKey, x, y, z, tier, team, now);
     }
 
     public static int updateRadarSweep(World world, int radarId, double radarX, double radarY,
@@ -252,7 +376,8 @@ public final class MissileTrackingService {
         Integer radarKey = Integer.valueOf(radarId);
         for (Track track : tracks.tracks.values()) {
             Entity entity = track.entity;
-            if (entity == null || entity.field_70128_L || getTargetTier(entity) == 0) {
+            if (entity == null || entity.field_70128_L || getTargetTier(entity) == 0
+                    || isFriendlyTrack(radar.team, track)) {
                 continue;
             }
             double dx = entity.field_70165_t - radarX;
@@ -308,12 +433,15 @@ public final class MissileTrackingService {
         double[] distances = new double[limit];
         int count = 0;
         Integer radarKey = Integer.valueOf(radarId);
+        RadarStation radar = tracks.radars.get(radarKey);
+        String radarTeam = radar == null ? "" : radar.team;
         for (Track track : tracks.tracks.values()) {
             Entity entity = track.entity;
             Long seen = track.radarSeen.get(radarKey);
             if (entity == null || entity.field_70128_L || seen == null
                     || now - seen.longValue() > TRACK_TIMEOUT
-                    || getTargetTier(entity) == 0) {
+                    || getTargetTier(entity) == 0
+                    || isFriendlyTrack(radarTeam, track)) {
                 continue;
             }
             double dx = entity.field_70165_t - radarX;
@@ -373,22 +501,25 @@ public final class MissileTrackingService {
 
         int radars = 0;
         for (RadarStation radar : tracks.radars.values()) {
-            if (isRadarLinkedToCommand(radar, command, now)) {
+            if (isRadarLinkedToCommand(radar, command, tracks, now)) {
                 ++radars;
             }
         }
         int launchers = 0;
         for (LauncherStation launcher : tracks.launchers.values()) {
             if (now - launcher.lastUpdate <= LAUNCHER_TIMEOUT
-                    && distanceSquared(launcher.x, launcher.y, launcher.z,
-                            command.x, command.y, command.z)
-                    <= COMMAND_LAUNCHER_LINK_RANGE * COMMAND_LAUNCHER_LINK_RANGE) {
+                    && NetworkTeamHelper.canShareNetwork(launcher.team, command.team)
+                    && endpointsConnected(tracks,
+                            launcher.x, launcher.y, launcher.z,
+                            command.x, command.y, command.z,
+                            command.team, now, COMMAND_LAUNCHER_LINK_RANGE)) {
                 ++launchers;
             }
         }
         int contacts = 0;
         for (Track track : tracks.tracks.values()) {
-            if (hasCommandRadarContact(track, tracks, command, now)) {
+            if (!isFriendlyTrack(command.team, track)
+                    && hasCommandRadarContact(track, tracks, command, now)) {
                 ++contacts;
             }
         }
@@ -407,8 +538,76 @@ public final class MissileTrackingService {
         getWorldTracks(world).commands.remove(Integer.valueOf(commandId));
     }
 
+    public static long communicationRelayKey(int x, int y, int z) {
+        return ((long) x & 0x3FFFFFFL) << 38
+                | ((long) z & 0x3FFFFFFL) << 12
+                | (long) y & 0xFFFL;
+    }
+
+    public static void updateCommunicationRelay(World world, long relayKey,
+            double x, double y, double z, String team) {
+        if (world == null || world.field_72995_K) return;
+        WorldTracks tracks = getWorldTracks(world);
+        long now = world.func_82737_E();
+        Long key = Long.valueOf(relayKey);
+        CommunicationRelay relay = tracks.communicationRelays.get(key);
+        if (relay == null) {
+            relay = new CommunicationRelay(relayKey);
+            tracks.communicationRelays.put(key, relay);
+        }
+        relay.x = x;
+        relay.y = y;
+        relay.z = z;
+        relay.team = normalizeTeam(team);
+        relay.lastUpdate = now;
+        expireNetworkNodes(tracks, now);
+    }
+
+    public static void removeCommunicationRelay(World world, long relayKey) {
+        if (world == null || world.field_72995_K) return;
+        getWorldTracks(world).communicationRelays.remove(Long.valueOf(relayKey));
+    }
+
+    public static boolean hasNetworkAlarm(World world, double x, double y,
+            double z, String team) {
+        if (world == null || world.field_72995_K) return false;
+        WorldTracks tracks = getWorldTracks(world);
+        long now = world.func_82737_E();
+        refresh(world, tracks, now);
+        expireRadars(tracks, now);
+        expireNetworkNodes(tracks, now);
+        for (CommandStation command : tracks.commands.values()) {
+            if (now - command.lastUpdate > COMMAND_TIMEOUT
+                    || !NetworkTeamHelper.canShareNetwork(team, command.team)
+                    || !endpointsConnected(tracks, x, y, z,
+                            command.x, command.y, command.z,
+                            team, now, 96.0D)) {
+                continue;
+            }
+            for (Track track : tracks.tracks.values()) {
+                if (track.entity != null && !track.entity.field_70128_L
+                        && now - track.lastSeen <= TRACK_TIMEOUT
+                        && getTargetTier(track.entity) > 0
+                        && !isFriendlyTrack(command.team, track)
+                        && hasCommandRadarContact(track, tracks, command, now)) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    public static int countLinkedCommunicationRelays(World world,
+            double x, double y, double z, String team) {
+        if (world == null || world.field_72995_K) return 0;
+        WorldTracks tracks = getWorldTracks(world);
+        long now = world.func_82737_E();
+        expireNetworkNodes(tracks, now);
+        return collectReachableRelays(tracks, x, y, z, team, now).size();
+    }
+
     private static void updateLauncher(WorldTracks tracks, long ownerKey,
-            double x, double y, double z, int tier, long now) {
+            double x, double y, double z, int tier, String team, long now) {
         Long key = Long.valueOf(ownerKey);
         LauncherStation launcher = tracks.launchers.get(key);
         if (launcher == null) {
@@ -419,19 +618,31 @@ public final class MissileTrackingService {
         launcher.y = y;
         launcher.z = z;
         launcher.tier = tier;
+        launcher.team = normalizeTeam(team);
         launcher.lastUpdate = now;
     }
 
     private static CommandStation findLinkedCommand(WorldTracks tracks,
             double x, double y, double z, long now) {
+        return findLinkedCommand(tracks, x, y, z, now, "");
+    }
+
+    private static CommandStation findLinkedCommand(WorldTracks tracks,
+            double x, double y, double z, long now, String requestedTeam) {
         CommandStation best = null;
-        double bestDistance = COMMAND_LAUNCHER_LINK_RANGE * COMMAND_LAUNCHER_LINK_RANGE;
+        double bestDistance = Double.MAX_VALUE;
         for (CommandStation command : tracks.commands.values()) {
             if (now - command.lastUpdate > COMMAND_TIMEOUT) {
                 continue;
             }
+            if (normalizeTeam(requestedTeam).length() > 0
+                    && !NetworkTeamHelper.canShareNetwork(requestedTeam, command.team)) {
+                continue;
+            }
             double distance = distanceSquared(x, y, z, command.x, command.y, command.z);
-            if (distance <= bestDistance) {
+            if (distance <= bestDistance && endpointsConnected(tracks,
+                    x, y, z, command.x, command.y, command.z,
+                    requestedTeam, now, COMMAND_LAUNCHER_LINK_RANGE)) {
                 bestDistance = distance;
                 best = command;
             }
@@ -446,7 +657,7 @@ public final class MissileTrackingService {
                 continue;
             }
             RadarStation radar = tracks.radars.get(entry.getKey());
-            if (radar != null && isRadarLinkedToCommand(radar, command, now)) {
+            if (radar != null && isRadarLinkedToCommand(radar, command, tracks, now)) {
                 return true;
             }
         }
@@ -454,12 +665,70 @@ public final class MissileTrackingService {
     }
 
     private static boolean isRadarLinkedToCommand(RadarStation radar,
-            CommandStation command, long now) {
+            CommandStation command, WorldTracks tracks, long now) {
         return now - radar.lastUpdate <= RADAR_TIMEOUT
                 && NetworkTeamHelper.canShareNetwork(radar.team, command.team)
-                && distanceSquared(radar.x, radar.y, radar.z,
-                        command.x, command.y, command.z)
-                <= COMMAND_RADAR_LINK_RANGE * COMMAND_RADAR_LINK_RANGE;
+                && endpointsConnected(tracks,
+                        radar.x, radar.y, radar.z,
+                        command.x, command.y, command.z,
+                        command.team, now, COMMAND_RADAR_LINK_RANGE);
+    }
+
+    private static boolean endpointsConnected(WorldTracks tracks,
+            double ax, double ay, double az, double bx, double by, double bz,
+            String team, long now, double directRange) {
+        if (distanceSquared(ax, ay, az, bx, by, bz) <= directRange * directRange) {
+            return true;
+        }
+        List<CommunicationRelay> reachable = collectReachableRelays(
+                tracks, ax, ay, az, team, now);
+        double relayRangeSquared = COMMUNICATION_RELAY_RANGE
+                * COMMUNICATION_RELAY_RANGE;
+        for (CommunicationRelay relay : reachable) {
+            if (NetworkTeamHelper.canShareNetwork(team, relay.team)
+                    && distanceSquared(relay.x, relay.y, relay.z, bx, by, bz)
+                    <= relayRangeSquared) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static List<CommunicationRelay> collectReachableRelays(
+            WorldTracks tracks, double x, double y, double z,
+            String team, long now) {
+        List<CommunicationRelay> reachable = new ArrayList<CommunicationRelay>();
+        Set<Long> visited = new HashSet<Long>();
+        double rangeSquared = COMMUNICATION_RELAY_RANGE * COMMUNICATION_RELAY_RANGE;
+        for (CommunicationRelay relay : tracks.communicationRelays.values()) {
+            if (now - relay.lastUpdate <= COMMUNICATION_RELAY_TIMEOUT
+                    && NetworkTeamHelper.canShareNetwork(team, relay.team)
+                    && distanceSquared(x, y, z, relay.x, relay.y, relay.z)
+                    <= rangeSquared) {
+                reachable.add(relay);
+                visited.add(Long.valueOf(relay.key));
+            }
+        }
+        for (int cursor = 0; cursor < reachable.size()
+                && reachable.size() < MAX_COMMUNICATION_RELAYS; ++cursor) {
+            CommunicationRelay current = reachable.get(cursor);
+            for (CommunicationRelay candidate : tracks.communicationRelays.values()) {
+                Long key = Long.valueOf(candidate.key);
+                if (visited.contains(key)
+                        || now - candidate.lastUpdate > COMMUNICATION_RELAY_TIMEOUT
+                        || !NetworkTeamHelper.canShareNetwork(team, candidate.team)
+                        || !NetworkTeamHelper.canShareNetwork(current.team, candidate.team)) {
+                    continue;
+                }
+                if (distanceSquared(current.x, current.y, current.z,
+                        candidate.x, candidate.y, candidate.z) <= rangeSquared) {
+                    reachable.add(candidate);
+                    visited.add(key);
+                    if (reachable.size() >= MAX_COMMUNICATION_RELAYS) break;
+                }
+            }
+        }
+        return reachable;
     }
 
     private static double distanceSquared(double x1, double y1, double z1,
@@ -470,8 +739,55 @@ public final class MissileTrackingService {
         return dx * dx + dy * dy + dz * dz;
     }
 
+    private static String normalizeTeam(String team) {
+        return team == null ? "" : team;
+    }
+
+    private static boolean isFriendlyTrack(String team, Track track) {
+        return track != null && NetworkTeamHelper.areFriendly(
+                normalizeTeam(team), normalizeTeam(track.team));
+    }
+
+    private static String findNetworkTeamNear(WorldTracks tracks, double x,
+            double y, double z, long now) {
+        String bestTeam = "";
+        double bestDistance = COMMAND_LAUNCHER_LINK_RANGE * COMMAND_LAUNCHER_LINK_RANGE;
+        for (CommandStation command : tracks.commands.values()) {
+            if (now - command.lastUpdate > COMMAND_TIMEOUT || command.team.length() == 0) {
+                continue;
+            }
+            double distance = distanceSquared(x, y, z, command.x, command.y, command.z);
+            if (distance <= bestDistance) {
+                bestDistance = distance;
+                bestTeam = command.team;
+            }
+        }
+        if (bestTeam.length() > 0) return bestTeam;
+        bestDistance = RADAR_NETWORK_RANGE * RADAR_NETWORK_RANGE;
+        for (RadarStation radar : tracks.radars.values()) {
+            if (now - radar.lastUpdate > RADAR_TIMEOUT || radar.team.length() == 0) continue;
+            double distance = distanceSquared(x, y, z, radar.x, radar.y, radar.z);
+            if (distance <= bestDistance) {
+                bestDistance = distance;
+                bestTeam = radar.team;
+            }
+        }
+        if (bestTeam.length() > 0) return bestTeam;
+        bestDistance = COMMUNICATION_RELAY_RANGE * COMMUNICATION_RELAY_RANGE;
+        for (CommunicationRelay relay : tracks.communicationRelays.values()) {
+            if (now - relay.lastUpdate > COMMUNICATION_RELAY_TIMEOUT
+                    || relay.team.length() == 0) continue;
+            double distance = distanceSquared(x, y, z, relay.x, relay.y, relay.z);
+            if (distance <= bestDistance) {
+                bestDistance = distance;
+                bestTeam = relay.team;
+            }
+        }
+        return bestTeam;
+    }
+
     private static boolean hasLinkedRadarContact(Track track, WorldTracks tracks,
-            double x, double y, double z, long now) {
+            double x, double y, double z, long now, String team) {
         double networkSquared = RADAR_NETWORK_RANGE * RADAR_NETWORK_RANGE;
         for (Map.Entry<Integer, Long> entry : track.radarSeen.entrySet()) {
             if (now - entry.getValue().longValue() > RADAR_TIMEOUT) {
@@ -484,7 +800,10 @@ public final class MissileTrackingService {
             double dx = radar.x - x;
             double dy = radar.y - y;
             double dz = radar.z - z;
-            if (dx * dx + dy * dy + dz * dz <= networkSquared) {
+            if (dx * dx + dy * dy + dz * dz <= networkSquared
+                    || endpointsConnected(tracks, x, y, z,
+                            radar.x, radar.y, radar.z,
+                            team, now, RADAR_NETWORK_RANGE)) {
                 return true;
             }
         }
@@ -521,6 +840,14 @@ public final class MissileTrackingService {
                 launchers.remove();
             }
         }
+        Iterator<Map.Entry<Long, CommunicationRelay>> relays =
+                tracks.communicationRelays.entrySet().iterator();
+        while (relays.hasNext()) {
+            if (now - relays.next().getValue().lastUpdate
+                    > COMMUNICATION_RELAY_TIMEOUT) {
+                relays.remove();
+            }
+        }
     }
 
     /** Ballistic and boost-glide weapons use horizontal radar range, not a spherical bubble. */
@@ -545,8 +872,11 @@ public final class MissileTrackingService {
 
     public static boolean isDroneTarget(Entity entity) {
         if (entity == null) return false;
+        if (entity instanceof EntityMq9Drone) {
+            return ((EntityMq9Drone) entity).isFlying();
+        }
         String name = entity.getClass().getName();
-        return name.endsWith(".EntityGeran") || name.endsWith(".EntityMq9Drone");
+        return name.endsWith(".EntityGeran");
     }
 
     public static boolean tryReserve(World world, int targetId, long ownerKey) {
@@ -751,6 +1081,8 @@ public final class MissileTrackingService {
             readCoordinates(track, entity);
             tracks.tracks.put(key, track);
         }
+        String entityTeam = NetworkTeamHelper.getEntityTeam(entity);
+        if (entityTeam.length() > 0) track.team = entityTeam;
         return track;
     }
 
@@ -776,6 +1108,8 @@ public final class MissileTrackingService {
         track.lastY = entity.field_70163_u;
         track.lastZ = entity.field_70161_v;
         track.lastSeen = now;
+        String entityTeam = NetworkTeamHelper.getEntityTeam(entity);
+        if (entityTeam.length() > 0) track.team = entityTeam;
         if (!track.originKnown || !track.targetKnown) {
             readCoordinates(track, entity);
         }
@@ -834,6 +1168,9 @@ public final class MissileTrackingService {
         if (entity instanceof EntityMq9Drone && !((EntityMq9Drone) entity).isFlying()) {
             return 0;
         }
+        if (entity instanceof EntityTu95Bomber && !((EntityTu95Bomber) entity).isFlying()) {
+            return 0;
+        }
         for (Class<?> type = entity.getClass(); type != null; type = type.getSuperclass()) {
             String name = type.getName();
             if ("com.wartec.wartecmod.entity.missile.EntityHypersonicCruiseMissileBase".equals(name)) {
@@ -858,6 +1195,18 @@ public final class MissileTrackingService {
         if (level < 0 || level > 9) return 0;
         int tier = level <= 1 ? 1 : level == 2 ? 2 : 3;
         return applyRadarActivationEnvelope(entity, tier);
+    }
+
+    public static boolean holdReservation(World world, int targetId, long ownerKey) {
+        if (world == null || targetId <= 0) return false;
+        WorldTracks tracks = getWorldTracks(world);
+        Reservation reservation = tracks.reservations.get(Integer.valueOf(targetId));
+        if (reservation == null || reservation.ownerKey != ownerKey
+                || reservation.interceptorId != 0) {
+            return false;
+        }
+        reservation.expiresAt = world.func_82737_E() + 160L;
+        return true;
     }
 
     /** Tier 3 boost-phase weapons need both altitude and time for a stable radar track. */
@@ -924,6 +1273,8 @@ public final class MissileTrackingService {
         final Map<Integer, RadarStation> radars = new HashMap<Integer, RadarStation>();
         final Map<Integer, CommandStation> commands = new HashMap<Integer, CommandStation>();
         final Map<Long, LauncherStation> launchers = new HashMap<Long, LauncherStation>();
+        final Map<Long, CommunicationRelay> communicationRelays =
+                new HashMap<Long, CommunicationRelay>();
         long lastRefresh = -1L;
     }
 
@@ -963,10 +1314,24 @@ public final class MissileTrackingService {
         double y;
         double z;
         int tier;
+        String team = "";
         long lastUpdate;
 
         LauncherStation(long ownerKey) {
             this.ownerKey = ownerKey;
+        }
+    }
+
+    private static final class CommunicationRelay {
+        final long key;
+        double x;
+        double y;
+        double z;
+        String team = "";
+        long lastUpdate;
+
+        CommunicationRelay(long key) {
+            this.key = key;
         }
     }
 
@@ -1009,6 +1374,7 @@ public final class MissileTrackingService {
         boolean originKnown;
         boolean targetKnown;
         boolean explicitLaunch;
+        String team = "";
         final Map<Long, ThreatState> threatStates = new HashMap<Long, ThreatState>();
         final Map<Integer, Long> radarSeen = new HashMap<Integer, Long>();
         final Map<Integer, Float> radarQuality = new HashMap<Integer, Float>();

@@ -1,6 +1,7 @@
 package com.wartec.wartecmod.entity.vehicle;
 
 import com.wartec.wartecmod.compat.ElectronicWarfareService;
+import com.wartec.wartecmod.compat.AircraftCountermeasureCompat;
 import com.wartec.wartecmod.compat.HeavyVehicleDynamics;
 import com.wartec.wartecmod.compat.HeavyVehicleDynamics.Motion;
 import com.wartec.wartecmod.compat.IAntiRadiationTarget;
@@ -299,7 +300,7 @@ public final class EntityMobileAirDefense extends Entity
         if (field_70173_aa % 10 == Math.abs(func_145782_y()) % 10) {
             MissileTrackingService.updateLauncherPresence(field_70170_p,
                     field_70165_t, field_70163_u + 2.4D, field_70161_v,
-                    tier, ownerKey);
+                    tier, ownerKey, ownerTeam);
         }
         if (!isOperational()) {
             MissileTrackingService.removeRadar(field_70170_p, func_145782_y());
@@ -352,7 +353,7 @@ public final class EntityMobileAirDefense extends Entity
         double launchZ = field_70161_v + (vertical ? 0.0D : forwardZ * 0.35D);
         if (VlsDefenseCompat.launchMobileInterceptor(field_70170_p,
                 launchX, launchY, launchZ, field_70177_z, tier,
-                getEngagementRange(), ownerKey, vertical)) {
+                getEngagementRange(), ownerKey, vertical, ownerTeam)) {
             inventory[slot] = null;
             setPower(getPower() - LAUNCH_ENERGY);
             launchCooldown = isTor() ? (getFireMode() == FIRE_EMERGENCY ? 3 : 8) : 4;
@@ -379,7 +380,7 @@ public final class EntityMobileAirDefense extends Entity
         if (!isGunTargetValid(target)) {
             target = MissileTrackingService.findCloseThreat(field_70170_p,
                     field_70165_t, field_70163_u + 3.1D, field_70161_v,
-                    1, GUN_RANGE, getLauncherKey());
+                    1, GUN_RANGE, getLauncherKey(), ownerTeam);
             int targetId = target == null ? -1 : target.func_145782_y();
             if (targetId != gunTargetId) {
                 gunTargetId = targetId;
@@ -423,9 +424,8 @@ public final class EntityMobileAirDefense extends Entity
         } else {
             gunLockTicks = Math.max(0, gunLockTicks - 2);
         }
-        if (target instanceof EntityMq9Drone
-                && gunLockTicks == Math.max(2, GUN_LOCK_TIME - 4)) {
-            ((EntityMq9Drone) target).deployFlaresForThreat();
+        if (gunLockTicks == Math.max(2, GUN_LOCK_TIME - 4)) {
+            AircraftCountermeasureCompat.deploy(target);
         }
         if (gunLockTicks >= GUN_LOCK_TIME && gunCooldown <= 0) {
             fireGunBurst(target, aimX, aimY, aimZ, distance);
@@ -474,8 +474,7 @@ public final class EntityMobileAirDefense extends Entity
         double chance = Math.min(tier == 1 ? 0.86D : 0.78D,
                 (baseChance * distanceFactor + lockBonus)
                 * consumed / GUN_BURST_ROUNDS);
-        boolean decoyed = target instanceof EntityMq9Drone
-                && ((EntityMq9Drone) target).tryDeployFlares(1);
+        boolean decoyed = AircraftCountermeasureCompat.tryDecoy(target, 1);
         boolean hit = !decoyed && (tier != 1 || gunTierOneSolution)
                 && field_70170_p.field_73012_v.nextDouble() < chance;
         emitGunBurst(target, aimX, aimY, aimZ, hit);
@@ -540,8 +539,7 @@ public final class EntityMobileAirDefense extends Entity
         MissileTrackingService.releaseReservation(field_70170_p,
                 target.func_145782_y(), getLauncherKey());
         boolean fire = field_70170_p.field_73012_v.nextDouble() < 0.30D;
-        boolean mq9Crash = target instanceof EntityMq9Drone
-                && ((EntityMq9Drone) target).beginCombatCrash();
+        boolean mq9Crash = AircraftCountermeasureCompat.beginCrash(target);
         field_70170_p.func_72885_a(this, target.field_70165_t,
                 target.field_70163_u + 0.25D, target.field_70161_v,
                 mq9Crash ? 0.9F : 1.35F, fire && !mq9Crash, false);

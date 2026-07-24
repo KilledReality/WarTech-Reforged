@@ -1,5 +1,6 @@
 package com.wartec.wartecmod.compat.client;
 
+import com.wartec.wartecmod.compat.ItemMq9Payload;
 import net.minecraft.item.ItemStack;
 import net.minecraftforge.client.IItemRenderer;
 import org.lwjgl.opengl.GL11;
@@ -20,13 +21,25 @@ public final class ItemRenderMq9Payload implements IItemRenderer {
         GL11.glPushMatrix();
         GL11.glPushAttrib(24833);
         RenderMq9Ordnance.setup();
-        if (type == ItemRenderType.INVENTORY) {
-            GL11.glScalef(1.4F, 1.4F, 1.4F);
-        }
         GL11.glRotatef(18.0F, 1.0F, 0.0F, 0.0F);
         GL11.glRotatef(-34.0F, 0.0F, 0.0F, 1.0F);
-        renderer.renderModel(item.func_77960_j(), 1.12F);
+        float scale = type == ItemRenderType.INVENTORY
+                ? getInventoryScale(item.func_77960_j()) : 1.12F;
+        renderer.renderModel(item.func_77960_j(), scale);
         GL11.glPopAttrib();
         GL11.glPopMatrix();
+    }
+
+    private static float getInventoryScale(int type) {
+        switch (type) {
+            case ItemMq9Payload.GBU12: return 1.08F;
+            case ItemMq9Payload.MK82: return 0.64F;
+            case ItemMq9Payload.HJ10: return 1.20F;
+            case ItemMq9Payload.AGM65: return 1.08F;
+            case ItemMq9Payload.KH29: return 0.92F;
+            case ItemMq9Payload.KAB500L: return 1.03F;
+            case ItemMq9Payload.JDAM: return 1.04F;
+            default: return 1.32F;
+        }
     }
 }

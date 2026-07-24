@@ -1,6 +1,6 @@
 # WarTech Reforged Controls Guide
 
-This guide applies to the WarTech Reforged `1.4.0` development line with HBM NTM `1.0.27 X5751`. The default Minecraft controls are assumed. If key bindings were changed, use the bound keys instead.
+This guide applies to WarTech Reforged `1.5.0` with HBM NTM `1.0.27 X5751` or HBM NTM Space `X5758 H261`. The default Minecraft controls are assumed. If key bindings were changed, use the bound keys instead.
 
 ## English
 
@@ -61,16 +61,40 @@ The selector stores coordinates, not an entity. For AGM-88, select a point close
 ### MQ-9 Reaper
 
 - **RMB** on the parked MQ-9: open ground control.
-- Load up to six AGM-114, GBU-12, or Mk 82 weapons into the hardpoints, a compatible charged HBM battery into `BAT`, and up to 16 countermeasure packs into `LTC`. A newly placed MQ-9 has `0 HE` and cannot launch without being charged.
+- Load up to six compatible unified aviation weapons into the hardpoints, a compatible charged HBM battery into `BAT`, and up to 16 countermeasure packs into `LTC`. The MQ-9 accepts AGM-114, HJ-10, GBU-12, Mk 82, and JDAM; fighter-only heavy weapons are rejected. A newly placed MQ-9 has `0 HE` and cannot launch without being charged.
 - Set coordinates on an HBM designator, then use **RMB on the MQ-9 while holding it** to append a strike point. Up to six points are retained.
 - Use **Shift+RMB with the designator** to discard the old route and start a new target list with the selected point. `LAST` removes the last queued point; `ALL` clears the complete list.
 - Select a weapon and press `LAUNCH MISSION`, or use **Shift+RMB with an empty hand** on the parked MQ-9.
 - The MQ-9 attacks queued points in order, consuming one available weapon per point, then returns and lands automatically.
 - Maximum mission radius is **2,400 blocks from the recorded takeoff point**. Every queued point must be inside this radius.
-- AGM-114 is the most accurate weapon, GBU-12 retains a small guided dispersion, and unguided Mk 82 has the widest impact spread. Its release point is calculated from current altitude and velocity.
+- AGM-114 has a 95-block release range; HJ-10 extends the light-missile envelope to 145 blocks. GBU-12 releases at 90 blocks, JDAM glides from 245 blocks, and unguided Mk 82 dynamically calculates a 20-66 block release from current altitude and velocity.
 - Flares deploy visibly during the final approach of an interceptor or shortly before a locked Pantsir gun burst. One pack starts a short countermeasure window; decoy probability is 25% against tier 1, 15% against tier 2, and 10% against tier 3. A failed decoy remains visible but does not prevent the hit.
 - A lethally damaged airborne MQ-9 enters a smoking descent, explodes and burns on impact, drops its surviving inventory, and leaves a persistent collidable wreck instead of disappearing.
 - Hold the reusable **WarTech Salvage Wrench** and use **Shift+RMB** on a landed MQ-9 wreck to dismantle and remove it without another explosion.
+
+### F-16C and Su-27 tactical aviation
+
+- **RMB** on a parked aircraft opens the unified aviation mission interface. Load an HBM battery into `BAT`, countermeasures into `LTC`, and weapons into the available hardpoints.
+- The **F-16C** is the faster profile with four hardpoints, a 3,000-block mission radius, lower energy consumption, and lower durability.
+- The **Su-27** is the heavier profile with six hardpoints, a 3,400-block mission radius, more energy reserve, and greater durability.
+- Both fighters accept the complete unified ground-strike catalogue: AGM-114, HJ-10, AGM-65, Kh-29, GBU-12, Mk 82, KAB-500L, and JDAM. The same ammunition items, ranges, guidance, accuracy, blast, and energy costs also apply when a compatible item is used by the MQ-9.
+- Missile release ranges are AGM-114 95, HJ-10 145, AGM-65 285, and Kh-29 410 blocks. Bomb release ranges are GBU-12 90, KAB-500L 155, JDAM 245, and a dynamic 20-66 blocks for Mk 82.
+- Configure up to six points with the HBM designator exactly as on the MQ-9. `LAST`, `ALL`, weapon selection, `LAUNCH MISSION`, **Shift+RMB launch/return**, automatic routing, energy consumption, countermeasures, crash behavior, and salvage-wrench removal all follow the same controls.
+- One loaded weapon is consumed per queued strike point. An F-16 cannot use its two locked slots, and incompatible payloads cannot be inserted through shift-clicking, automation, or the GUI.
+- Load **WT-AAM Skyguard** missiles and press the `STRIKE / INTERCEPT` button to arm fighter-interceptor mode. The parked fighter then waits for a hostile track from a powered radar and a deployed, powered command Ural belonging to the same scoreboard team.
+- In interceptor mode the network patrol radius is **6,500 blocks for F-16C** and **8,000 blocks for Su-27**. Their normal ground-strike mission radii remain 3,000 and 3,400 blocks.
+- After a confirmed track is distributed, the F-16 reacts in about 2.75 seconds and the Su-27 in about 3.25 seconds. It takes off, pursues the moving contact, releases exactly one AAM, and returns automatically. AAMs can engage hostile aircraft, cruise missiles, Kh-555 missiles, Geran drones, and MQ-9 UAVs; ballistic targets remain assigned to ground-based air defense.
+- The fighter and target reservation system prevents several aircraft from immediately spending missiles on the same contact. If the assigned target disappears before release, the fighter aborts and returns instead of firing blindly.
+
+### Tu-95 strategic missile carrier and Kh-555
+
+- **RMB** on the parked Tu-95 opens strategic aviation control. Load up to six **Kh-555** missiles, one compatible charged HBM battery into `BAT`, and up to 16 countermeasure packs into `LTC`.
+- Set coordinates on an HBM designator and use **RMB on the aircraft while holding it** to append up to six targets. **Shift+RMB with the designator** replaces the route; `LAST` and `ALL` remove queued targets.
+- Press `LAUNCH MISSION`, or use **Shift+RMB with an empty hand**. Every target must be 250-8,000 blocks from the recorded airfield.
+- With one target, all six loaded missiles form a timed salvo. With several targets, loaded hardpoints are distributed between them. Every Kh-555 uses the Tier 2 cruise-missile flight model and an independently randomized route.
+- The Tu-95 climbs to its cruise level and releases from a randomized standoff corridor approximately 1,700-1,900 blocks from a distant target. It does not overfly the target. For a closer target it first flies away on the reciprocal heading and releases from a safe cruise distance.
+- Kh-555 also works in the standard WarTech cruise-missile launch tube. Its normal valid range is 250-2,000 blocks.
+- The aircraft returns and lands automatically after release. `RETURN TO BASE` or **Shift+RMB** while airborne aborts the remaining mission. A destroyed aircraft crashes physically and its landed wreck can be removed with **Shift+RMB using the WarTech Salvage Wrench**.
 
 ### AGM-88 HARM
 
@@ -147,6 +171,23 @@ The radar only joins the tracking network while deployed, powered, and operation
 
 The command post does not move while deployed. Its interface reports connected radars, launchers, confirmed tracks, hostile emitters, and active interceptions. It must be deployed and powered to participate fully in the network.
 
+### Automatic HBM air-raid siren
+
+- Place an **Air-Raid Siren Relay** within 96 blocks of a deployed, powered command Ural from the same scoreboard team.
+- Place an HBM siren directly beside the relay, or connect it with ordinary redstone wiring.
+- When the command network has at least one confirmed hostile airborne contact, the relay outputs redstone power level 15. It switches off automatically after the last hostile track is lost.
+- A relay ignores command posts from other teams. Place it after joining the intended scoreboard team so it records the correct ownership.
+
+### Long-range communication mast
+
+- Place a **Long-Range Communication Mast** near each remote radar, command Ural, siren sector, launcher group, or fighter airfield that must join the same network.
+- The structure is **seven blocks tall** and needs six clear blocks above its base. Break and place again any mast created by an older development build so the full tower is generated.
+- Every powered mast forms links up to **2,400 blocks** away. Chains of same-team masts relay confirmed tracks, command links, air-raid alarms, and fighter cueing across a large territory.
+- **RMB with a compatible HBM battery** transfers energy. The mast stores up to 500,000 HE and consumes 20 HE per tick while online.
+- **RMB with an empty hand** reports power, state, range, and the number of reachable relay nodes. **Shift+RMB** enables or disables it.
+- An online mast keeps its local 3x3-chunk sector active. Put the associated radar, Ural, siren relay, or parked fighter in that sector when it must operate without a nearby player.
+- A broken, disabled, or empty mast immediately breaks routes that have no alternate path. Masts record the scoreboard team of the player who placed them and do not bridge hostile networks.
+
 ### Electronic-warfare units
 
 These controls apply to the Synytsia jammer, passive ESM array, and radar decoy.
@@ -185,14 +226,23 @@ Synytsia affects radar tracking within roughly 350 blocks. Passive ESM listens f
 
 ### Scoreboard teams and IFF
 
-New radars, command vehicles, EW units, and seekers record owner/team information when placed. For multiplayer teams, configure the vanilla scoreboard before placing equipment:
+The **WarTech IFF Configurator** in the Support tab is the recommended setup method:
+
+- **RMB** opens the selector. Choose `ALPHA`, `BRAVO`, `CHARLIE`, `DELTA`, or `PERSONAL`.
+- The selected team is stored in persistent player data, mirrored to the vanilla scoreboard, and restored after reconnecting, changing dimensions, or dying.
+- **Shift+RMB on a WarTech vehicle, radar, EW unit, communication mast, or siren relay** rebinds already placed equipment to the player's current IFF team.
+- `!wtteam status`, `!wtteam <name>`, and `!wtteam personal` provide a chat fallback and support custom team names.
+
+Vanilla scoreboard commands remain supported:
 
 ```text
 /scoreboard teams add red
 /scoreboard teams join red PlayerName
 ```
 
-Use different team names for opposing sides. Equipment placed before joining a team may need to be picked up and placed again to receive the intended ownership.
+Use different team names for opposing sides. Equipment placed before joining can now be rebound with the IFF Configurator instead of being dismantled.
+
+Aircraft, UAVs, Geran drones, Kh-555 missiles, mobile/fixed launchers, radars, command vehicles, and their spawned guided weapons pass this team identity through the tracking network. A radar and its launchers ignore tracks carrying the same non-empty team identity; hostile or unowned tracks remain eligible targets. Empty-team equipment remains interoperable for ordinary single-player worlds, but scoreboard teams are required for reliable multiplayer IFF.
 
 ### Quick troubleshooting
 
@@ -280,7 +330,7 @@ Tier-3 long-range tracking is intentionally not instantaneous: the contact must 
 ### MQ-9 Reaper
 
 - **ПКМ** по стоящему MQ-9: открыть наземный пункт управления.
-- Загрузите до шести AGM-114, GBU-12 или Mk 82 в узлы подвески, заряженный совместимый аккумулятор HBM в `BAT` и до 16 кассет ЛТЦ в `LTC`. Новый MQ-9 появляется с `0 HE` и без зарядки не запускается.
+- Загрузите до шести совместимых унифицированных авиационных боеприпасов, заряженный аккумулятор HBM в `BAT` и до 16 кассет ЛТЦ в `LTC`. MQ-9 принимает AGM-114, HJ-10, GBU-12, Mk 82 и JDAM; тяжёлое самолётное вооружение блокируется. Новый MQ-9 появляется с `0 HE` и без зарядки не запускается.
 - Настройте координаты на целеуказателе HBM, затем нажмите **ПКМ по MQ-9 с целеуказателем в руке**, чтобы добавить точку удара. Сохраняется до шести точек.
 - **Shift+ПКМ с целеуказателем** удаляет старый маршрут и начинает новый список с выбранной точки. `LAST` удаляет последнюю точку, а `ALL` полностью очищает очередь.
 - Выберите оружие и нажмите `LAUNCH MISSION` либо используйте **Shift+ПКМ пустой рукой** по стоящему MQ-9.
@@ -289,8 +339,32 @@ Tier-3 long-range tracking is intentionally not instantaneous: the contact must 
 - Получивший смертельный урон MQ-9 не исчезает: он падает с дымом и огнём, взрывается при ударе, выбрасывает уцелевшее содержимое и оставляет физический обломок корпуса.
 - Возьмите многоразовый **демонтажный ключ WarTech** и нажмите **Shift+ПКМ** по лежащему обломку MQ-9, чтобы разобрать и убрать его без повторного взрыва.
 - Максимальный радиус миссии составляет **2 400 блоков от записанной точки взлёта**. Каждая точка очереди должна находиться внутри этого радиуса.
-- AGM-114 имеет максимальную точность, GBU-12 сохраняет небольшую погрешность управляемого боеприпаса, а неуправляемая Mk 82 обладает наибольшим разбросом. Момент её сброса рассчитывается по текущей высоте и скорости.
+- AGM-114 сбрасывается с 95 блоков, HJ-10 расширяет рубеж лёгких ракет до 145 блоков, GBU-12 сбрасывается с 90 блоков, а JDAM планирует с 245 блоков. Для неуправляемой Mk 82 точка сброса динамически рассчитывается в пределах 20-66 блоков по высоте и скорости.
 - ЛТЦ отстреливаются автоматически при приближении противоракеты или очереди Панциря. Одна кассета создаёт короткое окно помех; шанс отвода равен 25% для Т1, 15% для Т2 и 10% для Т3.
+
+### Тактическая авиация F-16C и Су-27
+
+- **ПКМ** по стоящему самолёту открывает унифицированный авиационный интерфейс. Установите аккумулятор HBM в `BAT`, ЛТЦ в `LTC` и боеприпасы в доступные узлы подвески.
+- **F-16C** быстрее, имеет четыре узла подвески, радиус миссии 3 000 блоков, меньший расход энергии и меньшую прочность.
+- **Су-27** тяжелее, имеет шесть узлов подвески, радиус миссии 3 400 блоков, больший запас энергии и повышенную прочность.
+- Оба самолёта принимают полный унифицированный набор: AGM-114, HJ-10, AGM-65, Х-29, GBU-12, Mk 82, КАБ-500Л и JDAM. Для совместимого носителя используются те же предметы, дальности, наведение, точность, мощность и расход энергии, что и у MQ-9.
+- Рубежи ракет: AGM-114 95, HJ-10 145, AGM-65 285 и Х-29 410 блоков. Рубежи бомб: GBU-12 90, КАБ-500Л 155, JDAM 245 и динамические 20-66 блоков у Mk 82.
+- До шести целей задаются целеуказателем HBM так же, как для MQ-9. Кнопки `LAST`, `ALL`, выбор оружия, `LAUNCH MISSION`, **Shift+ПКМ для запуска/возврата**, автоматические маршруты, расход энергии, ЛТЦ, падение и демонтаж ключом работают одинаково.
+- На каждую точку расходуется один боеприпас. Два заблокированных слота F-16 нельзя использовать, а несовместимое оружие нельзя вставить через интерфейс, Shift-клик или автоматизацию.
+- Загрузите ракеты **WT-AAM Skyguard** и нажмите кнопку `STRIKE / INTERCEPT`, чтобы включить режим истребителя-перехватчика. Стоящий самолёт будет ждать вражескую трассу от запитанной РЛС и развёрнутого запитанного командного Урала своей scoreboard-команды.
+- В режиме перехватчика сетевой радиус дежурства составляет **6 500 блоков для F-16C** и **8 000 блоков для Су-27**. Обычная дальность ударных миссий остаётся прежней: 3 000 и 3 400 блоков.
+- После подтверждения трассы F-16 реагирует примерно за 2,75 секунды, Су-27 — примерно за 3,25 секунды. Самолёт взлетает, преследует движущуюся цель, выпускает ровно одну AAM и автоматически возвращается. Перехватываются вражеские самолёты, крылатые ракеты, Х-555, «Герани» и MQ-9; баллистические цели остаются задачей наземного ПВО.
+- Резервирование цели не позволяет нескольким истребителям немедленно потратить ракеты на один контакт. Если цель исчезла до пуска, самолёт прекращает вылет и возвращается без выстрела.
+
+### Стратегический ракетоносец Ту-95 и Х-555
+
+- **ПКМ** по стоящему Ту-95 открывает управление стратегической авиацией. Загрузите до шести ракет **Х-555**, заряженный совместимый аккумулятор HBM в `BAT` и до 16 кассет ЛТЦ в `LTC`.
+- Задайте координаты целеуказателем HBM и нажмите **ПКМ по самолёту с целеуказателем в руке**, чтобы добавить до шести целей. **Shift+ПКМ с целеуказателем** заменяет маршрут; `LAST` и `ALL` удаляют точки из очереди.
+- Нажмите `LAUNCH MISSION` либо **Shift+ПКМ пустой рукой**. Каждая цель должна находиться в 250-8 000 блоках от записанного аэродрома.
+- При одной цели все шесть загруженных ракет образуют последовательный залп. При нескольких целях узлы подвески распределяются между ними. Каждая Х-555 использует модель полёта крылатой ракеты Tier 2 и отдельный случайный маршрут.
+- Ту-95 набирает эшелон и выполняет пуск из случайного коридора примерно в 1 700-1 900 блоках от дальней цели, не пролетая над ней. Для близкой цели самолёт сначала уходит от неё обратным курсом и запускает ракету с безопасной дистанции.
+- Х-555 также совместима со стандартным контейнером запуска крылатых ракет WarTech. Обычная допустимая дальность составляет 250-2 000 блоков.
+- После залпа самолёт автоматически возвращается и садится. `RETURN TO BASE` или **Shift+ПКМ** в полёте отменяет оставшуюся часть задания. Сбитый самолёт физически падает, а лежащий остов удаляется **Shift+ПКМ демонтажным ключом WarTech**.
 
 ### AGM-88 HARM
 
@@ -367,6 +441,23 @@ Tier-3 long-range tracking is intentionally not instantaneous: the contact must 
 
 Развёрнутый командный пункт не двигается. Интерфейс показывает подключённые РЛС и пусковые, подтверждённые цели, вражеские излучатели и активные перехваты. Для полноценной работы в сети машина должна быть развёрнута и запитана.
 
+### Автоматическая воздушная тревога через сирену HBM
+
+- Поставьте **реле сирены воздушной тревоги** не дальше 96 блоков от развёрнутого и запитанного командного Урала той же scoreboard-команды.
+- Поставьте сирену HBM вплотную к реле либо соедините её обычной цепью красного камня.
+- Пока командная сеть сопровождает хотя бы одну подтверждённую вражескую воздушную цель, реле выдаёт сигнал красного камня силой 15. После потери последней трассы сигнал отключается автоматически.
+- Реле игнорирует командные пункты других команд. Устанавливайте его после вступления в нужную scoreboard-команду.
+
+### Мачта дальней связи
+
+- Устанавливайте **мачту дальней связи** рядом с удалённой РЛС, командным Уралом, сектором сирен, группой пусковых или аэродромом истребителей, который должен войти в общую сеть.
+- Конструкция имеет высоту **семь блоков** и требует шесть свободных блоков над основанием. Мачту из старой тестовой сборки нужно сломать и установить заново, чтобы появилась полная конструкция.
+- Каждая запитанная мачта связывается с узлами на расстоянии до **2 400 блоков**. Цепочка мачт одной scoreboard-команды передаёт подтверждённые трассы, командные связи, воздушную тревогу и целеуказание истребителям по большой территории.
+- **ПКМ с совместимым аккумулятором HBM** передаёт энергию. Мачта хранит до 500 000 HE и расходует 20 HE за тик во включённом состоянии.
+- **ПКМ пустой рукой** показывает заряд, состояние, радиус и число доступных ретрансляторов. **Shift+ПКМ** включает или выключает мачту.
+- Включённая мачта удерживает загруженным локальный сектор 3x3 чанка. Размещайте обслуживаемую РЛС, КШМ, реле сирены или дежурный самолёт в этом секторе, если они должны работать без игрока поблизости.
+- Разрушенная, выключенная или разряженная мачта немедленно обрывает маршрут, если нет запасного пути. Мачта запоминает scoreboard-команду установившего её игрока и не соединяет вражеские сети.
+
 ### Средства радиоэлектронной борьбы
 
 Управление относится к станции «Синица», пассивной ESM и ложному радиолокационному излучателю.
@@ -405,14 +496,23 @@ Tier-3 long-range tracking is intentionally not instantaneous: the contact must 
 
 ### Команды scoreboard и система «свой-чужой»
 
-Новые РЛС, командные машины, средства РЭБ и головки наведения сохраняют владельца и команду при установке. В сетевой игре создайте команды до размещения техники:
+Рекомендуемый способ настройки — **IFF-конфигуратор WarTech** во вкладке поддержки:
+
+- **ПКМ** открывает меню выбора `ALPHA`, `BRAVO`, `CHARLIE`, `DELTA` или `PERSONAL`.
+- Команда сохраняется в постоянных данных игрока, дублируется в vanilla scoreboard и восстанавливается после перезахода, смены измерения или смерти.
+- **Shift+ПКМ по машине WarTech, РЛС, РЭБ, мачте связи или реле сирены** перепривязывает уже установленный объект к текущей IFF-команде игрока.
+- `!wtteam status`, `!wtteam <название>` и `!wtteam personal` остаются текстовым вариантом и позволяют использовать произвольные названия.
+
+Обычные команды vanilla scoreboard также поддерживаются:
 
 ```text
 /scoreboard teams add red
 /scoreboard teams join red PlayerName
 ```
 
-Для противоборствующих сторон используйте разные названия команд. Технику, установленную до вступления в команду, может потребоваться подобрать и поставить заново.
+Для противоборствующих сторон используйте разные названия команд. Ранее установленную технику теперь можно перепривязать IFF-конфигуратором без демонтажа.
+
+Самолёты, БПЛА, «Герани», Х-555, мобильные и стационарные пусковые, РЛС, командные машины и создаваемое ими управляемое оружие передают эту принадлежность по сети сопровождения. РЛС и пусковые игнорируют трассы с той же непустой командой; чужие цели и цели без владельца остаются допустимыми. В одиночной игре техника без команды продолжает взаимодействовать, но для надёжного сетевого «свой-чужой» scoreboard-команды обязательны.
 
 ### Быстрая диагностика
 

@@ -8,9 +8,15 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.util.StatCollector;
 
 public final class ItemMq9Payload extends Item {
-    public static final int HELLFIRE = 0;
-    public static final int GBU12 = 1;
-    public static final int MK82 = 2;
+    public static final int HELLFIRE = AviationOrdnance.HELLFIRE;
+    public static final int GBU12 = AviationOrdnance.GBU12;
+    public static final int MK82 = AviationOrdnance.MK82;
+    public static final int HJ10 = AviationOrdnance.HJ10;
+    public static final int AGM65 = AviationOrdnance.AGM65;
+    public static final int KH29 = AviationOrdnance.KH29;
+    public static final int KAB500L = AviationOrdnance.KAB500L;
+    public static final int JDAM = AviationOrdnance.JDAM;
+    public static final int AAM = AviationOrdnance.AAM;
 
     public ItemMq9Payload() {
         func_77655_b("MQ9Payload");
@@ -20,21 +26,14 @@ public final class ItemMq9Payload extends Item {
 
     @Override
     public String func_77667_c(ItemStack stack) {
-        switch (stack.func_77960_j()) {
-            case GBU12:
-                return "item.MQ9GBU12";
-            case MK82:
-                return "item.MQ9Mk82";
-            default:
-                return "item.MQ9Hellfire";
-        }
+        return AviationOrdnance.getTranslationKey(stack.func_77960_j());
     }
 
     @Override
     public void func_150895_a(Item item, CreativeTabs tab, List list) {
-        list.add(new ItemStack(item, 1, HELLFIRE));
-        list.add(new ItemStack(item, 1, GBU12));
-        list.add(new ItemStack(item, 1, MK82));
+        for (int type = HELLFIRE; type <= AviationOrdnance.MAX_TYPE; ++type) {
+            list.add(new ItemStack(item, 1, type));
+        }
     }
 
     @Override
@@ -43,17 +42,20 @@ public final class ItemMq9Payload extends Item {
         String key = func_77667_c(stack);
         lines.add(StatCollector.func_74838_a(key + ".role"));
         lines.add(StatCollector.func_74838_a(key + ".details"));
+        int type = stack.func_77960_j();
+        lines.add("Release: " + AviationOrdnance.getRangeBand(type) + " / "
+                + (int) AviationOrdnance.getNominalReleaseRange(type) + " blocks");
+        String carriers = AviationOrdnance.isCompatible(type,
+                AviationOrdnance.CARRIER_MQ9) ? "MQ-9, F-16, Su-27" : "F-16, Su-27";
+        lines.add("Compatible: " + carriers);
     }
 
     public static String getPayloadName(int type) {
-        return type == GBU12 ? "GBU-12 PAVEWAY II"
-                : type == MK82 ? "MK 82 GENERAL-PURPOSE BOMB" : "AGM-114 HELLFIRE";
+        return AviationOrdnance.getName(type);
     }
 
     public static String getPayloadStatus(int type) {
-        String key = type == GBU12 ? "item.MQ9GBU12.status"
-                : type == MK82 ? "item.MQ9Mk82.status"
-                : "item.MQ9Hellfire.status";
-        return StatCollector.func_74838_a(key);
+        return StatCollector.func_74838_a(
+                AviationOrdnance.getTranslationKey(type) + ".status");
     }
 }

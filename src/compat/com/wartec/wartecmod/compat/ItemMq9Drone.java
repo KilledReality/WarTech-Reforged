@@ -32,6 +32,7 @@ public final class ItemMq9Drone extends Item {
         EntityMq9Drone drone = new EntityMq9Drone(world);
         float yaw = Math.round(player.field_70177_z / 90.0F) * 90.0F;
         drone.func_70012_b(x + 0.5D, y + 1.05D, z + 0.5D, yaw, 0.0F);
+        drone.setOwnerTeam(NetworkTeamHelper.getPlayerTeam(player));
         drone.initializeHome();
         if (!world.func_72838_d(drone)) {
             return false;

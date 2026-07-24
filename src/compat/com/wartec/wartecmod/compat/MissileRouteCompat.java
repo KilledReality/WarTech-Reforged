@@ -11,8 +11,9 @@ import net.minecraft.world.World;
 
 /** Assigns nearby salvo launches separate curved corridors that reconverge on the target. */
 public final class MissileRouteCompat {
-    private static final double LANE_SPACING = 18.0D;
-    private static final double ARRIVAL_MERGE_DISTANCE = 20.0D;
+    private static final double LANE_SPACING = 22.0D;
+    private static final double ARRIVAL_MERGE_DISTANCE = 96.0D;
+    private static final double TERMINAL_DIRECT_DISTANCE = 110.0D;
     private static final long GROUP_WINDOW = 200L;
     private static final Map<Entity, RouteState> ROUTES = new WeakHashMap<Entity, RouteState>();
     private static final Map<World, Map<RouteKey, GroupState>> GROUPS =
@@ -62,7 +63,7 @@ public final class MissileRouteCompat {
         double fromStartZ = missile.field_70161_v - (startZ + 0.5D);
         double progress = clamp((fromStartX * routeX + fromStartZ * routeZ) / lengthSquared,
                 0.0D, 1.0D);
-        double lookahead = clamp(speed * 12.0D, 14.0D, 48.0D);
+        double lookahead = clamp(speed * 16.0D, 24.0D, 72.0D);
         double aimProgress = Math.min(1.0D, progress + lookahead / length);
         double remaining = length * (1.0D - aimProgress);
         double departure = smoothStep(clamp(missile.field_70173_aa / 12.0D, 0.0D, 1.0D));
@@ -71,11 +72,19 @@ public final class MissileRouteCompat {
 
         double normalX = -routeZ / length;
         double normalZ = routeX / length;
-        double lateralOffset = route.sampleLateral(aimProgress, length) * separation;
+        double targetDx = targetX + 0.5D - missile.field_70165_t;
+        double targetDz = targetZ + 0.5D - missile.field_70161_v;
+        double targetDistance = Math.sqrt(targetDx * targetDx + targetDz * targetDz);
+        double lateralOffset = targetDistance <= TERMINAL_DIRECT_DISTANCE
+                ? 0.0D : route.sampleLateral(aimProgress) * separation;
         double aimX = startX + 0.5D + routeX * aimProgress
                 + normalX * lateralOffset;
         double aimZ = startZ + 0.5D + routeZ * aimProgress
                 + normalZ * lateralOffset;
+        if (targetDistance <= TERMINAL_DIRECT_DISTANCE) {
+            aimX = targetX + 0.5D;
+            aimZ = targetZ + 0.5D;
+        }
         double directionX = aimX - missile.field_70165_t;
         double directionZ = aimZ - missile.field_70161_v;
         double directionLength = Math.sqrt(directionX * directionX + directionZ * directionZ);
@@ -141,25 +150,21 @@ public final class MissileRouteCompat {
             int magnitude = ordinal == 0 ? 0 : (ordinal + 1) / 2;
             int sign = ordinal == 0 ? 0 : (ordinal & 1) == 1 ? 1 : -1;
             int lane = Math.max(-3, Math.min(3, magnitude * sign));
-            double routeX = targetX - startX;
-            double routeZ = targetZ - startZ;
-            double routeLength = Math.sqrt(routeX * routeX + routeZ * routeZ);
-            int pointCount = Math.max(6, Math.min(18, (int) Math.ceil(routeLength / 55.0D) + 1));
-            double[] lateralPoints = new double[pointCount];
-            double[] altitudePoints = new double[pointCount];
-            double laneCenter = lane * LANE_SPACING;
-            double altitudeCenter = ordinal == 0 ? 0.0D : 2.5D + (ordinal % 3) * 2.0D;
-            for (int index = 1; index < pointCount - 1; ++index) {
-                lateralPoints[index] = laneCenter
-                        + (world.field_73012_v.nextDouble() - 0.5D) * 20.0D;
-                altitudePoints[index] = Math.max(0.0D, altitudeCenter
-                        + (world.field_73012_v.nextDouble() - 0.35D) * 4.0D);
+            double laneCenter;
+            if (ordinal == 0) {
+                laneCenter = (world.field_73012_v.nextBoolean() ? 1.0D : -1.0D)
+                        * (7.0D + world.field_73012_v.nextDouble() * 7.0D);
+            } else {
+                laneCenter = lane * LANE_SPACING
+                        + (world.field_73012_v.nextDouble() - 0.5D) * 6.0D;
             }
-            double weaveAmplitude = 2.5D + world.field_73012_v.nextDouble() * 3.5D;
-            double weaveLength = 28.0D + world.field_73012_v.nextDouble() * 34.0D;
-            double weavePhase = world.field_73012_v.nextDouble() * Math.PI * 2.0D;
+            double lateralSkew = (world.field_73012_v.nextDouble() - 0.5D) * 0.36D;
+            double altitudeCenter = ordinal == 0
+                    ? 1.0D + world.field_73012_v.nextDouble() * 2.0D
+                    : 3.0D + (ordinal % 3) * 1.75D;
+            double altitudeSkew = (world.field_73012_v.nextDouble() - 0.5D) * 0.24D;
             return new RouteState(startX, startZ, targetX, targetZ,
-                    lateralPoints, altitudePoints, weaveAmplitude, weaveLength, weavePhase);
+                    laneCenter, lateralSkew, altitudeCenter, altitudeSkew);
         }
     }
 
@@ -222,24 +227,22 @@ public final class MissileRouteCompat {
         final int startZ;
         final int targetX;
         final int targetZ;
-        final double[] lateralPoints;
-        final double[] altitudePoints;
-        final double weaveAmplitude;
-        final double weaveLength;
-        final double weavePhase;
+        final double lateralAmplitude;
+        final double lateralSkew;
+        final double altitudeAmplitude;
+        final double altitudeSkew;
 
         RouteState(int startX, int startZ, int targetX, int targetZ,
-                double[] lateralPoints, double[] altitudePoints,
-                double weaveAmplitude, double weaveLength, double weavePhase) {
+                double lateralAmplitude, double lateralSkew,
+                double altitudeAmplitude, double altitudeSkew) {
             this.startX = startX;
             this.startZ = startZ;
             this.targetX = targetX;
             this.targetZ = targetZ;
-            this.lateralPoints = lateralPoints;
-            this.altitudePoints = altitudePoints;
-            this.weaveAmplitude = weaveAmplitude;
-            this.weaveLength = weaveLength;
-            this.weavePhase = weavePhase;
+            this.lateralAmplitude = lateralAmplitude;
+            this.lateralSkew = lateralSkew;
+            this.altitudeAmplitude = altitudeAmplitude;
+            this.altitudeSkew = altitudeSkew;
         }
 
         boolean matches(int startX, int startZ, int targetX, int targetZ) {
@@ -247,22 +250,18 @@ public final class MissileRouteCompat {
                     && this.targetX == targetX && this.targetZ == targetZ;
         }
 
-        double sampleLateral(double progress, double routeLength) {
-            double control = sample(lateralPoints, progress);
-            double weave = Math.sin(progress * routeLength / weaveLength * Math.PI * 2.0D
-                    + weavePhase) * weaveAmplitude;
-            return control + weave;
+        double sampleLateral(double progress) {
+            return sampleArc(progress, lateralAmplitude, lateralSkew);
         }
 
         double sampleAltitude(double progress) {
-            return sample(altitudePoints, progress);
+            return Math.max(0.0D, sampleArc(progress, altitudeAmplitude, altitudeSkew));
         }
 
-        private static double sample(double[] points, double progress) {
-            double position = clamp(progress, 0.0D, 1.0D) * (points.length - 1);
-            int index = Math.min(points.length - 2, (int) Math.floor(position));
-            double blend = smoothStep(position - index);
-            return points[index] * (1.0D - blend) + points[index + 1] * blend;
+        private static double sampleArc(double progress, double amplitude, double skew) {
+            double normalized = clamp(progress, 0.0D, 1.0D);
+            double envelope = Math.sin(Math.PI * normalized);
+            return amplitude * envelope * (1.0D + skew * (normalized * 2.0D - 1.0D));
         }
     }
 

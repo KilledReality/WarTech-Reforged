@@ -21,7 +21,7 @@ public final class PatriotContent {
                 .func_149663_c("PatriotLauncher")
                 .func_149711_c(5.0F)
                 .func_149752_b(10.0F)
-                .func_149647_a(wartecmod.tabwartecmodcruisemissiles)
+                .func_149647_a(ReforgedCreativeTabs.AIR_DEFENSE)
                 .func_149658_d("wartecmod:VlsExhaust");
         GameRegistry.registerBlock(patriotLauncher, "PatriotLauncher");
         GameRegistry.registerTileEntity(TileEntityPatriotLauncher.class, "wartecPatriotLauncher");
@@ -30,7 +30,7 @@ public final class PatriotContent {
                 .func_149663_c("S400Launcher")
                 .func_149711_c(5.0F)
                 .func_149752_b(10.0F)
-                .func_149647_a(wartecmod.tabwartecmodcruisemissiles)
+                .func_149647_a(ReforgedCreativeTabs.AIR_DEFENSE)
                 .func_149658_d("wartecmod:VlsExhaust");
         GameRegistry.registerBlock(s400Launcher, "S400Launcher");
         GameRegistry.registerTileEntity(TileEntityS400Launcher.class, "wartecS400Launcher");

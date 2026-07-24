@@ -8,7 +8,7 @@ import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.AxisAlignedBB;
 import net.minecraft.world.chunk.Chunk;
 
-public class World {
+public class World implements IBlockAccess {
     public boolean field_72995_K;
     public List field_72996_f;
     public List field_73010_i;

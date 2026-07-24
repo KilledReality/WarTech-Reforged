@@ -9,12 +9,15 @@ import net.minecraft.util.DamageSource;
 import net.minecraft.util.AxisAlignedBB;
 
 public class Entity {
+    private static int NEXT_STUB_ID = 1;
+    private final int stubId = NEXT_STUB_ID++;
     public World field_70170_p;
     public double field_70165_t, field_70163_u, field_70161_v;
     public double field_70159_w, field_70181_x, field_70179_y;
     public double field_70169_q, field_70167_r, field_70166_s;
     public float field_70177_z, field_70125_A, field_70126_B, field_70127_C;
     public float field_70138_W;
+    public float field_70131_O = 1.0F;
     public boolean field_70128_L;
     public boolean field_70122_E, field_70123_F, field_70156_m;
     public int field_70173_aa;
@@ -22,6 +25,7 @@ public class Entity {
     public Entity field_70153_n, field_70154_o;
     public final AxisAlignedBB field_70121_D = AxisAlignedBB.func_72330_a(0, 0, 0, 0, 0, 0);
     public DataWatcher field_70180_af;
+    private final NBTTagCompound stubEntityData = new NBTTagCompound();
 
     public Entity(World world) {
         field_70170_p = world;
@@ -51,12 +55,19 @@ public class Entity {
     public void func_70091_d(double x, double y, double z) {}
     public void func_70043_V() {}
     public double func_70042_X() { return 0; }
+    public double func_70092_e(double x, double y, double z) {
+        double dx = field_70165_t - x;
+        double dy = field_70163_u - y;
+        double dz = field_70161_v - z;
+        return dx * dx + dy * dy + dz * dz;
+    }
     public double func_70033_W() { return 0; }
     public boolean func_70067_L() { return false; }
     public boolean func_70097_a(DamageSource source, float amount) { return false; }
     public boolean func_130002_c(EntityPlayer player) { return false; }
     public void func_70078_a(Entity entity) {}
     public EntityItem func_70099_a(ItemStack stack, float offset) { return null; }
-    public int func_145782_y() { return 0; }
+    public int func_145782_y() { return stubId; }
     public boolean func_70112_a(double distance) { return true; }
+    public NBTTagCompound getEntityData() { return stubEntityData; }
 }

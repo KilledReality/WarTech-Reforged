@@ -896,6 +896,28 @@ public final class EntityMobileArtillery extends Entity implements IGUIProvider 
                 field_70161_v, 5.0F, true, true);
     }
 
+    public void dismantleForRecovery(boolean dropItems) {
+        if (field_70128_L) return;
+        if (mobileTurret != null && dropItems) {
+            for (int i = 0; i < mobileTurret.func_70302_i_(); ++i) {
+                ItemStack stack = mobileTurret.func_70304_b(i);
+                if (stack != null) func_70099_a(stack, 0.6F);
+            }
+        }
+        detachMobileTurret(false);
+        if (isDeployed() && proxyY > -2048
+                && field_70170_p.func_147439_a(proxyX, proxyY, proxyZ)
+                == MobileArtilleryContent.mobileTurretProxy) {
+            field_70170_p.func_147468_f(proxyX, proxyY, proxyZ);
+        }
+        mobileTurretData = null;
+        if (dropItems) {
+            func_70099_a(new ItemStack(MobileArtilleryContent.mobileArtillery,
+                    1, getMount()), 0.6F);
+        }
+        func_70106_y();
+    }
+
     @Override
     protected void func_70014_b(NBTTagCompound tag) {
         tag.func_74768_a("Mount", getMount());

@@ -1,6 +1,5 @@
 package com.wartec.wartecmod.compat;
 
-import com.hbm.saveddata.satellites.Satellite;
 import com.wartec.wartecmod.entity.missile.EntityKineticRod;
 import com.wartec.wartecmod.savedata.satellites.SatelliteKinetic;
 import com.wartec.wartecmod.wartecmod;
@@ -21,7 +20,7 @@ public final class OrbitalStrikeContent {
             return;
         }
         kineticSatellite = new ItemKineticSatellite()
-                .func_77637_a(wartecmod.tabwartecmodcruisemissiles)
+                .func_77637_a(ReforgedCreativeTabs.SUPPORT)
                 .func_111206_d("hbm:sat_laser");
         GameRegistry.registerItem(kineticSatellite, "KineticBombardmentSatellite");
         EntityRegistry.registerModEntity(EntityKineticRod.class, "entity_Kinetic_Rod", 39,
@@ -36,7 +35,7 @@ public final class OrbitalStrikeContent {
         if (kineticSatellite == null) {
             register();
         }
-        Satellite.registerSatellite(SatelliteKinetic.class, kineticSatellite);
+        HbmSatelliteCompat.register(SatelliteKinetic.class, kineticSatellite);
         satelliteTypeRegistered = true;
     }
 }

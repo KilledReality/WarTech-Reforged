@@ -5,9 +5,11 @@ import api.hbm.entity.IRadarDetectable.RadarTargetType;
 import api.hbm.entity.IRadarDetectableNT;
 import api.hbm.item.IDesignatorItem;
 import com.wartec.wartecmod.compat.DroneStrikeContent;
+import com.wartec.wartecmod.compat.AviationOrdnance;
 import com.wartec.wartecmod.compat.ItemMq9Payload;
 import com.wartec.wartecmod.compat.MissileChunkLoader;
 import com.wartec.wartecmod.compat.MissileTrackingService;
+import com.wartec.wartecmod.compat.ITeamOwned;
 import com.wartec.wartecmod.compat.RadarGuiHandler;
 import com.wartec.wartecmod.compat.VehicleEnergyHelper;
 import com.wartec.wartecmod.compat.WarTecBootstrap;
@@ -25,8 +27,8 @@ import net.minecraft.init.Blocks;
 import net.minecraft.world.World;
 import net.minecraft.world.WorldServer;
 
-public final class EntityMq9Drone extends Entity
-        implements IInventory, IRadarDetectable, IRadarDetectableNT {
+public class EntityMq9Drone extends Entity
+        implements IInventory, IRadarDetectable, IRadarDetectableNT, ITeamOwned {
     public static final int STATE_READY = 0;
     public static final int STATE_TAKEOFF = 1;
     public static final int STATE_OUTBOUND = 2;
@@ -59,7 +61,7 @@ public final class EntityMq9Drone extends Entity
     private static final int DW_TARGET_QUEUE = 27;
     private static final int FLAG_TARGET_VALID = 1;
 
-    private final ItemStack[] inventory = new ItemStack[INVENTORY_SIZE];
+    protected final ItemStack[] inventory = new ItemStack[INVENTORY_SIZE];
     public int startX;
     public int startZ;
     public int targetX;
@@ -85,6 +87,7 @@ public final class EntityMq9Drone extends Entity
     private int targetIndex;
     private int flareCooldown;
     private int flareActiveTicks;
+    private String ownerTeam = "";
     private boolean wreckLanded;
     private boolean crashInventoryDropped;
     private double clientTargetX;
@@ -127,11 +130,16 @@ public final class EntityMq9Drone extends Entity
         homeInitialized = true;
     }
 
+    @Override public String getOwnerTeam() { return ownerTeam; }
+    @Override public void setOwnerTeam(String team) {
+        ownerTeam = team == null ? "" : team;
+    }
+
     public int getState() {
         return field_70180_af.func_75683_a(DW_STATE);
     }
 
-    private void setState(int state) {
+    protected void setState(int state) {
         if (getState() != state) {
             stateTicks = 0;
         }
@@ -152,7 +160,7 @@ public final class EntityMq9Drone extends Entity
 
     public void setPower(int power) {
         field_70180_af.func_75692_b(DW_POWER, Integer.valueOf(Math.max(0,
-                Math.min(ENERGY_CAPACITY, power))));
+                Math.min(getEnergyCapacity(), power))));
     }
 
     public boolean hasTarget() {
@@ -163,6 +171,10 @@ public final class EntityMq9Drone extends Entity
     public int getTargetY() { return field_70180_af.func_75679_c(DW_TARGET_Y); }
     public int getTargetZ() { return field_70180_af.func_75679_c(DW_TARGET_Z); }
     public int getSelectedPayload() { return field_70180_af.func_75683_a(DW_SELECTED); }
+    protected void setSelectedPayload(int payload) {
+        field_70180_af.func_75692_b(DW_SELECTED,
+                Byte.valueOf((byte) payload));
+    }
     public int getPayloadMask() { return field_70180_af.func_75679_c(DW_PAYLOAD_MASK); }
     public int getTargetCount() { return field_70180_af.func_75679_c(DW_TARGET_QUEUE) & 15; }
     public int getTargetIndex() { return field_70180_af.func_75679_c(DW_TARGET_QUEUE) >>> 4 & 15; }
@@ -174,7 +186,7 @@ public final class EntityMq9Drone extends Entity
 
     public int getPayloadAt(int slot) {
         if (slot < 0 || slot >= 6) return -1;
-        int encoded = getPayloadMask() >>> (slot * 2) & 3;
+        int encoded = getPayloadMask() >>> (slot * 4) & 15;
         return encoded == 0 ? -1 : encoded - 1;
     }
 
@@ -220,7 +232,7 @@ public final class EntityMq9Drone extends Entity
             return;
         }
         int charged = VehicleEnergyHelper.chargeFromStack(inventory[BATTERY_SLOT],
-                getPower(), ENERGY_CAPACITY);
+                getPower(), getEnergyCapacity());
         if (charged != getPower()) setPower(charged);
         if (!isFlying()) {
             field_70159_w = field_70181_x = field_70179_y = 0.0D;
@@ -228,11 +240,11 @@ public final class EntityMq9Drone extends Entity
         }
         stateTicks++;
         MissileChunkLoader.track(this);
-        if (getPower() < ENERGY_PER_TICK) {
+        if (getPower() < getEnergyPerTick()) {
             crashTick();
             return;
         }
-        setPower(getPower() - ENERGY_PER_TICK);
+        setPower(getPower() - getEnergyPerTick());
         switch (getState()) {
             case STATE_TAKEOFF:
                 tickTakeoff();
@@ -261,11 +273,22 @@ public final class EntityMq9Drone extends Entity
         double yaw = Math.toRadians(homeYaw);
         double forwardX = -Math.sin(yaw);
         double forwardZ = Math.cos(yaw);
-        double desiredSpeed = Math.min(0.58D, 0.12D + stateTicks * 0.012D);
+        double desiredSpeed = Math.min(getTakeoffSpeed(),
+                0.12D + stateTicks * getTakeoffAcceleration());
         field_70159_w = blend(field_70159_w, forwardX * desiredSpeed, 0.12D);
         field_70179_y = blend(field_70179_y, forwardZ * desiredSpeed, 0.12D);
-        field_70181_x = stateTicks < 18 ? 0.02D : 0.22D;
-        if (field_70163_u >= homeY + 24.0D || stateTicks > 110) {
+        int rollTicks = getTakeoffRollTicks();
+        if (stateTicks <= rollTicks) {
+            field_70181_x = blend(field_70181_x, 0.0D, 0.45D);
+        } else {
+            double rotation = clamp((stateTicks - rollTicks)
+                    / (double) Math.max(1, getTakeoffRotationTicks()), 0.0D, 1.0D);
+            double smoothRotation = rotation * rotation * (3.0D - 2.0D * rotation);
+            field_70181_x = blend(field_70181_x,
+                    getTakeoffClimbSpeed() * smoothRotation, 0.28D);
+        }
+        if (field_70163_u >= homeY + getTakeoffAltitude()
+                || stateTicks > getTakeoffTimeoutTicks()) {
             setState(STATE_OUTBOUND);
         }
     }
@@ -285,27 +308,23 @@ public final class EntityMq9Drone extends Entity
                 targetX + 0.5D, targetZ + 0.5D,
                 field_70165_t, field_70161_v, routeLateral, routeWave);
         int terrain = field_70170_p.func_72976_f(floor(aim[0]), floor(aim[1]));
-        double desiredY = Math.max(homeY + 36.0D, terrain + 30.0D);
-        if (payload != ItemMq9Payload.HELLFIRE && distance < 160.0D) {
+        double desiredY = Math.max(homeY + getCruiseHeight(),
+                terrain + getTerrainClearance());
+        if (!AviationOrdnance.isPowered(payload) && distance < 260.0D) {
             desiredY = Math.max(desiredY, getTargetY() + 42.0D);
         }
-        guideTo(aim[0], desiredY, aim[1], CRUISE_SPEED, 0.075D, 0.22D);
+        guideTo(aim[0], desiredY, aim[1], getCruiseSpeed(), 0.075D, 0.22D);
     }
 
     private double getReleaseRange(int payload) {
-        if (payload == ItemMq9Payload.HELLFIRE) return 82.0D;
-        if (payload == ItemMq9Payload.GBU12) return 62.0D;
         double altitude = Math.max(2.0D, field_70163_u - (getTargetY() + 1.0D));
-        double vertical = field_70181_x;
-        double gravity = 0.045D;
-        double fallTicks = (vertical + Math.sqrt(vertical * vertical
-                + 2.0D * gravity * altitude)) / gravity;
         double horizontalSpeed = Math.sqrt(field_70159_w * field_70159_w
                 + field_70179_y * field_70179_y);
-        return clamp(horizontalSpeed * fallTicks * 0.96D, 20.0D, 62.0D);
+        return AviationOrdnance.calculateReleaseRange(payload, altitude,
+                field_70181_x, horizontalSpeed);
     }
 
-    private void releaseWeapon(int payload) {
+    protected void releaseWeapon(int payload) {
         int slot = findPayloadSlot(payload);
         if (slot < 0 || weaponReleased) {
             setState(STATE_RETURN);
@@ -314,27 +333,31 @@ public final class EntityMq9Drone extends Entity
         weaponReleased = true;
         EntityMq9Munition munition = new EntityMq9Munition(field_70170_p, payload,
                 getTargetX(), getTargetY(), getTargetZ());
-        double side = (slot & 1) == 0 ? -1.1D : 1.1D;
+        double side = getHardpointOffset(slot);
+        double forward = getHardpointForwardOffset(slot);
         double yaw = Math.toRadians(field_70177_z);
         double rightX = Math.cos(yaw);
         double rightZ = Math.sin(yaw);
-        munition.func_70012_b(field_70165_t + rightX * side,
-                field_70163_u - 0.35D,
-                field_70161_v + rightZ * side,
+        double forwardX = -Math.sin(yaw);
+        double forwardZ = Math.cos(yaw);
+        munition.func_70012_b(field_70165_t + rightX * side + forwardX * forward,
+                field_70163_u + getWeaponReleaseYOffset(slot),
+                field_70161_v + rightZ * side + forwardZ * forward,
                 field_70177_z, field_70125_A);
         munition.setLaunchMotion(field_70159_w, field_70181_x, field_70179_y);
         field_70170_p.func_72838_d(munition);
+        munition.setOwnerTeam(ownerTeam);
         MissileTrackingService.registerLaunch(munition, field_70165_t,
-                field_70163_u, field_70161_v, targetX, targetZ);
+                field_70163_u, field_70161_v, targetX, targetZ, ownerTeam);
         inventory[slot].field_77994_a--;
         if (inventory[slot].field_77994_a <= 0) inventory[slot] = null;
         updatePayloadWatcher();
-        setPower(Math.max(0, getPower() - 2500));
+        setPower(Math.max(0, getPower() - AviationOrdnance.getEnergyCost(payload)));
         field_70170_p.func_72956_a(this,
-                payload == ItemMq9Payload.HELLFIRE
+                AviationOrdnance.isPowered(payload)
                         ? "hbm:weapon.missileTakeOff" : "random.pop",
-                payload == ItemMq9Payload.HELLFIRE ? 2.0F : 0.8F,
-                payload == ItemMq9Payload.HELLFIRE ? 1.15F : 0.72F);
+                AviationOrdnance.isPowered(payload) ? 2.0F : 0.8F,
+                AviationOrdnance.isPowered(payload) ? 1.15F : 0.72F);
         if (!advanceMissionTarget()) {
             setState(STATE_RETURN);
         }
@@ -365,8 +388,9 @@ public final class EntityMq9Drone extends Entity
         }
         int terrain = field_70170_p.func_72976_f(floor(field_70165_t),
                 floor(field_70161_v));
-        double desiredY = Math.max(homeY + 34.0D, terrain + 28.0D);
-        guideTo(homeX, desiredY, homeZ, CRUISE_SPEED, 0.08D, 0.22D);
+        double desiredY = Math.max(homeY + getReturnHeight(),
+                terrain + getTerrainClearance());
+        guideTo(homeX, desiredY, homeZ, getCruiseSpeed(), 0.08D, 0.22D);
     }
 
     private void tickLanding() {
@@ -374,34 +398,69 @@ public final class EntityMq9Drone extends Entity
         double forwardX = -Math.sin(yaw);
         double forwardZ = Math.cos(yaw);
         if (landingPhase == 0) {
-            double approachX = homeX - forwardX * APPROACH_DISTANCE;
-            double approachZ = homeZ - forwardZ * APPROACH_DISTANCE;
+            double approachX = homeX - forwardX * getApproachDistance();
+            double approachZ = homeZ - forwardZ * getApproachDistance();
             double dx = approachX - field_70165_t;
             double dz = approachZ - field_70161_v;
             double distance = Math.sqrt(dx * dx + dz * dz);
             int terrain = field_70170_p.func_72976_f(floor(approachX), floor(approachZ));
             double approachY = Math.max(homeY + 14.0D, terrain + 12.0D);
-            guideTo(approachX, approachY, approachZ, 0.56D, 0.075D, 0.10D);
+            guideTo(approachX, approachY, approachZ,
+                    getLandingApproachSpeed(), 0.075D, 0.10D);
             if (distance < 8.0D && Math.abs(field_70163_u - approachY) < 5.0D) {
                 landingPhase = 1;
             }
             return;
         }
 
+        double rollDistance = getLandingRollDistance();
+        if (landingPhase == 2) {
+            double relativeX = field_70165_t - homeX;
+            double relativeZ = field_70161_v - homeZ;
+            double along = relativeX * forwardX + relativeZ * forwardZ;
+            double cross = relativeX * -forwardZ + relativeZ * forwardX;
+            if (along >= -1.2D || Math.sqrt(relativeX * relativeX
+                    + relativeZ * relativeZ) < 1.5D) {
+                finishLanding();
+                return;
+            }
+            double remaining = Math.max(0.0D, -along);
+            double speed = Math.min(getLandingRollSpeed(),
+                    Math.max(0.07D, 0.05D + remaining * 0.010D));
+            field_70159_w = blend(field_70159_w,
+                    forwardX * speed - cross * forwardZ * 0.015D, 0.30D);
+            field_70179_y = blend(field_70179_y,
+                    forwardZ * speed + cross * forwardX * 0.015D, 0.30D);
+            field_70181_x = homeY - field_70163_u;
+            return;
+        }
+
+        double touchdownX = homeX - forwardX * rollDistance;
+        double touchdownZ = homeZ - forwardZ * rollDistance;
         double relativeX = field_70165_t - homeX;
         double relativeZ = field_70161_v - homeZ;
-        double along = relativeX * forwardX + relativeZ * forwardZ;
+        double touchdownRelativeX = field_70165_t - touchdownX;
+        double touchdownRelativeZ = field_70161_v - touchdownZ;
+        double along = touchdownRelativeX * forwardX
+                + touchdownRelativeZ * forwardZ;
         double cross = Math.abs(relativeX * -forwardZ + relativeZ * forwardX);
         double remaining = Math.max(0.0D, -along);
         double desiredY = homeY - 1.0D + Math.min(15.0D, remaining * 0.21D);
         double speed = Math.max(0.32D, Math.min(0.50D, 0.32D + remaining * 0.0025D));
-        double aimX = homeX + forwardX * LANDING_AIM_DISTANCE;
-        double aimZ = homeZ + forwardZ * LANDING_AIM_DISTANCE;
+        double aimX = touchdownX + forwardX * LANDING_AIM_DISTANCE;
+        double aimZ = touchdownZ + forwardZ * LANDING_AIM_DISTANCE;
         guideTo(aimX, desiredY, aimZ, speed, 0.22D, 0.12D);
 
-        double homeDistance = Math.sqrt(relativeX * relativeX + relativeZ * relativeZ);
-        if (homeDistance < 3.5D && field_70163_u <= homeY + 0.9D) {
-            finishLanding();
+        double touchdownDistance = Math.sqrt(touchdownRelativeX
+                * touchdownRelativeX + touchdownRelativeZ * touchdownRelativeZ);
+        if (touchdownDistance < 3.5D && field_70163_u <= homeY + 0.9D) {
+            if (rollDistance > 1.0D) {
+                landingPhase = 2;
+                func_70107_b(field_70165_t, homeY, field_70161_v);
+                field_70181_x = 0.0D;
+            } else {
+                finishLanding();
+            }
         } else if (along > 8.0D || cross > 28.0D) {
             landingPhase = 0;
         }
@@ -570,10 +629,12 @@ public final class EntityMq9Drone extends Entity
         field_70125_A = (float) -Math.toDegrees(Math.atan2(field_70181_x, horizontal));
     }
 
-    private int findSelectedPayload() {
+    protected int findSelectedPayload() {
         int selected = getSelectedPayload();
         if (findPayloadSlot(selected) >= 0) return selected;
-        for (int type = ItemMq9Payload.HELLFIRE; type <= ItemMq9Payload.MK82; ++type) {
+        for (int type = ItemMq9Payload.HELLFIRE;
+                type <= AviationOrdnance.MAX_TYPE; ++type) {
+            if (!isPayloadCompatible(type)) continue;
             if (findPayloadSlot(type) >= 0) {
                 field_70180_af.func_75692_b(DW_SELECTED, Byte.valueOf((byte) type));
                 return type;
@@ -582,8 +643,9 @@ public final class EntityMq9Drone extends Entity
         return -1;
     }
 
-    private int findPayloadSlot(int payload) {
-        for (int i = 0; i < 6; ++i) {
+    protected int findPayloadSlot(int payload) {
+        if (!isPayloadCompatible(payload)) return -1;
+        for (int i = 0; i < getHardpointCount(); ++i) {
             if (inventory[i] != null && inventory[i].func_77973_b() == DroneStrikeContent.mq9Payload
                     && inventory[i].func_77960_j() == payload) return i;
         }
@@ -592,11 +654,12 @@ public final class EntityMq9Drone extends Entity
 
     public boolean launchMission(EntityPlayer player) {
         if (!isReady()) {
-            tell(player, "MQ-9 is already airborne.");
+            tell(player, getAircraftName() + " is already airborne.");
             return false;
         }
         if (!hasTarget()) {
-            tell(player, "No target. Use an HBM designator on the MQ-9.");
+            tell(player, "No target. Use an HBM designator on the "
+                    + getAircraftName() + ".");
             return false;
         }
         if (targetCount == 0) {
@@ -612,13 +675,14 @@ public final class EntityMq9Drone extends Entity
             double dz = missionTargetZ[i] + 0.5D - homeZ;
             double targetRange = Math.sqrt(dx * dx + dz * dz);
             range = Math.max(range, targetRange);
-            if (targetRange > MAX_MISSION_RANGE) {
+            if (targetRange > getMissionRange()) {
                 tell(player, "Target " + (i + 1)
-                        + " is beyond MQ-9 mission radius (2400 blocks).");
+                        + " is beyond " + getAircraftName() + " mission radius ("
+                        + getMissionRange() + " blocks).");
                 return false;
             }
         }
-        if (getPower() < LAUNCH_ENERGY) {
+        if (getPower() < getLaunchEnergy()) {
             tell(player, "Insufficient power for launch.");
             return false;
         }
@@ -631,12 +695,13 @@ public final class EntityMq9Drone extends Entity
         configureRoute();
         weaponReleased = false;
         landingPhase = 0;
-        setPower(getPower() - LAUNCH_ENERGY);
+        setPower(getPower() - getLaunchEnergy());
         setState(STATE_TAKEOFF);
         MissileTrackingService.registerLaunch(this, homeX, homeY, homeZ,
-                targetX, targetZ);
+                targetX, targetZ, ownerTeam);
         field_70170_p.func_72956_a(this, "hbm:weapon.missileTakeOffAlt", 1.35F, 0.72F);
-        tell(player, "MQ-9 mission launched: " + targetCount + " target(s), range "
+        tell(player, getAircraftName() + " mission launched: " + targetCount
+                + " target(s), range "
                 + (int) Math.round(range) + " blocks.");
         return true;
     }
@@ -654,7 +719,7 @@ public final class EntityMq9Drone extends Entity
     public void commandReturn(EntityPlayer player) {
         if (isFlying()) {
             setState(STATE_RETURN);
-            tell(player, "MQ-9 return-to-base command accepted.");
+            tell(player, getAircraftName() + " return-to-base command accepted.");
         }
     }
 
@@ -702,7 +767,8 @@ public final class EntityMq9Drone extends Entity
     private void setTarget(EntityPlayer player, ItemStack stack,
             IDesignatorItem designator) {
         if (!isReady()) {
-            tell(player, "Target list cannot be changed while MQ-9 is airborne.");
+            tell(player, "Target list cannot be changed while " + getAircraftName()
+                    + " is airborne.");
             return;
         }
         int x = floor(field_70165_t);
@@ -722,17 +788,20 @@ public final class EntityMq9Drone extends Entity
         int tz = floor(target.field_72449_c);
         boolean replace = player.func_70093_af();
         if (!queueTarget(tx, ty, tz, replace)) {
-            tell(player, "MQ-9 target list is full (6/6). Shift + right-click to replace it.");
+            int maximumTargets = getMaximumTargets();
+            tell(player, getAircraftName() + " target list is full ("
+                    + maximumTargets + "/" + maximumTargets
+                    + "). Shift + right-click to replace it.");
             return;
         }
         field_70170_p.func_72956_a(this, "hbm:item.techBoop", 0.9F, 1.1F);
-        tell(player, "MQ-9 target " + targetCount + "/" + MAX_TARGETS
+        tell(player, getAircraftName() + " target " + targetCount + "/" + getMaximumTargets()
                 + (replace ? " (new route)" : "") + ": " + tx + ", " + ty + ", " + tz);
     }
 
     public boolean queueTarget(int x, int y, int z, boolean replace) {
         if (replace) clearTargetQueue();
-        if (targetCount >= MAX_TARGETS) return false;
+        if (targetCount >= getMaximumTargets()) return false;
         missionTargetX[targetCount] = x;
         missionTargetY[targetCount] = y;
         missionTargetZ[targetCount] = z;
@@ -765,7 +834,7 @@ public final class EntityMq9Drone extends Entity
         return true;
     }
 
-    private void syncActiveTarget() {
+    protected void syncActiveTarget() {
         if (targetCount <= 0) {
             clearTargetQueue();
             return;
@@ -786,6 +855,17 @@ public final class EntityMq9Drone extends Entity
                 targetCount & 15 | (targetIndex & 15) << 4));
     }
 
+    protected void retargetActive(int x, int y, int z) {
+        if (targetCount <= 0) {
+            queueTarget(x, y, z, true);
+            return;
+        }
+        missionTargetX[targetIndex] = x;
+        missionTargetY[targetIndex] = y;
+        missionTargetZ[targetIndex] = z;
+        syncActiveTarget();
+    }
+
     @Override
     public boolean func_130002_c(EntityPlayer player) {
         if (field_70170_p.field_72995_K) return true;
@@ -799,8 +879,8 @@ public final class EntityMq9Drone extends Entity
                 }
                 return true;
             }
-            tell(player, wreckLanded ? "MQ-9 airframe is destroyed."
-                    : "MQ-9 is going down.");
+            tell(player, wreckLanded ? getAircraftName() + " airframe is destroyed."
+                    : getAircraftName() + " is going down.");
             return true;
         }
         if (held != null && held.func_77973_b() instanceof IDesignatorItem) {
@@ -809,8 +889,9 @@ public final class EntityMq9Drone extends Entity
         }
         if (VehicleEnergyHelper.isBattery(held)) {
             setPower(VehicleEnergyHelper.chargeFromHeld(player,
-                    getPower(), ENERGY_CAPACITY));
-            tell(player, "MQ-9 power: " + getPower() + "/" + ENERGY_CAPACITY + " HE");
+                    getPower(), getEnergyCapacity()));
+            tell(player, getAircraftName() + " power: " + getPower() + "/"
+                    + getEnergyCapacity() + " HE");
             return true;
         }
         if (player.func_70093_af()) {
@@ -835,7 +916,7 @@ public final class EntityMq9Drone extends Entity
                     field_70163_u + 0.25D, field_70161_v,
                     8, 1.0D, 0.25D, 1.0D, 0.02D);
         }
-        tell(player, "MQ-9 wreck dismantled.");
+        tell(player, getAircraftName() + " wreck dismantled.");
         func_70106_y();
     }
 
@@ -845,7 +926,7 @@ public final class EntityMq9Drone extends Entity
             return true;
         }
         if (action == 1) {
-            int selected = (getSelectedPayload() + 1) % 3;
+            int selected = nextCompatiblePayload(getSelectedPayload());
             field_70180_af.func_75692_b(DW_SELECTED, Byte.valueOf((byte) selected));
             field_70170_p.func_72956_a(this, "hbm:item.techBleep", 0.65F,
                     0.88F + selected * 0.13F);
@@ -853,25 +934,28 @@ public final class EntityMq9Drone extends Entity
         }
         if (action == 2) {
             if (!isReady()) {
-                tell(player, "Target list cannot be changed while MQ-9 is airborne.");
+                tell(player, "Target list cannot be changed while "
+                        + getAircraftName() + " is airborne.");
                 return true;
             }
             if (removeLastTarget()) {
                 field_70170_p.func_72956_a(this, "hbm:item.techBleep", 0.65F, 0.82F);
-                tell(player, "Last MQ-9 target removed. Remaining: " + targetCount + ".");
+                tell(player, "Last " + getAircraftName()
+                        + " target removed. Remaining: " + targetCount + ".");
             } else {
-                tell(player, "MQ-9 target list is already empty.");
+                tell(player, getAircraftName() + " target list is already empty.");
             }
             return true;
         }
         if (action == 3) {
             if (!isReady()) {
-                tell(player, "Target list cannot be cleared while MQ-9 is airborne.");
+                tell(player, "Target list cannot be cleared while "
+                        + getAircraftName() + " is airborne.");
                 return true;
             }
             clearTargetQueue();
             field_70170_p.func_72956_a(this, "hbm:item.techBleep", 0.65F, 0.72F);
-            tell(player, "MQ-9 target list cleared.");
+            tell(player, getAircraftName() + " target list cleared.");
             return true;
         }
         return false;
@@ -917,12 +1001,13 @@ public final class EntityMq9Drone extends Entity
         clientInterpolationTicks--;
     }
 
-    private void updatePayloadWatcher() {
+    protected void updatePayloadWatcher() {
         int mask = 0;
-        for (int i = 0; i < 6; ++i) {
+        for (int i = 0; i < getHardpointCount(); ++i) {
             if (inventory[i] != null && inventory[i].func_77973_b() == DroneStrikeContent.mq9Payload) {
-                int type = Math.max(0, Math.min(2, inventory[i].func_77960_j()));
-                mask |= (type + 1) << (i * 2);
+                int type = Math.max(0, Math.min(AviationOrdnance.MAX_TYPE,
+                        inventory[i].func_77960_j()));
+                if (isPayloadCompatible(type)) mask |= (type + 1) << (i * 4);
             }
         }
         field_70180_af.func_75692_b(DW_PAYLOAD_MASK, Integer.valueOf(mask));
@@ -930,7 +1015,8 @@ public final class EntityMq9Drone extends Entity
 
     private void updateHealthWatcher() {
         field_70180_af.func_75692_b(DW_HEALTH, Integer.valueOf((int) Math.round(
-                Math.max(0.0D, Math.min(100.0D, vehicleHealth * 100.0D / MAX_HEALTH)))));
+                Math.max(0.0D, Math.min(100.0D,
+                        vehicleHealth * 100.0D / getMaximumHealth())))));
     }
 
     @Override
@@ -958,6 +1044,7 @@ public final class EntityMq9Drone extends Entity
         tag.func_74768_a("TargetIndex", targetIndex);
         tag.func_74768_a("FlareCooldown", flareCooldown);
         tag.func_74768_a("FlareActiveTicks", flareActiveTicks);
+        tag.func_74778_a("WarTechOwnerTeam", ownerTeam);
         tag.func_74757_a("WreckLanded", wreckLanded);
         tag.func_74757_a("CrashInventoryDropped", crashInventoryDropped);
         for (int i = 0; i < targetCount; ++i) {
@@ -1003,15 +1090,17 @@ public final class EntityMq9Drone extends Entity
                 ? tag.func_74769_h("RouteStartZ") : homeZ;
         vehicleHealth = tag.func_74764_b("VehicleHealth")
                 ? Math.max(getState() == STATE_CRASHED ? 0.0D : 1.0D,
-                        Math.min(MAX_HEALTH, tag.func_74769_h("VehicleHealth")))
-                : MAX_HEALTH;
+                        Math.min(getMaximumHealth(), tag.func_74769_h("VehicleHealth")))
+                : getMaximumHealth();
         weaponReleased = tag.func_74767_n("WeaponReleased");
         landingPhase = tag.func_74762_e("LandingPhase");
-        targetCount = Math.max(0, Math.min(MAX_TARGETS, tag.func_74762_e("TargetCount")));
+        targetCount = Math.max(0, Math.min(getMaximumTargets(),
+                tag.func_74762_e("TargetCount")));
         targetIndex = Math.max(0, Math.min(Math.max(0, targetCount - 1),
                 tag.func_74762_e("TargetIndex")));
         flareCooldown = Math.max(0, tag.func_74762_e("FlareCooldown"));
         flareActiveTicks = Math.max(0, tag.func_74762_e("FlareActiveTicks"));
+        ownerTeam = tag.func_74779_i("WarTechOwnerTeam");
         wreckLanded = tag.func_74767_n("WreckLanded");
         crashInventoryDropped = tag.func_74767_n("CrashInventoryDropped");
         for (int i = 0; i < targetCount; ++i) {
@@ -1064,6 +1153,12 @@ public final class EntityMq9Drone extends Entity
     }
     @Override public void func_70299_a(int slot, ItemStack stack) {
         if (slot < 0 || slot >= inventory.length) return;
+        if (slot >= 0 && slot < BATTERY_SLOT && stack != null
+                && (!isPayloadSlotAvailable(slot)
+                || !DroneStrikeContent.isPayload(stack)
+                || !isPayloadCompatible(stack.func_77960_j()))) {
+            return;
+        }
         inventory[slot] = stack;
         int limit = slot == FLARE_SLOT ? 16 : 1;
         if (inventory[slot] != null && inventory[slot].field_77994_a > limit) {
@@ -1083,7 +1178,9 @@ public final class EntityMq9Drone extends Entity
     @Override public void func_70305_f() {}
     @Override public boolean func_94041_b(int slot, ItemStack stack) {
         return slot == BATTERY_SLOT ? VehicleEnergyHelper.isBattery(stack)
-                : slot >= 0 && slot < 6 && DroneStrikeContent.isPayload(stack);
+                : slot >= 0 && slot < getHardpointCount()
+                && DroneStrikeContent.isPayload(stack)
+                && isPayloadCompatible(stack.func_77960_j());
     }
 
     @Override public RadarTargetType getTargetType() {
@@ -1105,11 +1202,66 @@ public final class EntityMq9Drone extends Entity
                 ? entity.field_70121_D : null;
     }
 
-    private void updateBounds() {
-        double half = isReady() || getState() == STATE_CRASHED ? 1.8D : 0.8D;
+    protected void updateBounds() {
+        double half = isReady() || getState() == STATE_CRASHED
+                ? getGroundBoundsRadius() : getFlightBoundsRadius();
         field_70121_D.func_72324_b(field_70165_t - half, field_70163_u - 0.2D,
                 field_70161_v - half, field_70165_t + half,
-                field_70163_u + 1.0D, field_70161_v + half);
+                field_70163_u + getBoundsHeight(), field_70161_v + half);
+    }
+
+    public String getAircraftName() { return "MQ-9"; }
+    public int getCarrierClass() { return AviationOrdnance.CARRIER_MQ9; }
+    public int getHardpointCount() { return 6; }
+    public int getMaximumTargets() {
+        return Math.max(1, Math.min(MAX_TARGETS, getHardpointCount()));
+    }
+    public int getMissionRange() { return MAX_MISSION_RANGE; }
+    public int getEnergyCapacity() { return ENERGY_CAPACITY; }
+    protected int getEnergyPerTick() { return ENERGY_PER_TICK; }
+    protected int getLaunchEnergy() { return LAUNCH_ENERGY; }
+    protected double getCruiseSpeed() { return CRUISE_SPEED; }
+    protected double getApproachDistance() { return APPROACH_DISTANCE; }
+    protected double getMaximumHealth() { return MAX_HEALTH; }
+    protected double getTakeoffSpeed() { return 0.58D; }
+    protected double getTakeoffAcceleration() { return 0.012D; }
+    protected double getTakeoffClimbSpeed() { return 0.22D; }
+    protected int getTakeoffRollTicks() { return 18; }
+    protected int getTakeoffRotationTicks() { return 1; }
+    protected int getTakeoffTimeoutTicks() { return 110; }
+    protected double getTakeoffAltitude() { return 24.0D; }
+    protected double getCruiseHeight() { return 36.0D; }
+    protected double getReturnHeight() { return 34.0D; }
+    protected double getTerrainClearance() { return 30.0D; }
+    protected double getGroundBoundsRadius() { return 1.8D; }
+    protected double getFlightBoundsRadius() { return 0.8D; }
+    protected double getBoundsHeight() { return 1.0D; }
+    protected double getLandingApproachSpeed() { return 0.56D; }
+    protected double getLandingRollDistance() { return 0.0D; }
+    protected double getLandingRollSpeed() { return 0.28D; }
+    protected double getHardpointOffset(int slot) {
+        double[] offsets = {-2.35D, -1.65D, -0.95D, 0.95D, 1.65D, 2.35D};
+        return slot >= 0 && slot < offsets.length ? offsets[slot] : 0.0D;
+    }
+    protected double getHardpointForwardOffset(int slot) { return 0.0D; }
+    protected double getWeaponReleaseYOffset(int slot) { return 0.68D; }
+    public boolean isPayloadSlotAvailable(int slot) {
+        return slot >= 0 && slot < getHardpointCount();
+    }
+    public boolean isPayloadCompatible(int type) {
+        return AviationOrdnance.isCompatible(type, getCarrierClass());
+    }
+    protected void resetAircraftHealth() {
+        vehicleHealth = getMaximumHealth();
+        updateHealthWatcher();
+    }
+
+    private int nextCompatiblePayload(int current) {
+        for (int offset = 1; offset <= AviationOrdnance.MAX_TYPE + 1; ++offset) {
+            int type = (current + offset) % (AviationOrdnance.MAX_TYPE + 1);
+            if (isPayloadCompatible(type)) return type;
+        }
+        return AviationOrdnance.HELLFIRE;
     }
 
     private static int floor(double value) { return (int) Math.floor(value); }

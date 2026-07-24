@@ -9,8 +9,8 @@ public final class AntiRadiationRoutePlanner {
     public static RouteProfile create(Random random) {
         double side = random.nextBoolean() ? 1.0D : -1.0D;
         return new RouteProfile(
-                side * (20.0D + random.nextDouble() * 34.0D),
-                (random.nextDouble() - 0.5D) * 34.0D,
+                side * (18.0D + random.nextDouble() * 26.0D),
+                (random.nextDouble() - 0.5D) * 0.34D,
                 random.nextDouble() * 18.0D);
     }
 

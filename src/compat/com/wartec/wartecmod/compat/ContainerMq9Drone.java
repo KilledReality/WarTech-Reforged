@@ -103,11 +103,18 @@ public final class ContainerMq9Drone extends Container {
     }
 
     private static final class PayloadSlot extends Slot {
+        private final EntityMq9Drone drone;
+        private final int slotIndex;
+
         PayloadSlot(EntityMq9Drone drone, int slot, int x, int y) {
             super(drone, slot, x, y);
+            this.drone = drone;
+            this.slotIndex = slot;
         }
         @Override public boolean func_75214_a(ItemStack stack) {
-            return DroneStrikeContent.isPayload(stack);
+            return drone.isPayloadSlotAvailable(slotIndex)
+                    && DroneStrikeContent.isPayload(stack)
+                    && drone.isPayloadCompatible(stack.func_77960_j());
         }
         @Override public int func_75219_a() { return 1; }
     }

@@ -21,16 +21,16 @@ public final class DroneStrikeContent {
             return;
         }
         mq9Drone = new ItemMq9Drone()
-                .func_77637_a(wartecmod.tabwartecmodcruisemissiles)
+                .func_77637_a(ReforgedCreativeTabs.AVIATION)
                 .func_111206_d("wartecmod:mq9_drone");
         mq9Payload = new ItemMq9Payload()
-                .func_77637_a(wartecmod.tabwartecmodcruisemissiles)
+                .func_77637_a(ReforgedCreativeTabs.AVIATION)
                 .func_111206_d("wartecmod:mq9_hellfire");
         mq9Flares = new ItemMq9Flares()
-                .func_77637_a(wartecmod.tabwartecmodcruisemissiles)
+                .func_77637_a(ReforgedCreativeTabs.AVIATION)
                 .func_111206_d("hbm:ammo_standard.g26_flare_supply");
         salvageWrench = new ItemSalvageWrench()
-                .func_77637_a(wartecmod.tabwartecmodcruisemissiles)
+                .func_77637_a(ReforgedCreativeTabs.SUPPORT)
                 .func_111206_d("hbm:wrench");
         GameRegistry.registerItem(mq9Drone, "MQ9ReaperDrone");
         GameRegistry.registerItem(mq9Payload, "MQ9Payload");
@@ -45,7 +45,7 @@ public final class DroneStrikeContent {
     public static boolean isPayload(net.minecraft.item.ItemStack stack) {
         return stack != null && stack.func_77973_b() == mq9Payload
                 && stack.func_77960_j() >= ItemMq9Payload.HELLFIRE
-                && stack.func_77960_j() <= ItemMq9Payload.MK82;
+                && stack.func_77960_j() <= AviationOrdnance.MAX_TYPE;
     }
 
     public static boolean isFlares(net.minecraft.item.ItemStack stack) {

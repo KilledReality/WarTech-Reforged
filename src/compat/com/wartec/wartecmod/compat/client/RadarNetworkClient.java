@@ -34,7 +34,7 @@ public final class RadarNetworkClient {
                 new ItemRenderElectronicWarfareUnit(ewRenderer));
         RenderAdvancedMissile armRenderer = new RenderAdvancedMissile(
                 "models/ew/agm88_harm.obj", "textures/models/ew/agm88_harm.png",
-                1.55F, 0.0F, 0.0F, 0.0F, 0.0F, true);
+                1.55F, 180.0F, 0.0F, 0.0F, 0.0F, true);
         RenderingRegistry.registerEntityRenderingHandler(EntityAntiRadiationMissile.class,
                 armRenderer);
         MinecraftForgeClient.registerItemRenderer(RadarNetworkContent.antiRadiationMissile,

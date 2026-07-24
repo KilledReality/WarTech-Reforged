@@ -9,11 +9,12 @@ import cpw.mods.fml.common.event.FMLInitializationEvent;
 import cpw.mods.fml.common.event.FMLPostInitializationEvent;
 import cpw.mods.fml.common.event.FMLPreInitializationEvent;
 import cpw.mods.fml.common.network.NetworkRegistry;
+import net.minecraftforge.common.MinecraftForge;
 
 @Mod(
     modid = "wartecfix",
     name = "WarTech Reforged Compatibility",
-    version = "1.4.0-hbm5751",
+    version = "1.5.0-universal-hbm",
     dependencies = "required-after:hbm;after:wartecmod"
 )
 public final class WarTecBootstrap {
@@ -49,10 +50,20 @@ public final class WarTecBootstrap {
             RadarNetworkContent.register();
             DroneStrikeContent.register();
             OrbitalStrikeContent.register();
+            StrategicAviationContent.register();
             MissileChunkLoader.register();
+            MinecraftForge.EVENT_BUS.register(new SalvageWrenchCompat());
+            MinecraftForge.EVENT_BUS.register(new TeamPersistenceHandler());
             writeMarker(event, "loaded, registeredItems=" + registeredItems + ", registeredBlocks=" + registeredBlocks);
         } catch (Throwable t) {
             writeMarker(event, "failed: " + t);
+            t.printStackTrace();
+        }
+        try {
+            TacticalAviationContent.register();
+            writeMarker(event, "loaded, tacticalAircraft=true");
+        } catch (Throwable t) {
+            writeMarker(event, "failed tactical aircraft: " + t);
             t.printStackTrace();
         }
     }
@@ -80,6 +91,16 @@ public final class WarTecBootstrap {
                 Class.forName("com.wartec.wartecmod.compat.client.OrbitalStrikeClient")
                         .getMethod("register")
                         .invoke(null);
+                Class.forName("com.wartec.wartecmod.compat.client.StrategicAviationClient")
+                        .getMethod("register")
+                        .invoke(null);
+            } catch (Throwable t) {
+                t.printStackTrace();
+            }
+            try {
+                Class.forName("com.wartec.wartecmod.compat.client.TacticalAviationClient")
+                        .getMethod("register")
+                        .invoke(null);
             } catch (Throwable t) {
                 t.printStackTrace();
             }
@@ -89,6 +110,7 @@ public final class WarTecBootstrap {
     @Mod.EventHandler
     public void postInit(FMLPostInitializationEvent event) {
         OrbitalStrikeContent.registerSatelliteType();
+        CreativeTabFix.reorderTabs();
     }
 
     private static Object get(Class<?> owner, String name) throws Exception {

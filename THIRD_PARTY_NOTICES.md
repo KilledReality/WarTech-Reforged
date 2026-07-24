@@ -148,7 +148,34 @@ WarTech Reforged currently targets HBM NTM `1.0.27 X5751` specifically.
 - Changes: converted from glTF, scaled, cached, and integrated as an unguided
   MQ-9 payload.
 
+### Tu-95 BEAR
+
+- Creator: meminbiyikli
+- Source: https://sketchfab.com/3d-models/tu-95-bear-8b535275901f421086bbd9fe7626878e
+- License: Creative Commons Attribution 4.0 (CC BY 4.0)
+- Changes: converted from glTF, geometry reduced, textures baked into a reduced
+  atlas, original high-poly propellers replaced by lightweight animated runtime
+  blades, scaled, cached, and integrated as a reusable strategic missile carrier.
+
+### Russian X-555 air-launched cruise missile
+
+- Creator: Dmitriy Mitroshin / LtxxwSibeRia
+- Source: https://sketchfab.com/3d-models/russian-x-555-air-launched-cruise-missile-204c992ab27c4c1cad6a60b7c20b8c01
+- License: Creative Commons Attribution-NonCommercial 4.0 (CC BY-NC 4.0)
+- Changes: converted from glTF, geometry reduced, textures baked into a reduced
+  atlas, scaled, cached, and integrated as a Tier 2 cruise missile.
+
 ## Restricted or Incomplete Attribution
+
+### Tactical aviation asset set
+
+- Local packages: `f16-c-falcon.zip`, `sukhoi-su-27pu-ussr.zip`, and
+  `missile-bomb-collection-fighter-jets-free.zip`.
+- Used assets: F-16C, Su-27PU, AGM-114, GBU-12, HJ-10, AGM-65, Kh-29,
+  KAB-500L, and JDAM.
+- Required before release: identify the exact creators, permanent source URLs,
+  and licenses. These assets must not be included in a public build until that
+  information is confirmed or the models are replaced.
 
 ### S-400 Triumf SAM system
 

@@ -5,6 +5,7 @@ import com.wartec.wartecmod.compat.MissileTrackingService.CommandSnapshot;
 import com.wartec.wartecmod.compat.VehicleEnergyHelper;
 import com.wartec.wartecmod.compat.ElectronicWarfareService;
 import com.wartec.wartecmod.compat.IAntiRadiationTarget;
+import com.wartec.wartecmod.compat.ITeamOwned;
 import com.wartec.wartecmod.compat.RadarGuiHandler;
 import com.wartec.wartecmod.compat.WarTecBootstrap;
 import com.wartec.wartecmod.compat.HeavyVehicleDynamics;
@@ -21,7 +22,7 @@ import net.minecraft.util.DamageSource;
 import net.minecraft.world.World;
 
 public final class EntityCommandTruck extends Entity
-        implements IAntiRadiationTarget, IInventory {
+        implements IAntiRadiationTarget, IInventory, ITeamOwned {
     public static final int ENERGY_CAPACITY = 2000000;
     private static final int ENERGY_USE = 120;
     private static final int DW_DEPLOYED = 18;
@@ -32,7 +33,7 @@ public final class EntityCommandTruck extends Entity
     private static final int DW_ASSIGNED = 23;
     private static final int DW_EMITTERS = 24;
     private static final int DW_JAMMERS = 25;
-    private static final double MAX_HEALTH = 450.0D;
+    private static final double MAX_HEALTH = 720.0D;
     private double vehicleHealth = MAX_HEALTH;
     private double driveSpeed;
     private double steeringState;
@@ -101,7 +102,9 @@ public final class EntityCommandTruck extends Entity
         return field_70180_af.func_75679_c(DW_JAMMERS);
     }
 
-    public void setOwnerTeam(String team) {
+    @Override public String getOwnerTeam() { return ownerTeam; }
+
+    @Override public void setOwnerTeam(String team) {
         ownerTeam = team == null ? "" : team;
     }
 
@@ -340,12 +343,13 @@ public final class EntityCommandTruck extends Entity
         if (field_70170_p.field_72995_K || field_70128_L || amount <= 0.0F) {
             return true;
         }
-        if (source.func_76346_g() instanceof EntityPlayer
+        if (source != null && source.func_76346_g() instanceof EntityPlayer
                 && ((EntityPlayer) source.func_76346_g()).field_71075_bZ.field_75098_d) {
             destroyVehicle();
             return true;
         }
-        vehicleHealth -= amount;
+        vehicleHealth -= source != null && source.func_94541_c()
+                ? amount * 0.20D : amount;
         if (vehicleHealth <= 0.0D) {
             destroyVehicle();
         }

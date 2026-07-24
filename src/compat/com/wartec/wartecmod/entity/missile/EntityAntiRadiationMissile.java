@@ -191,7 +191,7 @@ public final class EntityAntiRadiationMissile extends EntityKalibrMissile {
             return;
         }
         long silentTicks = now - lastSignalTick;
-        if (silentTicks > 30L && (silentTicks % 20L) < 5L) {
+        if (silentTicks > 30L && silentTicks % 40L == 0L) {
             double error = Math.min(96.0D, 4.0D + silentTicks * 0.11D);
             double angle = field_70170_p.field_73012_v.nextDouble() * Math.PI * 2.0D;
             double radius = field_70170_p.field_73012_v.nextDouble() * error;
@@ -212,12 +212,13 @@ public final class EntityAntiRadiationMissile extends EntityKalibrMissile {
                         + (field_70161_v - (routeStartZ + 0.5D)) * routeZ)
                         / routeLengthSquared, 0.0D, 1.0D);
         double aimProgress = routeLength < 1.0D ? 1.0D
-                : Math.min(1.0D, progress + 34.0D / routeLength);
+                : Math.min(1.0D, progress + 52.0D / routeLength);
         double departure = smoothStep(progress / 0.08D);
-        double arrival = smoothStep((1.0D - aimProgress) / 0.17D);
+        double arrival = smoothStep((1.0D - aimProgress) / 0.24D);
         double separation = departure * arrival;
-        double lateral = (routeLateral * Math.sin(Math.PI * aimProgress)
-                + routeWave * Math.sin(Math.PI * 2.0D * aimProgress)) * separation;
+        double lateral = routeLateral * Math.sin(Math.PI * aimProgress)
+                * (1.0D + routeWave * (aimProgress * 2.0D - 1.0D))
+                * separation;
         double normalX = routeLength < 1.0D ? 0.0D : -routeZ / routeLength;
         double normalZ = routeLength < 1.0D ? 0.0D : routeX / routeLength;
         double aimX = routeStartX + 0.5D + routeX * aimProgress + normalX * lateral;
@@ -230,6 +231,13 @@ public final class EntityAntiRadiationMissile extends EntityKalibrMissile {
         double targetDx = finalX - field_70165_t;
         double targetDz = finalZ - field_70161_v;
         double targetDistance = Math.sqrt(targetDx * targetDx + targetDz * targetDz);
+        if (targetDistance < 130.0D) {
+            aimX = finalX;
+            aimZ = finalZ;
+            dx = aimX - field_70165_t;
+            dz = aimZ - field_70161_v;
+            horizontalDistance = Math.sqrt(dx * dx + dz * dz);
+        }
         if (horizontalDistance < 0.001D) {
             return;
         }
@@ -255,7 +263,7 @@ public final class EntityAntiRadiationMissile extends EntityKalibrMissile {
                 speed * speed - desiredVertical * desiredVertical));
         double desiredX = dx / horizontalDistance * desiredHorizontal;
         double desiredZ = dz / horizontalDistance * desiredHorizontal;
-        double turn = targetDistance < 110.0D ? 0.24D : 0.11D;
+        double turn = targetDistance < 130.0D ? 0.34D : 0.13D;
         field_70159_w = blend(field_70159_w, desiredX, turn);
         field_70181_x = blend(field_70181_x, desiredVertical, turn);
         field_70179_y = blend(field_70179_y, desiredZ, turn);

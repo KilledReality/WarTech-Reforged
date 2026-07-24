@@ -2,6 +2,8 @@ package com.wartec.wartecmod.entity.missile;
 
 import api.hbm.entity.IRadarDetectable.RadarTargetType;
 import com.wartec.wartecmod.compat.AdvancedMissileContent;
+import com.wartec.wartecmod.compat.ITeamOwned;
+import com.wartec.wartecmod.compat.MissileChunkLoader;
 import com.wartec.wartecmod.compat.MissileRouteCompat;
 import com.wartec.wartecmod.entity.logic.ExplosionLargeAdvanced;
 import com.wartec.wartecmod.tileentity.vls.TileEntityVlsExhaust;
@@ -9,9 +11,10 @@ import java.util.Collections;
 import java.util.List;
 import net.minecraft.init.Blocks;
 import net.minecraft.item.ItemStack;
+import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.world.World;
 
-public final class EntityGeran extends EntitySubsonicCruiseMissileBase {
+public final class EntityGeran extends EntitySubsonicCruiseMissileBase implements ITeamOwned {
     private static final double CRUISE_SPEED = 1.15D;
     private static final double CLIMB_RATE = 0.38D;
     private static final double DESCENT_RATE = 0.34D;
@@ -28,11 +31,29 @@ public final class EntityGeran extends EntitySubsonicCruiseMissileBase {
     private int targetGroundY;
     private boolean descentPathClear;
     private boolean approachCommitted;
+    private String ownerTeam = "";
 
     public EntityGeran(World world) {
         super(world);
         health = 6;
         isSubsonic = true;
+    }
+
+    @Override public String getOwnerTeam() { return ownerTeam; }
+    @Override public void setOwnerTeam(String team) {
+        ownerTeam = team == null ? "" : team;
+    }
+
+    @Override
+    protected void func_70014_b(NBTTagCompound tag) {
+        super.func_70014_b(tag);
+        tag.func_74778_a("WarTechOwnerTeam", ownerTeam);
+    }
+
+    @Override
+    protected void func_70037_a(NBTTagCompound tag) {
+        super.func_70037_a(tag);
+        ownerTeam = tag.func_74779_i("WarTechOwnerTeam");
     }
 
     public EntityGeran(World world, float x, float y, float z, int targetX, int targetZ) {
@@ -62,6 +83,7 @@ public final class EntityGeran extends EntitySubsonicCruiseMissileBase {
             }
             return;
         }
+        MissileChunkLoader.track(this);
 
         double dx = targetX + 0.5D - field_70165_t;
         double dz = targetZ + 0.5D - field_70161_v;
@@ -137,6 +159,14 @@ public final class EntityGeran extends EntitySubsonicCruiseMissileBase {
             loadNeighboringChunks((int) Math.floor(field_70165_t) >> 4,
                     (int) Math.floor(field_70161_v) >> 4);
         }
+    }
+
+    @Override
+    public void func_70106_y() {
+        if (field_70170_p != null && !field_70170_p.field_72995_K) {
+            MissileChunkLoader.untrack(this);
+        }
+        super.func_70106_y();
     }
 
     private void updateFlightPlan(double dx, double dz, double distance, int localGround) {

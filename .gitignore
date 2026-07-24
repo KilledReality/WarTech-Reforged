@@ -3,6 +3,7 @@
 *.class
 *.jar
 *.bak
+javac.*.args
 
 # Local crash reports and runtime logs
 crash*.txt

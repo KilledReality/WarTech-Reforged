@@ -13,7 +13,6 @@ public class GenerateHbmCompatShims {
 
         write(args[0], "com/hbm/entity/effect/EntityNukeCloudSmall.class", makeNukeCloud());
         write(args[0], "com/hbm/inventory/recipes/AssemblerRecipes.class", makeAssemblerAdapter());
-        write(args[0], "com/wartec/wartecmod/compat/HbmExplosionCompat.class", makeExplosionAdapter());
     }
 
     private static byte[] makeNukeCloud() {

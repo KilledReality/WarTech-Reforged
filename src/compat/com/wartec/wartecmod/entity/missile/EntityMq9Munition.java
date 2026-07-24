@@ -3,16 +3,18 @@ package com.wartec.wartecmod.entity.missile;
 import api.hbm.entity.IRadarDetectable;
 import api.hbm.entity.IRadarDetectable.RadarTargetType;
 import api.hbm.entity.IRadarDetectableNT;
+import com.wartec.wartecmod.compat.AviationOrdnance;
 import com.wartec.wartecmod.compat.ItemMq9Payload;
 import com.wartec.wartecmod.compat.MissileChunkLoader;
+import com.wartec.wartecmod.compat.ITeamOwned;
 import net.minecraft.entity.Entity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.DamageSource;
 import net.minecraft.world.World;
 
-public final class EntityMq9Munition extends Entity
-        implements IRadarDetectable, IRadarDetectableNT {
+public class EntityMq9Munition extends Entity
+        implements IRadarDetectable, IRadarDetectableNT, ITeamOwned {
     private static final int DW_TYPE = 18;
     private static final int DW_TARGET_X = 19;
     private static final int DW_TARGET_Y = 20;
@@ -24,6 +26,7 @@ public final class EntityMq9Munition extends Entity
     public int targetZ;
     private int targetY;
     private int health = 6;
+    private String ownerTeam = "";
     private double clientTargetX;
     private double clientTargetY;
     private double clientTargetZ;
@@ -48,8 +51,7 @@ public final class EntityMq9Munition extends Entity
     }
 
     public static int getMaximumDispersionBlocks(int type) {
-        return type == ItemMq9Payload.HELLFIRE ? 0
-                : type == ItemMq9Payload.GBU12 ? 1 : 6;
+        return AviationOrdnance.getMaximumDispersion(type);
     }
 
     @Override
@@ -63,11 +65,17 @@ public final class EntityMq9Munition extends Entity
 
     public void setType(int type) {
         field_70180_af.func_75692_b(DW_TYPE,
-                Byte.valueOf((byte) Math.max(0, Math.min(2, type))));
+                Byte.valueOf((byte) Math.max(0,
+                        Math.min(AviationOrdnance.MAX_TYPE, type))));
     }
 
     public int getType() {
         return field_70180_af.func_75683_a(DW_TYPE);
+    }
+
+    @Override public String getOwnerTeam() { return ownerTeam; }
+    @Override public void setOwnerTeam(String team) {
+        ownerTeam = team == null ? "" : team;
     }
 
     public void setLaunchMotion(double x, double y, double z) {
@@ -86,7 +94,7 @@ public final class EntityMq9Munition extends Entity
 
     @Override
     public void func_70071_h_() {
-        super.func_70071_h_();
+        tickEntityBase();
         if (field_70170_p.field_72995_K) {
             targetX = field_70180_af.func_75679_c(DW_TARGET_X);
             targetY = field_70180_af.func_75679_c(DW_TARGET_Y);
@@ -106,6 +114,7 @@ public final class EntityMq9Munition extends Entity
         double dx = finalX - field_70165_t;
         double dy = finalY - field_70163_u;
         double dz = finalZ - field_70161_v;
+        double horizontal = Math.sqrt(dx * dx + dz * dz);
         double distance = Math.sqrt(dx * dx + dy * dy + dz * dz);
         int terrain = field_70170_p.func_72976_f(floor(field_70165_t),
                 floor(field_70161_v));
@@ -117,12 +126,19 @@ public final class EntityMq9Munition extends Entity
             detonate(2.0F, false);
             return;
         }
-        if (getType() == ItemMq9Payload.HELLFIRE) {
-            guidePowered(dx, dy, dz, distance);
-        } else if (getType() == ItemMq9Payload.GBU12) {
-            guideBomb(dx, dy, dz, distance, 0.20D);
-        } else {
-            fallUnguided();
+        switch (AviationOrdnance.getGuidance(getType())) {
+            case AviationOrdnance.GUIDANCE_POWERED:
+                guidePowered(dx, dy, dz, horizontal);
+                break;
+            case AviationOrdnance.GUIDANCE_LASER_BOMB:
+                guideBomb(dx, dy, dz, horizontal, false);
+                break;
+            case AviationOrdnance.GUIDANCE_GLIDE_BOMB:
+                guideBomb(dx, dy, dz, horizontal, true);
+                break;
+            default:
+                fallUnguided();
+                break;
         }
         func_70107_b(field_70165_t + field_70159_w,
                 field_70163_u + field_70181_x,
@@ -130,29 +146,74 @@ public final class EntityMq9Munition extends Entity
         updateRotation();
     }
 
-    private void guidePowered(double dx, double dy, double dz, double distance) {
-        double speed = Math.min(1.42D, 0.65D + field_70173_aa * 0.045D);
-        double inverse = distance < 0.001D ? 0.0D : 1.0D / distance;
-        double turn = distance < 45.0D ? 0.44D : 0.20D;
-        field_70159_w = blend(field_70159_w, dx * inverse * speed, turn);
-        field_70181_x = blend(field_70181_x, dy * inverse * speed, turn);
-        field_70179_y = blend(field_70179_y, dz * inverse * speed, turn);
+    private void guidePowered(double dx, double dy, double dz, double horizontal) {
+        double maximum = AviationOrdnance.getFlightSpeed(getType());
+        double speed = Math.min(maximum, 0.82D + field_70173_aa * 0.085D);
+        if (horizontal < 0.001D) horizontal = 0.001D;
+        double finalY = field_70163_u + dy;
+        double routeY;
+        if (horizontal < 34.0D) {
+            routeY = finalY + horizontal * 0.20D;
+        } else {
+            routeY = finalY + Math.min(24.0D, 8.0D + horizontal * 0.06D);
+            routeY = Math.max(routeY,
+                    getTerrainHeightAhead(dx, dz, horizontal) + 4.0D);
+        }
+        double desiredVertical = clamp((routeY - field_70163_u) * 0.18D,
+                -speed * 0.48D, speed * 0.32D);
+        double desiredHorizontal = Math.sqrt(Math.max(0.01D,
+                speed * speed - desiredVertical * desiredVertical));
+        double turn = horizontal < 45.0D ? 0.68D : 0.38D;
+        field_70159_w = blend(field_70159_w,
+                dx / horizontal * desiredHorizontal, turn);
+        field_70181_x = blend(field_70181_x, desiredVertical, turn);
+        field_70179_y = blend(field_70179_y,
+                dz / horizontal * desiredHorizontal, turn);
         normalize(speed);
     }
 
-    private void guideBomb(double dx, double dy, double dz, double distance,
-            double turn) {
-        double horizontal = Math.sqrt(dx * dx + dz * dz);
+    private void guideBomb(double dx, double dy, double dz, double horizontal,
+            boolean glide) {
         if (horizontal < 0.001D) horizontal = 0.001D;
-        double horizontalSpeed = distance < 35.0D ? 0.74D : 0.82D;
-        double effectiveTurn = distance < 55.0D ? 0.36D : turn;
+        double maximum = AviationOrdnance.getFlightSpeed(getType());
+        double horizontalSpeed = horizontal < 28.0D
+                ? Math.min(0.82D, maximum) : maximum;
+        double effectiveTurn = horizontal < 55.0D ? 0.48D
+                : glide ? 0.30D : 0.26D;
         field_70159_w = blend(field_70159_w,
                 dx / horizontal * horizontalSpeed, effectiveTurn);
         field_70179_y = blend(field_70179_y,
                 dz / horizontal * horizontalSpeed, effectiveTurn);
-        double desiredVertical = clamp(dy * 0.055D, -0.72D, 0.08D);
-        field_70181_x = blend(field_70181_x - 0.025D,
-                desiredVertical, effectiveTurn);
+        double finalY = field_70163_u + dy;
+        double slope = glide ? 0.22D
+                : getType() == AviationOrdnance.KAB500L ? 0.34D : 0.48D;
+        double routeY = finalY + horizontal * slope;
+        if (horizontal > 14.0D) {
+            routeY = Math.max(routeY,
+                    getTerrainHeightAhead(dx, dz, horizontal) + 2.6D);
+        }
+        double desiredVertical = clamp((routeY - field_70163_u) * 0.16D,
+                glide ? -0.52D : -0.76D, glide ? 0.16D : 0.20D);
+        field_70181_x = blend(field_70181_x, desiredVertical, effectiveTurn);
+    }
+
+    private double getTerrainHeightAhead(double dx, double dz,
+            double horizontal) {
+        if (field_70170_p == null || horizontal < 0.001D) {
+            return field_70163_u - 4.0D;
+        }
+        double directionX = dx / horizontal;
+        double directionZ = dz / horizontal;
+        double maximum = field_70170_p.func_72976_f(floor(field_70165_t),
+                floor(field_70161_v));
+        double[] samples = {6.0D, 14.0D, 28.0D, 48.0D, 72.0D, 96.0D};
+        for (double sample : samples) {
+            if (sample >= horizontal) break;
+            int x = floor(field_70165_t + directionX * sample);
+            int z = floor(field_70161_v + directionZ * sample);
+            maximum = Math.max(maximum, field_70170_p.func_72976_f(x, z));
+        }
+        return maximum;
     }
 
     private void fallUnguided() {
@@ -179,8 +240,12 @@ public final class EntityMq9Munition extends Entity
         field_70125_A = (float) -Math.toDegrees(Math.atan2(field_70181_x, horizontal));
     }
 
-    private void spawnTrail() {
-        if (getType() == ItemMq9Payload.HELLFIRE) {
+    protected void tickEntityBase() {
+        super.func_70071_h_();
+    }
+
+    protected void spawnTrail() {
+        if (AviationOrdnance.isPowered(getType())) {
             field_70170_p.func_72869_a("smoke", field_70165_t, field_70163_u,
                     field_70161_v, 0.0D, 0.0D, 0.0D);
             field_70170_p.func_72869_a("flame", field_70165_t, field_70163_u,
@@ -192,8 +257,7 @@ public final class EntityMq9Munition extends Entity
     }
 
     private float getBlastRadius() {
-        return getType() == ItemMq9Payload.HELLFIRE ? 4.2F
-                : getType() == ItemMq9Payload.GBU12 ? 7.0F : 8.2F;
+        return AviationOrdnance.getBlastRadius(getType());
     }
 
     private void detonate(float radius, boolean flaming) {
@@ -206,6 +270,7 @@ public final class EntityMq9Munition extends Entity
     @Override
     public boolean func_70097_a(DamageSource source, float amount) {
         if (field_70170_p.field_72995_K || field_70128_L) return true;
+        if (source != null && source.func_94541_c()) return true;
         health -= Math.max(1, (int) Math.ceil(amount));
         if (health <= 0) detonate(1.8F, true);
         return true;
@@ -226,7 +291,7 @@ public final class EntityMq9Munition extends Entity
         clientInterpolationTicks = Math.max(2, increments);
     }
 
-    private void updateClientInterpolation() {
+    protected void updateClientInterpolation() {
         if (clientInterpolationTicks <= 0) return;
         double fraction = 1.0D / clientInterpolationTicks;
         double x = field_70165_t + (clientTargetX - field_70165_t) * fraction;
@@ -250,6 +315,7 @@ public final class EntityMq9Munition extends Entity
         tag.func_74768_a("StartX", startX);
         tag.func_74768_a("StartZ", startZ);
         tag.func_74768_a("Health", health);
+        tag.func_74778_a("WarTechOwnerTeam", ownerTeam);
     }
 
     @Override
@@ -261,10 +327,14 @@ public final class EntityMq9Munition extends Entity
         startX = tag.func_74762_e("StartX");
         startZ = tag.func_74762_e("StartZ");
         health = tag.func_74764_b("Health") ? tag.func_74762_e("Health") : 6;
+        ownerTeam = tag.func_74779_i("WarTechOwnerTeam");
         syncTarget();
     }
 
-    @Override public RadarTargetType getTargetType() { return RadarTargetType.MISSILE_TIER1; }
+    @Override public RadarTargetType getTargetType() {
+        return AviationOrdnance.getRadarTier(getType()) >= 2
+                ? RadarTargetType.MISSILE_TIER2 : RadarTargetType.MISSILE_TIER1;
+    }
     @Override public int getBlipLevel() { return 1; }
     @Override public boolean func_70067_L() { return !field_70128_L; }
     @Override public float func_70111_Y() { return 0.2F; }

@@ -325,8 +325,7 @@ public final class VlsDefenseCompat {
             double distance = Math.sqrt(dx * dx + dy * dy + dz * dz);
             if (!state.countermeasureChecked && distance <= 120.0D) {
                 state.countermeasureChecked = true;
-                if (target instanceof EntityMq9Drone
-                        && ((EntityMq9Drone) target).tryDeployFlares(tier)) {
+                if (AircraftCountermeasureCompat.tryDecoy(target, tier)) {
                     MissileTrackingService.releaseReservation(world, assignedTargetId,
                             interceptor.func_145782_y());
                     beginAbort(world, interceptor, tier, assignedTargetId, state);
@@ -610,14 +609,22 @@ public final class VlsDefenseCompat {
     public static boolean launchMobileInterceptor(World world, double x, double y,
             double z, float launchYaw, int tier, double range, long ownerKey,
             boolean verticalLaunch) {
+        return launchMobileInterceptor(world, x, y, z, launchYaw, tier,
+                range, ownerKey, verticalLaunch, "");
+    }
+
+    public static boolean launchMobileInterceptor(World world, double x, double y,
+            double z, float launchYaw, int tier, double range, long ownerKey,
+            boolean verticalLaunch, String defenseTeam) {
         if (world == null || world.field_72995_K || tier < 1 || tier > 3) {
             return false;
         }
         boolean pointDefense = !verticalLaunch && tier == 1 && range <= 110.0D;
         Entity target = pointDefense
-                ? MissileTrackingService.findPointDefenseThreat(world, x, y, z, range)
+                ? MissileTrackingService.findPointDefenseThreat(world, x, y, z,
+                        range, defenseTeam)
                 : MissileTrackingService.findThreat(world, x, y, z,
-                        tier, range, ownerKey);
+                        tier, range, ownerKey, defenseTeam);
         if (target == null) {
             return false;
         }
@@ -774,8 +781,7 @@ public final class VlsDefenseCompat {
         double z = target.field_70161_v;
         boolean fireEffect = world.field_73012_v.nextFloat() < 0.25F;
         MissileTrackingService.releaseReservation(world, target.func_145782_y(), interceptor.func_145782_y());
-        boolean mq9Crash = target instanceof EntityMq9Drone
-                && ((EntityMq9Drone) target).beginCombatCrash();
+        boolean mq9Crash = AircraftCountermeasureCompat.beginCrash(target);
         if (!mq9Crash) target.func_70106_y();
         interceptor.func_70106_y();
         world.func_72885_a(null, x, y, z, mq9Crash ? 1.15F : 2.0F,
