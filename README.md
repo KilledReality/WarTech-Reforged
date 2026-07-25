@@ -2,7 +2,7 @@
 
 DISCORD: https://discord.gg/jZAfCe8Z2w
 
-Documentation: [Release notes 1.5.0](docs/RELEASE_NOTES_1.5.0.md) | [Controls guide](docs/CONTROLS.md) | [Electronic warfare](docs/ELECTRONIC_WARFARE.md)
+Documentation: [Release notes 1.5.1](docs/RELEASE_NOTES_1.5.1.md) | [Controls guide](docs/CONTROLS.md) | [Electronic warfare](docs/ELECTRONIC_WARFARE.md)
 
 WarTech Reforged is an unofficial restoration and expansion of the abandoned
 WarTech 1.1.1 addon for Minecraft 1.7.10 and HBM's Nuclear Tech Mod.
@@ -165,7 +165,7 @@ new cruise missiles, and mobile artillery platforms.
 - Minecraft `1.7.10`
 - Minecraft Forge `10.13.4.1614`
 - HBM's Nuclear Tech Mod `1.0.27 X5751` **or** HBM NTM Space `X5758 H261`
-- WarTech Reforged `1.5.0-universal-hbm`
+- WarTech Reforged `1.5.1-universal-hbm`
 
 Both the server and every connecting client must use matching mod versions.
 WarTech Reforged is a replacement for WarTech 1.1.1: do not install the original
@@ -177,7 +177,7 @@ WarTech JAR alongside it.
 2. Install either HBM's Nuclear Tech Mod `1.0.27 X5751` or HBM NTM Space `X5758 H261`.
 3. Remove the original WarTech JAR and all older WarTech Reforged builds from
    the `mods` folder.
-4. Place `WarTech-Reforged-1.5.0-universal-hbm.jar` in the `mods` folder.
+4. Place `WarTech-Reforged-1.5.1-universal-hbm.jar` in the `mods` folder.
 5. For multiplayer, install the same files on the server and every client.
 
 ## Current Limitations
@@ -214,7 +214,7 @@ requirements. Full attribution and unresolved release requirements are listed in
 
 # WarTech Reforged на русском
 
-Документация: [Описание версии 1.5.0](docs/RELEASE_NOTES_1.5.0.md) | [Полное управление](docs/CONTROLS.md) | [Радиоэлектронная борьба](docs/ELECTRONIC_WARFARE.md)
+Документация: [Описание версии 1.5.1](docs/RELEASE_NOTES_1.5.1.md) | [Полное управление](docs/CONTROLS.md) | [Радиоэлектронная борьба](docs/ELECTRONIC_WARFARE.md)
 
 DISCORD: https://discord.gg/jZAfCe8Z2w
 
@@ -317,7 +317,7 @@ NTM `1.0.27 X5751` и HBM NTM Space `X5758 H261` и превращает его 
 - Minecraft `1.7.10`
 - Minecraft Forge `10.13.4.1614`
 - HBM's Nuclear Tech Mod `1.0.27 X5751` **или** HBM NTM Space `X5758 H261`
-- WarTech Reforged `1.5.0-universal-hbm`
+- WarTech Reforged `1.5.1-universal-hbm`
 
 На сервере и всех клиентах должны стоять одинаковые версии. WarTech Reforged
 заменяет WarTech 1.1.1: оригинальный JAR WarTech устанавливать одновременно с
@@ -328,7 +328,7 @@ Reforged нельзя.
 1. Установите Minecraft Forge 1.7.10 (`10.13.4.1614`).
 2. Установите HBM's Nuclear Tech Mod `1.0.27 X5751` или HBM NTM Space `X5758 H261`.
 3. Удалите из `mods` оригинальный WarTech и старые сборки WarTech Reforged.
-4. Поместите `WarTech-Reforged-1.5.0-universal-hbm.jar` в папку `mods`.
+4. Поместите `WarTech-Reforged-1.5.1-universal-hbm.jar` в папку `mods`.
 5. Для мультиплеера установите одинаковый набор файлов на сервер и клиенты.
 
 ## Текущие ограничения

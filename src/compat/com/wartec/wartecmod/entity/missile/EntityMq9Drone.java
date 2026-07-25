@@ -1187,6 +1187,10 @@ public class EntityMq9Drone extends Entity
         return isFlying() ? RadarTargetType.MISSILE_TIER0 : RadarTargetType.PLAYER;
     }
     @Override public int getBlipLevel() { return isFlying() ? 1 : -1; }
+    @Override public String getUnlocalizedName() { return "MQ-9 Reaper"; }
+    @Override public boolean canBeSeenBy(Object radar) { return getBlipLevel() >= 0; }
+    @Override public boolean paramsApplicable(IRadarDetectableNT.RadarScanParams params) { return true; }
+    @Override public boolean suppliesRedstone(IRadarDetectableNT.RadarScanParams params) { return false; }
 
     @Override public boolean func_70104_M() {
         return isReady() || getState() == STATE_CRASHED;

@@ -13,13 +13,21 @@ public final class RenderMobileAirDefense extends Render {
     private static final ResourceLocation TOR_MODEL = model("tor_m1.obj");
     private static final ResourceLocation PANTSIR_MODEL = model("pantsir_s2.obj");
     private static final ResourceLocation[] TOR_TEXTURES = {
-            texture("tor_0.png"), texture("tor_1.png"), texture("tor_2.png"),
-            texture("tor_0.png"), texture("tor_3.png")
+            texture("tor_0.png"),
+            texture("tor_1.png"), texture("tor_1.png"), texture("tor_1.png"),
+            texture("tor_1.png"), texture("tor_1.png"), texture("tor_1.png"),
+            texture("tor_1.png"), texture("tor_1.png"), texture("tor_1.png"),
+            texture("tor_1.png"),
+            texture("tor_2.png"), texture("tor_0.png"), texture("tor_3.png")
     };
     private static final ResourceLocation PANTSIR_TEXTURE = texture("pantsir_s2.png");
     private static final String[] TOR_PARTS = {
-            "tor_material_0", "tor_material_1", "tor_material_2",
-            "tor_material_3", "tor_material_4"
+            "tor_material_0",
+            "tor_material_1_0", "tor_material_1_1", "tor_material_1_2",
+            "tor_material_1_3", "tor_material_1_4", "tor_material_1_5",
+            "tor_material_1_6", "tor_material_1_7", "tor_material_1_8",
+            "tor_material_1_9",
+            "tor_material_2", "tor_material_3", "tor_material_4"
     };
     private static final String[] PANTSIR_STATIC = {
             "body", "canopy0", "canopy1", "canopy2", "canopy3", "canopy4",

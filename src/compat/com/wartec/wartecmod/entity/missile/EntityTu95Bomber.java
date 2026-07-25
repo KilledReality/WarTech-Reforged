@@ -1162,6 +1162,10 @@ public class EntityTu95Bomber extends Entity
         return isFlying() ? RadarTargetType.MISSILE_TIER1 : RadarTargetType.PLAYER;
     }
     @Override public int getBlipLevel() { return isFlying() ? 1 : -1; }
+    @Override public String getUnlocalizedName() { return "Tu-95MS"; }
+    @Override public boolean canBeSeenBy(Object radar) { return getBlipLevel() >= 0; }
+    @Override public boolean paramsApplicable(IRadarDetectableNT.RadarScanParams params) { return true; }
+    @Override public boolean suppliesRedstone(IRadarDetectableNT.RadarScanParams params) { return false; }
     @Override public boolean func_70104_M() { return isReady() || wreckLanded; }
     @Override public boolean func_70067_L() { return !field_70128_L; }
     @Override public float func_70111_Y() { return 0.75F; }

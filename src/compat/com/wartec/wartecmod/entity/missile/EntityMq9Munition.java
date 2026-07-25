@@ -336,6 +336,10 @@ public class EntityMq9Munition extends Entity
                 ? RadarTargetType.MISSILE_TIER2 : RadarTargetType.MISSILE_TIER1;
     }
     @Override public int getBlipLevel() { return 1; }
+    @Override public String getUnlocalizedName() { return "Aircraft ordnance"; }
+    @Override public boolean canBeSeenBy(Object radar) { return true; }
+    @Override public boolean paramsApplicable(IRadarDetectableNT.RadarScanParams params) { return true; }
+    @Override public boolean suppliesRedstone(IRadarDetectableNT.RadarScanParams params) { return false; }
     @Override public boolean func_70067_L() { return !field_70128_L; }
     @Override public float func_70111_Y() { return 0.2F; }
     @Override public boolean func_70112_a(double distance) {

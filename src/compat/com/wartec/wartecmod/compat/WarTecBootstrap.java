@@ -14,7 +14,7 @@ import net.minecraftforge.common.MinecraftForge;
 @Mod(
     modid = "wartecfix",
     name = "WarTech Reforged Compatibility",
-    version = "1.5.0-universal-hbm",
+    version = "1.5.1-universal-hbm",
     dependencies = "required-after:hbm;after:wartecmod"
 )
 public final class WarTecBootstrap {

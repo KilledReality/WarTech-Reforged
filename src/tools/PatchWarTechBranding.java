@@ -21,7 +21,7 @@ public final class PatchWarTechBranding {
             throw new IllegalStateException("@Mod annotation not found");
         }
         setValue(mod, "name", "WarTech Reforged");
-        setValue(mod, "version", "1.5.0-universal-hbm");
+        setValue(mod, "version", "1.5.1-universal-hbm");
 
         ClassWriter writer = new ClassWriter(0);
         node.accept(writer);
