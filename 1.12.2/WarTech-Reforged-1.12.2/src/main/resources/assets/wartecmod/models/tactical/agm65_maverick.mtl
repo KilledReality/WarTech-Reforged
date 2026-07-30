@@ -1,0 +1,13 @@
+# Blender MTL File: 'missiles.blend'
+# Material Count: 1
+
+newmtl AGM-65_Maverick
+Ns 141.649586
+Ka 0.705455 0.705455 0.705455
+Kd 0.281719 0.281719 0.281719
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+d 1.000000
+illum 3
+map_Kd C:\\Users\\kiril\\Documents\\htm dop\\build\\tactical-aviation-import\\weapons\\source\\bf4_missiles\\bf4_missiles\\textures\\agm-65 maverick_d.dds

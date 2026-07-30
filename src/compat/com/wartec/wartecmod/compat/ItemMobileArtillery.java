@@ -39,6 +39,8 @@ public final class ItemMobileArtillery extends Item {
         double spawnZ = z + 0.5D;
         EntityMobileArtillery truck = new EntityMobileArtillery(world,
                 Math.max(0, Math.min(2, stack.func_77960_j())));
+        truck.setOwnerTeam(TeamOwnedItemHelper.resolvePlacementTeam(
+                stack, player));
         truck.func_70012_b(spawnX, spawnY, spawnZ, player.field_70177_z, 0.0F);
         if (!world.func_72838_d(truck)) {
             return false;

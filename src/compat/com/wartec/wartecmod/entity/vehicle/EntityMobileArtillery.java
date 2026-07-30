@@ -8,6 +8,9 @@ import com.hbm.items.ModItems;
 import com.wartec.wartecmod.compat.MobileArtilleryContent;
 import com.wartec.wartecmod.compat.HeavyVehicleDynamics;
 import com.wartec.wartecmod.compat.HeavyVehicleDynamics.Motion;
+import com.wartec.wartecmod.compat.ITeamOwned;
+import com.wartec.wartecmod.compat.MissileTrackingService;
+import com.wartec.wartecmod.compat.NetworkTeamHelper;
 import com.hbm.main.MainRegistry;
 import com.hbm.tileentity.IGUIProvider;
 import com.hbm.tileentity.turret.TileEntityTurretBaseArtillery;
@@ -27,7 +30,8 @@ import net.minecraft.util.Vec3;
 import net.minecraft.world.World;
 import net.minecraft.world.WorldServer;
 
-public final class EntityMobileArtillery extends Entity implements IGUIProvider {
+public final class EntityMobileArtillery extends Entity
+        implements IGUIProvider, ITeamOwned {
     public static final int MOUNT_NONE = 0;
     public static final int MOUNT_GREG = 1;
     public static final int MOUNT_HENRY = 2;
@@ -65,6 +69,7 @@ public final class EntityMobileArtillery extends Entity implements IGUIProvider 
     private float clientTargetYaw;
     private float clientTargetPitch;
     private int clientInterpolationTicks;
+    private String ownerTeam = "";
 
     public EntityMobileArtillery(World world) {
         super(world);
@@ -129,6 +134,17 @@ public final class EntityMobileArtillery extends Entity implements IGUIProvider 
 
     public boolean hasTarget() {
         return field_70180_af.func_75679_c(DW_TARGET_Y) > -2048;
+    }
+
+    @Override
+    public String getOwnerTeam() {
+        return ownerTeam;
+    }
+
+    @Override
+    public void setOwnerTeam(String team) {
+        ownerTeam = team == null ? "" : team;
+        bindMobileTurretTeam();
     }
 
     @Override
@@ -348,6 +364,9 @@ public final class EntityMobileArtillery extends Entity implements IGUIProvider 
             return true;
         }
         ItemStack held = player.func_71045_bC();
+        if (ownerTeam.length() == 0) {
+            setOwnerTeam(NetworkTeamHelper.getPlayerTeam(player));
+        }
         if (held != null && installModule(player, held)) {
             return true;
         }
@@ -544,6 +563,7 @@ public final class EntityMobileArtillery extends Entity implements IGUIProvider 
         if ((getMount() == MOUNT_GREG && existing instanceof MobileTileArty)
                 || (getMount() == MOUNT_HENRY && existing instanceof MobileTileHimars)) {
             mobileTurret = (TileEntityTurretBaseArtillery) existing;
+            bindMobileTurretTeam();
             return;
         }
         mobileTurret = getMount() == MOUNT_GREG
@@ -561,6 +581,15 @@ public final class EntityMobileArtillery extends Entity implements IGUIProvider 
         mobileTurret.field_145849_e = proxyZ;
         field_70170_p.func_147455_a(proxyX, proxyY, proxyZ, mobileTurret);
         mobileTurret.func_145829_t();
+        bindMobileTurretTeam();
+    }
+
+    private void bindMobileTurretTeam() {
+        if (mobileTurret instanceof MobileTileArty) {
+            ((MobileTileArty) mobileTurret).setOwnerTeam(ownerTeam);
+        } else if (mobileTurret instanceof MobileTileHimars) {
+            ((MobileTileHimars) mobileTurret).setOwnerTeam(ownerTeam);
+        }
     }
 
     private void setProxyWatchers(int x, int y, int z) {
@@ -770,6 +799,7 @@ public final class EntityMobileArtillery extends Entity implements IGUIProvider 
         }
         shell.setWhistle(true);
         field_70170_p.func_72838_d(shell);
+        MissileTrackingService.assignProjectileTeam(shell, ownerTeam);
         field_70170_p.func_72908_a(muzzle[0], muzzle[1], muzzle[2],
                 "hbm:turret.jeremy_fire", 16.0F, 0.9F);
     }
@@ -789,6 +819,7 @@ public final class EntityMobileArtillery extends Entity implements IGUIProvider 
                 dz / horizontal * Math.cos(elevation), 25.0F, 0.0F);
         rocket.setTarget(tx, ty, tz).setType(getAmmoType());
         field_70170_p.func_72838_d(rocket);
+        MissileTrackingService.assignProjectileTeam(rocket, ownerTeam);
         field_70170_p.func_72908_a(muzzle[0], muzzle[1], muzzle[2],
                 "hbm:weapon.rocketFlame", 12.0F, 1.0F);
     }
@@ -929,6 +960,7 @@ public final class EntityMobileArtillery extends Entity implements IGUIProvider 
         tag.func_74768_a("TargetZ", field_70180_af.func_75679_c(DW_TARGET_Z));
         tag.func_74780_a("DriveSpeed", driveSpeed);
         tag.func_74780_a("VehicleHealth", vehicleHealth);
+        tag.func_74778_a("OwnerTeam", ownerTeam);
         if (ammoTag != null) {
             tag.func_74782_a("AmmoTag", ammoTag);
         }
@@ -956,6 +988,7 @@ public final class EntityMobileArtillery extends Entity implements IGUIProvider 
             vehicleHealth = Math.max(1.0D,
                     Math.min(MAX_HEALTH, tag.func_74769_h("VehicleHealth")));
         }
+        ownerTeam = tag.func_74779_i("OwnerTeam");
         ammoTag = tag.func_74764_b("AmmoTag") ? tag.func_74775_l("AmmoTag") : null;
         mobileTurretData = tag.func_74764_b("MobileTurret")
                 ? tag.func_74775_l("MobileTurret") : null;

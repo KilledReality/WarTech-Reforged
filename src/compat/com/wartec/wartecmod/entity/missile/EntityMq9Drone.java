@@ -6,16 +6,21 @@ import api.hbm.entity.IRadarDetectableNT;
 import api.hbm.item.IDesignatorItem;
 import com.wartec.wartecmod.compat.DroneStrikeContent;
 import com.wartec.wartecmod.compat.AviationOrdnance;
+import com.wartec.wartecmod.compat.HbmEntityPowerLink;
+import com.wartec.wartecmod.compat.IWirePoweredEntity;
 import com.wartec.wartecmod.compat.ItemMq9Payload;
 import com.wartec.wartecmod.compat.MissileChunkLoader;
 import com.wartec.wartecmod.compat.MissileTrackingService;
 import com.wartec.wartecmod.compat.ITeamOwned;
+import com.wartec.wartecmod.compat.NetworkTeamHelper;
 import com.wartec.wartecmod.compat.RadarGuiHandler;
+import com.wartec.wartecmod.compat.RemoteControlNetwork;
 import com.wartec.wartecmod.compat.VehicleEnergyHelper;
 import com.wartec.wartecmod.compat.WarTecBootstrap;
 import cpw.mods.fml.common.network.internal.FMLNetworkHandler;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.inventory.IInventory;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
@@ -28,7 +33,8 @@ import net.minecraft.world.World;
 import net.minecraft.world.WorldServer;
 
 public class EntityMq9Drone extends Entity
-        implements IInventory, IRadarDetectable, IRadarDetectableNT, ITeamOwned {
+        implements IInventory, IRadarDetectable, IRadarDetectableNT, ITeamOwned,
+        IWirePoweredEntity {
     public static final int STATE_READY = 0;
     public static final int STATE_TAKEOFF = 1;
     public static final int STATE_OUTBOUND = 2;
@@ -36,6 +42,7 @@ public class EntityMq9Drone extends Entity
     public static final int STATE_RETURN = 4;
     public static final int STATE_LANDING = 5;
     public static final int STATE_CRASHED = 6;
+    public static final int STATE_REMOTE = 7;
     public static final int BATTERY_SLOT = 6;
     public static final int FLARE_SLOT = 7;
     public static final int MAX_TARGETS = 6;
@@ -59,7 +66,12 @@ public class EntityMq9Drone extends Entity
     private static final int DW_HEALTH = 25;
     private static final int DW_FLAGS = 26;
     private static final int DW_TARGET_QUEUE = 27;
+    private static final int DW_REMOTE_STATUS = 31;
     private static final int FLAG_TARGET_VALID = 1;
+    private static final int REMOTE_THROTTLE_MASK = 1023;
+    private static final int REMOTE_FLAG_AIRBORNE = 1 << 10;
+    private static final int REMOTE_HARDPOINT_SHIFT = 11;
+    private static final int REMOTE_HARDPOINT_MASK = 7 << REMOTE_HARDPOINT_SHIFT;
 
     protected final ItemStack[] inventory = new ItemStack[INVENTORY_SIZE];
     public int startX;
@@ -96,6 +108,31 @@ public class EntityMq9Drone extends Entity
     private float clientTargetYaw;
     private float clientTargetPitch;
     private int clientInterpolationTicks;
+    private String remoteController = "";
+    private float remoteDesiredYaw;
+    private float remoteDesiredPitch;
+    private float remoteAimYaw;
+    private float remoteAimPitch;
+    private double remoteTurnRate;
+    private int remoteSteering;
+    private float remoteThrottle;
+    private double remoteSpeed;
+    private int remoteLastInputTick;
+    private int remoteWeaponCooldown;
+    private boolean remoteAirborne;
+    private boolean remotePresenceActive;
+    private double remoteAnchorX;
+    private double remoteAnchorY;
+    private double remoteAnchorZ;
+    private float remoteAnchorYaw;
+    private float remoteAnchorPitch;
+    private boolean remoteAnchorNoClip;
+    private boolean remoteAnchorInvisible;
+    private boolean remoteAnchorDisableDamage;
+    private boolean remoteAnchorAllowFlying;
+    private boolean remoteAnchorFlying;
+    private String remoteRestorePlayer = "";
+    private int remoteRestoreTicks;
 
     public EntityMq9Drone(World world) {
         super(world);
@@ -118,6 +155,7 @@ public class EntityMq9Drone extends Entity
         field_70180_af.func_75682_a(DW_HEALTH, Integer.valueOf(100));
         field_70180_af.func_75682_a(DW_FLAGS, Integer.valueOf(0));
         field_70180_af.func_75682_a(DW_TARGET_QUEUE, Integer.valueOf(0));
+        field_70180_af.func_75682_a(DW_REMOTE_STATUS, Integer.valueOf(0));
     }
 
     public void initializeHome() {
@@ -152,6 +190,32 @@ public class EntityMq9Drone extends Entity
 
     public boolean isFlying() {
         return getState() != STATE_READY && getState() != STATE_CRASHED;
+    }
+
+    public boolean isRemoteControlled() {
+        return getState() == STATE_REMOTE;
+    }
+
+    public float getRemoteThrottle() {
+        return (field_70180_af.func_75679_c(DW_REMOTE_STATUS)
+                & REMOTE_THROTTLE_MASK) / 1000.0F;
+    }
+
+    public int getRemoteVehicleType() {
+        return RemoteControlNetwork.VEHICLE_MQ9;
+    }
+
+    public int getSelectedHardpoint() {
+        return field_70180_af.func_75679_c(DW_REMOTE_STATUS)
+                >>> REMOTE_HARDPOINT_SHIFT & 7;
+    }
+
+    private void setSelectedHardpoint(int slot) {
+        int clamped = Math.max(0, Math.min(getHardpointCount() - 1, slot));
+        int status = field_70180_af.func_75679_c(DW_REMOTE_STATUS)
+                & ~REMOTE_HARDPOINT_MASK;
+        field_70180_af.func_75692_b(DW_REMOTE_STATUS, Integer.valueOf(
+                status | clamped << REMOTE_HARDPOINT_SHIFT));
     }
 
     public int getPower() {
@@ -190,6 +254,28 @@ public class EntityMq9Drone extends Entity
         return encoded == 0 ? -1 : encoded - 1;
     }
 
+    public int getPayloadCountAt(int slot) {
+        if (slot < 0 || slot >= getHardpointCount()) return 0;
+        ItemStack stack = inventory[slot];
+        return stack != null && DroneStrikeContent.isPayload(stack)
+                && isPayloadCompatible(stack.func_77960_j())
+                ? Math.max(0, stack.field_77994_a) : 0;
+    }
+
+    public int getPackedPayloadCounts() {
+        int packed = 0;
+        for (int slot = 0; slot < getHardpointCount(); ++slot) {
+            packed |= Math.min(31, getPayloadCountAt(slot)) << (slot * 5);
+        }
+        return packed;
+    }
+
+    public int getDistanceFromLaunch() {
+        double dx = field_70165_t - homeX;
+        double dz = field_70161_v - homeZ;
+        return (int) Math.round(Math.sqrt(dx * dx + dz * dz));
+    }
+
     public int getHealthPercent() {
         return field_70180_af.func_75679_c(DW_HEALTH);
     }
@@ -202,6 +288,7 @@ public class EntityMq9Drone extends Entity
             case STATE_RETURN: return "RETURNING";
             case STATE_LANDING: return "LANDING";
             case STATE_CRASHED: return "LOST";
+            case STATE_REMOTE: return "REMOTE PILOT";
             default: return "READY";
         }
     }
@@ -223,8 +310,11 @@ public class EntityMq9Drone extends Entity
             return;
         }
         if (!homeInitialized) initializeHome();
+        tickRemoteRestore();
+        HbmEntityPowerLink.tick(this);
         if (flareCooldown > 0) flareCooldown--;
         if (flareActiveTicks > 0) flareActiveTicks--;
+        if (remoteWeaponCooldown > 0) remoteWeaponCooldown--;
         if (getState() == STATE_CRASHED) {
             stateTicks++;
             if (!wreckLanded) MissileChunkLoader.track(this);
@@ -259,14 +349,18 @@ public class EntityMq9Drone extends Entity
             case STATE_LANDING:
                 tickLanding();
                 break;
+            case STATE_REMOTE:
+                tickRemoteControl();
+                break;
             default:
                 break;
         }
         func_70107_b(field_70165_t + field_70159_w,
                 field_70163_u + field_70181_x,
                 field_70161_v + field_70179_y);
-        updateRotation();
+        if (getState() != STATE_REMOTE) updateRotation();
         updateBounds();
+        if (getState() == STATE_REMOTE) sendRemoteTelemetry();
     }
 
     private void tickTakeoff() {
@@ -290,6 +384,420 @@ public class EntityMq9Drone extends Entity
         if (field_70163_u >= homeY + getTakeoffAltitude()
                 || stateTicks > getTakeoffTimeoutTicks()) {
             setState(STATE_OUTBOUND);
+        }
+    }
+
+    private void tickRemoteControl() {
+        EntityPlayer controller = findRemoteController();
+        if (controller == null || controller.field_70128_L) {
+            endRemoteControl(getAircraftName()
+                    + " control link lost. Autopilot is returning home.", true);
+            tickReturn();
+            return;
+        }
+        maintainRemotePresence(controller);
+        if (field_70173_aa - remoteLastInputTick > 2) remoteSteering = 0;
+        double rangeX = field_70165_t - homeX;
+        double rangeZ = field_70161_v - homeZ;
+        double range = Math.sqrt(rangeX * rangeX + rangeZ * rangeZ);
+        if (range >= getMissionRange() - 2.0D) {
+            if (range > 0.001D) {
+                double outward = (field_70159_w * rangeX
+                        + field_70179_y * rangeZ) / range;
+                if (outward > 0.0D) {
+                    field_70159_w -= rangeX / range * outward;
+                    field_70179_y -= rangeZ / range * outward;
+                }
+            }
+            endRemoteControl(getAircraftName() + " combat radius "
+                    + getMissionRange() + " reached. Return autopilot engaged.",
+                    true);
+            tickReturn();
+            return;
+        }
+
+        float yawError = normalizeAngle(remoteDesiredYaw - field_70177_z);
+        double maximumTurnRate = remoteAirborne
+                ? getRemoteMaximumTurnRate() : getRemoteGroundTurnRate();
+        double desiredTurnRate = remoteSteering == 0
+                ? clamp(yawError * (remoteAirborne
+                        ? getRemoteYawErrorGain() : 0.18D),
+                        -maximumTurnRate, maximumTurnRate)
+                : remoteSteering * maximumTurnRate;
+        remoteTurnRate = blend(remoteTurnRate, desiredTurnRate,
+                remoteSteering == 0
+                        ? (remoteAirborne ? getRemoteTurnDecay() : 0.28D)
+                        : (remoteAirborne ? getRemoteTurnResponse() : 0.44D));
+        if (remoteSteering == 0
+                && Math.abs(remoteTurnRate) > Math.abs(yawError)) {
+            remoteTurnRate = yawError;
+        }
+        float yaw = normalizeAngle(field_70177_z + (float) remoteTurnRate);
+        float requestedPitch = remoteDesiredPitch;
+        if (remoteAirborne && field_70163_u < homeY + 16.0D) {
+            requestedPitch = Math.min(requestedPitch, -11.0F);
+        }
+        float pitch = (float) blend(field_70125_A,
+                clamp(requestedPitch, getRemoteMinimumPitch(),
+                        getRemoteMaximumPitch()),
+                remoteAirborne ? getRemotePitchResponse() : 0.07D);
+        double targetSpeed = remoteThrottle * (remoteAirborne
+                ? getRemoteMaximumSpeed() : getRemoteGroundSpeed());
+        if (remoteAirborne) {
+            targetSpeed = Math.max(getRemoteMinimumFlightSpeed(), targetSpeed);
+        }
+        remoteSpeed = blend(remoteSpeed, targetSpeed,
+                remoteAirborne ? getRemoteThrottleResponse() : 0.065D);
+
+        double yawRadians = Math.toRadians(yaw);
+        double forwardX = -Math.sin(yawRadians);
+        double forwardZ = Math.cos(yawRadians);
+        if (!remoteAirborne) {
+            field_70177_z = yaw;
+            field_70125_A = Math.min(0.0F, pitch);
+            field_70159_w = blend(field_70159_w, forwardX * remoteSpeed, 0.24D);
+            field_70179_y = blend(field_70179_y, forwardZ * remoteSpeed, 0.24D);
+            field_70181_x = homeY - field_70163_u;
+            if (remoteThrottle >= getRemoteTakeoffThrottle()
+                    && remoteSpeed > getRemoteTakeoffSpeed()
+                    && stateTicks >= getRemoteTakeoffTicks()) {
+                remoteAirborne = true;
+                updateRemoteWatchers();
+                MissileTrackingService.registerLaunch(this, homeX, homeY, homeZ,
+                        floor(field_70165_t + forwardX * 800.0D),
+                        floor(field_70161_v + forwardZ * 800.0D), ownerTeam);
+                field_70170_p.func_72956_a(this,
+                        "hbm:weapon.missileTakeOffAlt", 1.1F, 0.82F);
+            }
+            return;
+        }
+
+        double pitchRadians = Math.toRadians(pitch);
+        double horizontal = Math.cos(pitchRadians);
+        double desiredX = forwardX * horizontal * remoteSpeed;
+        double desiredY = -Math.sin(pitchRadians) * remoteSpeed;
+        double desiredZ = forwardZ * horizontal * remoteSpeed;
+        int terrain = field_70170_p.func_72976_f(
+                floor(field_70165_t + desiredX * 5.0D),
+                floor(field_70161_v + desiredZ * 5.0D));
+        if (field_70163_u + desiredY * 5.0D < terrain + 2.5D) {
+            desiredY = Math.max(0.08D, desiredY);
+        }
+        field_70159_w = blend(field_70159_w, desiredX,
+                getRemoteHorizontalResponse());
+        field_70181_x = blend(field_70181_x, desiredY,
+                getRemoteVerticalResponse());
+        field_70179_y = blend(field_70179_y, desiredZ,
+                getRemoteHorizontalResponse());
+        field_70177_z = yaw;
+        field_70125_A = pitch;
+
+        double homeDx = homeX - field_70165_t;
+        double homeDz = homeZ - field_70161_v;
+        if (homeDx * homeDx + homeDz * homeDz < 1600.0D
+                && field_70163_u <= homeY + 1.15D
+                && remoteThrottle < 0.20F && remoteSpeed < 0.38D) {
+            finishLanding();
+            RemoteControlNetwork.sendControlState(controller, func_145782_y(), false,
+                    getRemoteVehicleType(), getAircraftName()
+                            + " landed. Remote control ended.");
+            clearRemoteController();
+        }
+    }
+
+    public boolean beginRemoteControl(EntityPlayer player) {
+        if (player == null || field_70170_p.field_72995_K) return false;
+        if (getState() == STATE_CRASHED) {
+            tell(player, getAircraftName() + " airframe is destroyed.");
+            RemoteControlNetwork.sendControlState(player, func_145782_y(), false,
+                    getRemoteVehicleType(), "");
+            return false;
+        }
+        String playerTeam = NetworkTeamHelper.getPlayerTeam(player);
+        if (ownerTeam.length() == 0) ownerTeam = playerTeam;
+        if (!NetworkTeamHelper.areFriendly(ownerTeam, playerTeam)) {
+            tell(player, "IFF denied: this " + getAircraftName()
+                    + " belongs to another team.");
+            RemoteControlNetwork.sendControlState(player, func_145782_y(), false,
+                    getRemoteVehicleType(), "");
+            return false;
+        }
+        String playerName = player.func_70005_c_();
+        if (remoteController.length() > 0
+                && !remoteController.equals(playerName)) {
+            tell(player, getAircraftName() + " is already controlled by "
+                    + remoteController + ".");
+            RemoteControlNetwork.sendControlState(player, func_145782_y(), false,
+                    getRemoteVehicleType(), "");
+            return false;
+        }
+        if (isReady()) {
+            if (getPower() < getLaunchEnergy()) {
+                tell(player, "Insufficient power for remote flight.");
+                RemoteControlNetwork.sendControlState(player, func_145782_y(), false,
+                        getRemoteVehicleType(), "");
+                return false;
+            }
+            setPower(getPower() - getLaunchEnergy());
+            remoteDesiredYaw = field_70177_z;
+            remoteDesiredPitch = 0.0F;
+            remoteAimYaw = remoteDesiredYaw;
+            remoteAimPitch = remoteDesiredPitch;
+            remoteTurnRate = 0.0D;
+            remoteThrottle = getRemoteInitialGroundThrottle();
+            remoteSpeed = 0.0D;
+            remoteAirborne = false;
+            landingPhase = 0;
+            weaponReleased = false;
+        } else {
+            remoteDesiredYaw = field_70177_z;
+            remoteDesiredPitch = field_70125_A;
+            remoteAimYaw = remoteDesiredYaw;
+            remoteAimPitch = remoteDesiredPitch;
+            remoteTurnRate = 0.0D;
+            remoteThrottle = getRemoteInitialFlightThrottle();
+            remoteSpeed = Math.sqrt(field_70159_w * field_70159_w
+                    + field_70181_x * field_70181_x
+                    + field_70179_y * field_70179_y);
+            remoteAirborne = true;
+        }
+        remoteSteering = 0;
+        if (getPayloadCountAt(getSelectedHardpoint()) <= 0) {
+            setSelectedHardpoint(firstLoadedHardpoint());
+        }
+        remoteController = playerName;
+        remoteLastInputTick = field_70173_aa;
+        beginRemotePresence(player);
+        setState(STATE_REMOTE);
+        MissileChunkLoader.track(this);
+        updateRemoteWatchers();
+        RemoteControlNetwork.sendControlState(player, func_145782_y(), true,
+                getRemoteVehicleType(), getAircraftName()
+                        + " remote link established. Your body remains at the control point.");
+        sendRemoteTelemetry();
+        return true;
+    }
+
+    public void handleRemoteInput(EntityPlayer player, float flightYaw,
+            float flightPitch, float aimYaw, float aimPitch, float throttle,
+            int flags) {
+        if (player == null || getState() != STATE_REMOTE
+                || !remoteController.equals(player.func_70005_c_())) {
+            RemoteControlNetwork.sendControlState(player, func_145782_y(), false,
+                    getRemoteVehicleType(), getAircraftName()
+                            + " remote link is not active.");
+            return;
+        }
+        if (!NetworkTeamHelper.areFriendly(ownerTeam,
+                NetworkTeamHelper.getPlayerTeam(player))) {
+            endRemoteControl("IFF changed. " + getAircraftName()
+                    + " is returning home.", true);
+            return;
+        }
+        remoteDesiredYaw = normalizeAngle(flightYaw);
+        remoteDesiredPitch = (float) clamp(flightPitch,
+                getRemoteInputMinimumPitch(), getRemoteInputMaximumPitch());
+        remoteAimYaw = normalizeAngle(aimYaw);
+        remoteAimPitch = (float) clamp(aimPitch, -60.0D, 60.0D);
+        remoteThrottle = (float) clamp(throttle, 0.0D, 1.0D);
+        boolean turnLeft = (flags & RemoteControlNetwork.FLAG_TURN_LEFT) != 0;
+        boolean turnRight = (flags & RemoteControlNetwork.FLAG_TURN_RIGHT) != 0;
+        remoteSteering = turnLeft == turnRight ? 0 : turnLeft ? -1 : 1;
+        remoteLastInputTick = field_70173_aa;
+        updateRemoteWatchers();
+        if ((flags & RemoteControlNetwork.FLAG_EXIT) != 0) {
+            endRemoteControl("Remote control released. " + getAircraftName()
+                    + " is returning home.", true);
+            return;
+        }
+        if ((flags & RemoteControlNetwork.FLAG_CYCLE_WEAPON) != 0) {
+            int selected = nextLoadedHardpoint(getSelectedHardpoint());
+            setSelectedHardpoint(selected);
+            field_70170_p.func_72956_a(this, "hbm:item.techBleep", 0.6F,
+                    0.82F + selected * 0.06F);
+            tell(player, "Hardpoint " + (selected + 1) + ": "
+                    + getSelectedHardpointName() + " x"
+                    + getPayloadCountAt(selected) + ".");
+        }
+        if ((flags & RemoteControlNetwork.FLAG_FLARES) != 0) {
+            if (!remoteAirborne) {
+                tell(player, getAircraftName()
+                        + " must be airborne to deploy flares.");
+            } else if (!DroneStrikeContent.isFlares(inventory[FLARE_SLOT])) {
+                tell(player, "No flares loaded.");
+            } else if (flareCooldown > 0) {
+                tell(player, "Flare dispenser is recharging.");
+            } else if (deployFlaresForThreat()) {
+                RemoteControlNetwork.sendEffect(player, func_145782_y(),
+                        RemoteControlNetwork.EFFECT_FLARES, field_70165_t,
+                        field_70163_u, field_70161_v, 0.0D, 0.0D, 0.0D, 0);
+                tell(player, "Flares deployed.");
+            }
+        }
+        if ((flags & RemoteControlNetwork.FLAG_FIRE) != 0) {
+            releaseRemoteWeapon(player);
+        }
+    }
+
+    private void endRemoteControl(String message, boolean returnHome) {
+        EntityPlayer controller = findRemoteController();
+        boolean wasRemoteAirborne = remoteAirborne;
+        RemoteControlNetwork.sendControlState(controller, func_145782_y(), false,
+                getRemoteVehicleType(), message);
+        clearRemoteController();
+        if (returnHome && getState() != STATE_CRASHED) {
+            if (wasRemoteAirborne || field_70163_u > homeY + 1.5D) {
+                setState(STATE_RETURN);
+            } else {
+                field_70159_w = field_70181_x = field_70179_y = 0.0D;
+                setState(STATE_READY);
+            }
+        }
+    }
+
+    private void clearRemoteController() {
+        restoreRemotePresence(findRemoteController());
+        remoteController = "";
+        remoteThrottle = 0.0F;
+        remoteAirborne = false;
+        remoteTurnRate = 0.0D;
+        remoteSteering = 0;
+        updateRemoteWatchers();
+    }
+
+    private EntityPlayer findRemoteController() {
+        return findPlayer(remoteController);
+    }
+
+    private EntityPlayer findPlayer(String playerName) {
+        if (playerName.length() == 0 || field_70170_p.field_73010_i == null) {
+            return null;
+        }
+        for (Object value : field_70170_p.field_73010_i) {
+            if (value instanceof EntityPlayer
+                    && !((EntityPlayer) value).field_70128_L
+                    && playerName.equals(((EntityPlayer) value).func_70005_c_())) {
+                return (EntityPlayer) value;
+            }
+        }
+        return null;
+    }
+
+    private void beginRemotePresence(EntityPlayer player) {
+        if (!(player instanceof EntityPlayerMP)) return;
+        EntityPlayerMP remotePlayer = (EntityPlayerMP) player;
+        remoteRestorePlayer = "";
+        remoteRestoreTicks = 0;
+        remoteAnchorX = player.field_70165_t;
+        remoteAnchorY = player.field_70163_u;
+        remoteAnchorZ = player.field_70161_v;
+        remoteAnchorYaw = player.field_70177_z;
+        remoteAnchorPitch = player.field_70125_A;
+        remoteAnchorNoClip = player.field_70145_X;
+        remoteAnchorInvisible = player.func_82150_aj();
+        remoteAnchorDisableDamage = player.field_71075_bZ.field_75102_a;
+        remoteAnchorAllowFlying = player.field_71075_bZ.field_75101_c;
+        remoteAnchorFlying = player.field_71075_bZ.field_75100_b;
+        remotePresenceActive = true;
+        player.field_70145_X = true;
+        player.field_70143_R = 0.0F;
+        player.func_82142_c(true);
+        player.field_71075_bZ.field_75102_a = true;
+        player.field_71075_bZ.field_75101_c = true;
+        player.field_71075_bZ.field_75100_b = true;
+        remotePlayer.func_71016_p();
+        teleportRemotePresence(remotePlayer);
+    }
+
+    private void maintainRemotePresence(EntityPlayer player) {
+        if (!remotePresenceActive || !(player instanceof EntityPlayerMP)) return;
+        EntityPlayerMP remotePlayer = (EntityPlayerMP) player;
+        double x = field_70165_t;
+        double y = field_70163_u + 2.4D;
+        double z = field_70161_v;
+        double dx = player.field_70165_t - x;
+        double dy = player.field_70163_u - y;
+        double dz = player.field_70161_v - z;
+        player.field_70159_w = 0.0D;
+        player.field_70181_x = 0.0D;
+        player.field_70179_y = 0.0D;
+        player.field_70143_R = 0.0F;
+        player.func_70107_b(x, y, z);
+        if ((stateTicks % 10 == 0 || dx * dx + dy * dy + dz * dz > 16.0D)
+                && remotePlayer.field_71135_a != null) {
+            remotePlayer.field_71135_a.func_147364_a(x, y, z,
+                    remoteAnchorYaw, remoteAnchorPitch);
+        }
+    }
+
+    private void teleportRemotePresence(EntityPlayerMP player) {
+        double x = field_70165_t;
+        double y = field_70163_u + 2.4D;
+        double z = field_70161_v;
+        player.func_70107_b(x, y, z);
+        if (player.field_71135_a != null) {
+            player.field_71135_a.func_147364_a(x, y, z,
+                    remoteAnchorYaw, remoteAnchorPitch);
+        }
+    }
+
+    private void restoreRemotePresence(EntityPlayer player) {
+        if (!remotePresenceActive) return;
+        remotePresenceActive = false;
+        if (!(player instanceof EntityPlayerMP)) return;
+        EntityPlayerMP remotePlayer = (EntityPlayerMP) player;
+        remoteRestorePlayer = player.func_70005_c_();
+        remoteRestoreTicks = 12;
+        player.field_70145_X = remoteAnchorNoClip;
+        player.func_82142_c(remoteAnchorInvisible);
+        player.field_71075_bZ.field_75102_a = remoteAnchorDisableDamage;
+        player.field_71075_bZ.field_75101_c = remoteAnchorAllowFlying;
+        player.field_71075_bZ.field_75100_b = remoteAnchorFlying;
+        remotePlayer.func_71016_p();
+        player.field_70159_w = 0.0D;
+        player.field_70181_x = 0.0D;
+        player.field_70179_y = 0.0D;
+        player.field_70143_R = 0.0F;
+        forceRestoreLocation(remotePlayer, true);
+    }
+
+    private void tickRemoteRestore() {
+        if (remoteRestoreTicks <= 0 || remoteRestorePlayer.length() == 0) return;
+        EntityPlayer player = findPlayer(remoteRestorePlayer);
+        if (player instanceof EntityPlayerMP) {
+            forceRestoreLocation((EntityPlayerMP) player,
+                    remoteRestoreTicks == 8 || remoteRestoreTicks == 4
+                    || remoteRestoreTicks == 1);
+        }
+        remoteRestoreTicks--;
+        if (remoteRestoreTicks <= 0) remoteRestorePlayer = "";
+    }
+
+    private void forceRestoreLocation(EntityPlayerMP player,
+            boolean sendLocation) {
+        player.field_70159_w = 0.0D;
+        player.field_70181_x = 0.0D;
+        player.field_70179_y = 0.0D;
+        player.field_70143_R = 0.0F;
+        player.func_70107_b(remoteAnchorX, remoteAnchorY, remoteAnchorZ);
+        if (sendLocation && player.field_71135_a != null) {
+            player.field_71135_a.func_147364_a(remoteAnchorX,
+                    remoteAnchorY, remoteAnchorZ,
+                    remoteAnchorYaw, remoteAnchorPitch);
+        }
+    }
+
+    private void updateRemoteWatchers() {
+        int status = Math.round(remoteThrottle * 1000.0F) & REMOTE_THROTTLE_MASK;
+        if (remoteAirborne) status |= REMOTE_FLAG_AIRBORNE;
+        status |= getSelectedHardpoint() << REMOTE_HARDPOINT_SHIFT;
+        field_70180_af.func_75692_b(DW_REMOTE_STATUS, Integer.valueOf(status));
+    }
+
+    private void sendRemoteTelemetry() {
+        EntityPlayer controller = findRemoteController();
+        if (controller != null) {
+            RemoteControlNetwork.sendTelemetry(controller, this);
         }
     }
 
@@ -361,6 +869,88 @@ public class EntityMq9Drone extends Entity
         if (!advanceMissionTarget()) {
             setState(STATE_RETURN);
         }
+    }
+
+    private void releaseRemoteWeapon(EntityPlayer player) {
+        if (!remoteAirborne) {
+            tell(player, getAircraftName()
+                    + " must be airborne to release weapons.");
+            return;
+        }
+        if (remoteWeaponCooldown > 0) return;
+        int slot = getSelectedHardpoint();
+        int payload = getPayloadAt(slot);
+        if (payload < 0 || slot < 0) {
+            tell(player, "Selected hardpoint is empty. Press Z to select another.");
+            remoteWeaponCooldown = 15;
+            return;
+        }
+        int energyCost = AviationOrdnance.getEnergyCost(payload);
+        if (getPower() < energyCost) {
+            tell(player, "Insufficient " + getAircraftName()
+                    + " power for weapon release.");
+            remoteWeaponCooldown = 15;
+            return;
+        }
+        int[] aim = calculateRemoteAim();
+        EntityMq9Munition munition = new EntityMq9Munition(field_70170_p, payload,
+                aim[0], aim[1], aim[2]);
+        double side = getHardpointOffset(slot);
+        double forward = getHardpointForwardOffset(slot);
+        double yaw = Math.toRadians(field_70177_z);
+        double rightX = Math.cos(yaw);
+        double rightZ = Math.sin(yaw);
+        double forwardX = -Math.sin(yaw);
+        double forwardZ = Math.cos(yaw);
+        munition.func_70012_b(field_70165_t + rightX * side + forwardX * forward,
+                field_70163_u + getWeaponReleaseYOffset(slot),
+                field_70161_v + rightZ * side + forwardZ * forward,
+                field_70177_z, field_70125_A);
+        munition.setLaunchMotion(field_70159_w, field_70181_x, field_70179_y);
+        munition.setOwnerTeam(ownerTeam);
+        field_70170_p.func_72838_d(munition);
+        MissileTrackingService.registerLaunch(munition, field_70165_t,
+                field_70163_u, field_70161_v, aim[0], aim[2], ownerTeam);
+        inventory[slot].field_77994_a--;
+        if (inventory[slot].field_77994_a <= 0) inventory[slot] = null;
+        updatePayloadWatcher();
+        setPower(getPower() - energyCost);
+        remoteWeaponCooldown = AviationOrdnance.isPowered(payload) ? 12 : 8;
+        field_70170_p.func_72956_a(this,
+                AviationOrdnance.isPowered(payload)
+                        ? "hbm:weapon.missileTakeOff" : "random.pop",
+                AviationOrdnance.isPowered(payload) ? 1.8F : 0.8F,
+                AviationOrdnance.isPowered(payload) ? 1.2F : 0.76F);
+        RemoteControlNetwork.sendEffect(player, func_145782_y(),
+                RemoteControlNetwork.EFFECT_WEAPON, munition.field_70165_t,
+                munition.field_70163_u, munition.field_70161_v,
+                aim[0] + 0.5D, aim[1] + 0.8D, aim[2] + 0.5D, payload);
+        tell(player, "Weapon away: hardpoint " + (slot + 1) + " "
+                + getPayloadName(payload) + ".");
+    }
+
+    private int[] calculateRemoteAim() {
+        double yaw = Math.toRadians(remoteAimYaw);
+        double pitch = Math.toRadians(remoteAimPitch);
+        double horizontal = Math.cos(pitch);
+        double directionX = -Math.sin(yaw) * horizontal;
+        double directionY = -Math.sin(pitch);
+        double directionZ = Math.cos(yaw) * horizontal;
+        double lastX = field_70165_t;
+        double lastZ = field_70161_v;
+        for (double distance = 12.0D; distance <= 1200.0D; distance += 4.0D) {
+            double x = field_70165_t + directionX * distance;
+            double y = field_70163_u + directionY * distance;
+            double z = field_70161_v + directionZ * distance;
+            lastX = x;
+            lastZ = z;
+            int ground = field_70170_p.func_72976_f(floor(x), floor(z));
+            if (y <= ground + 1.0D) {
+                return new int[] {floor(x), ground, floor(z)};
+            }
+        }
+        int ground = field_70170_p.func_72976_f(floor(lastX), floor(lastZ));
+        return new int[] {floor(lastX), ground, floor(lastZ)};
     }
 
     private boolean advanceMissionTarget() {
@@ -500,6 +1090,11 @@ public class EntityMq9Drone extends Entity
     public boolean beginCombatCrash() {
         if (field_70170_p.field_72995_K || field_70128_L
                 || getState() == STATE_CRASHED) return false;
+        EntityPlayer controller = findRemoteController();
+        RemoteControlNetwork.sendControlState(controller, func_145782_y(), false,
+                getRemoteVehicleType(), getAircraftName()
+                        + " destroyed. Remote feed lost.");
+        clearRemoteController();
         vehicleHealth = 0.0D;
         updateHealthWatcher();
         setState(STATE_CRASHED);
@@ -717,6 +1312,11 @@ public class EntityMq9Drone extends Entity
     }
 
     public void commandReturn(EntityPlayer player) {
+        if (getState() == STATE_REMOTE) {
+            endRemoteControl(getAircraftName() + " return-to-base command accepted.",
+                    true);
+            return;
+        }
         if (isFlying()) {
             setState(STATE_RETURN);
             tell(player, getAircraftName() + " return-to-base command accepted.");
@@ -1028,6 +1628,7 @@ public class EntityMq9Drone extends Entity
         tag.func_74768_a("TargetZ", getTargetZ());
         tag.func_74757_a("TargetValid", hasTarget());
         tag.func_74774_a("Selected", (byte) getSelectedPayload());
+        tag.func_74774_a("SelectedHardpoint", (byte) getSelectedHardpoint());
         tag.func_74780_a("HomeX", homeX);
         tag.func_74780_a("HomeY", homeY);
         tag.func_74780_a("HomeZ", homeZ);
@@ -1124,8 +1725,15 @@ public class EntityMq9Drone extends Entity
                     ? ItemStack.func_77949_a(tag.func_74775_l(key)) : null;
         }
         updatePayloadWatcher();
+        setSelectedHardpoint(tag.func_74764_b("SelectedHardpoint")
+                ? tag.func_74771_c("SelectedHardpoint")
+                : firstLoadedHardpoint());
         updateHealthWatcher();
         if (targetCount > 0) syncActiveTarget(); else updateTargetQueueWatcher();
+        if (getState() == STATE_REMOTE) {
+            setState(STATE_RETURN);
+            clearRemoteController();
+        }
     }
 
     @Override public int func_70302_i_() { return inventory.length; }
@@ -1184,16 +1792,16 @@ public class EntityMq9Drone extends Entity
     }
 
     @Override public RadarTargetType getTargetType() {
-        return isFlying() ? RadarTargetType.MISSILE_TIER0 : RadarTargetType.PLAYER;
+        return isRadarAirborne() ? RadarTargetType.MISSILE_TIER0 : RadarTargetType.PLAYER;
     }
-    @Override public int getBlipLevel() { return isFlying() ? 1 : -1; }
+    @Override public int getBlipLevel() { return isRadarAirborne() ? 1 : -1; }
     @Override public String getUnlocalizedName() { return "MQ-9 Reaper"; }
     @Override public boolean canBeSeenBy(Object radar) { return getBlipLevel() >= 0; }
     @Override public boolean paramsApplicable(IRadarDetectableNT.RadarScanParams params) { return true; }
     @Override public boolean suppliesRedstone(IRadarDetectableNT.RadarScanParams params) { return false; }
 
     @Override public boolean func_70104_M() {
-        return isReady() || getState() == STATE_CRASHED;
+        return isGrounded() || getState() == STATE_CRASHED;
     }
     @Override public boolean func_70067_L() { return !field_70128_L; }
     @Override public float func_70111_Y() { return 0.45F; }
@@ -1202,12 +1810,12 @@ public class EntityMq9Drone extends Entity
     }
     @Override public AxisAlignedBB func_70046_E() { return field_70121_D; }
     @Override public AxisAlignedBB func_70114_g(Entity entity) {
-        return isReady() || getState() == STATE_CRASHED
+        return isGrounded() || getState() == STATE_CRASHED
                 ? entity.field_70121_D : null;
     }
 
     protected void updateBounds() {
-        double half = isReady() || getState() == STATE_CRASHED
+        double half = isGrounded() || getState() == STATE_CRASHED
                 ? getGroundBoundsRadius() : getFlightBoundsRadius();
         field_70121_D.func_72324_b(field_70165_t - half, field_70163_u - 0.2D,
                 field_70161_v - half, field_70165_t + half,
@@ -1215,12 +1823,53 @@ public class EntityMq9Drone extends Entity
     }
 
     public String getAircraftName() { return "MQ-9"; }
+    public String getSelectedPayloadName() {
+        return getPayloadName(getSelectedPayload());
+    }
+    public String getSelectedHardpointName() {
+        return getPayloadName(getPayloadAt(getSelectedHardpoint()));
+    }
+    public static String getPayloadName(int payload) {
+        switch (payload) {
+            case ItemMq9Payload.GBU12: return "GBU-12";
+            case ItemMq9Payload.MK82: return "MK 82";
+            case ItemMq9Payload.HJ10: return "HJ-10";
+            case ItemMq9Payload.AGM65: return "AGM-65";
+            case ItemMq9Payload.KH29: return "KH-29";
+            case ItemMq9Payload.KAB500L: return "KAB-500L";
+            case ItemMq9Payload.JDAM: return "JDAM";
+            case ItemMq9Payload.AAM: return "WT-AAM";
+            case ItemMq9Payload.HELLFIRE: return "AGM-114";
+            default: return "EMPTY";
+        }
+    }
     public int getCarrierClass() { return AviationOrdnance.CARRIER_MQ9; }
     public int getHardpointCount() { return 6; }
     public int getMaximumTargets() {
         return Math.max(1, Math.min(MAX_TARGETS, getHardpointCount()));
     }
     public int getMissionRange() { return MAX_MISSION_RANGE; }
+    protected double getRemoteMaximumTurnRate() { return 2.15D; }
+    protected double getRemoteGroundTurnRate() { return 3.0D; }
+    protected double getRemoteYawErrorGain() { return 0.12D; }
+    protected double getRemoteTurnResponse() { return 0.36D; }
+    protected double getRemoteTurnDecay() { return 0.20D; }
+    protected double getRemoteMinimumPitch() { return -32.0D; }
+    protected double getRemoteMaximumPitch() { return 28.0D; }
+    protected double getRemoteInputMinimumPitch() { return -24.0D; }
+    protected double getRemoteInputMaximumPitch() { return 20.0D; }
+    protected double getRemotePitchResponse() { return 0.09D; }
+    protected double getRemoteMaximumSpeed() { return 0.92D; }
+    protected double getRemoteGroundSpeed() { return 0.68D; }
+    protected double getRemoteMinimumFlightSpeed() { return 0.27D; }
+    protected double getRemoteThrottleResponse() { return 0.045D; }
+    protected double getRemoteHorizontalResponse() { return 0.18D; }
+    protected double getRemoteVerticalResponse() { return 0.11D; }
+    protected float getRemoteTakeoffThrottle() { return 0.42F; }
+    protected double getRemoteTakeoffSpeed() { return 0.28D; }
+    protected int getRemoteTakeoffTicks() { return 18; }
+    protected float getRemoteInitialGroundThrottle() { return 0.28F; }
+    protected float getRemoteInitialFlightThrottle() { return 0.55F; }
     public int getEnergyCapacity() { return ENERGY_CAPACITY; }
     protected int getEnergyPerTick() { return ENERGY_PER_TICK; }
     protected int getLaunchEnergy() { return LAUNCH_ENERGY; }
@@ -1268,6 +1917,21 @@ public class EntityMq9Drone extends Entity
         return AviationOrdnance.HELLFIRE;
     }
 
+    private int firstLoadedHardpoint() {
+        for (int slot = 0; slot < getHardpointCount(); ++slot) {
+            if (getPayloadCountAt(slot) > 0) return slot;
+        }
+        return 0;
+    }
+
+    private int nextLoadedHardpoint(int current) {
+        for (int offset = 1; offset <= getHardpointCount(); ++offset) {
+            int slot = (current + offset) % getHardpointCount();
+            if (getPayloadCountAt(slot) > 0) return slot;
+        }
+        return Math.max(0, Math.min(getHardpointCount() - 1, current));
+    }
+
     private static int floor(double value) { return (int) Math.floor(value); }
     private static double blend(double current, double target, double amount) {
         return current + (target - current) * amount;
@@ -1275,6 +1939,32 @@ public class EntityMq9Drone extends Entity
     private static double clamp(double value, double minimum, double maximum) {
         return value < minimum ? minimum : value > maximum ? maximum : value;
     }
+    private boolean isGrounded() {
+        return isReady() || getState() == STATE_REMOTE && !isRemoteAirborne();
+    }
+    private boolean isRadarAirborne() {
+        return isFlying() && (getState() != STATE_REMOTE || isRemoteAirborne());
+    }
+    public boolean isRemoteAirborne() {
+        return (field_70180_af.func_75679_c(DW_REMOTE_STATUS)
+                & REMOTE_FLAG_AIRBORNE) != 0;
+    }
+    private static float normalizeAngle(float angle) {
+        while (angle <= -180.0F) angle += 360.0F;
+        while (angle > 180.0F) angle -= 360.0F;
+        return angle;
+    }
+    private static float approachAngle(float current, float target,
+            float maximumStep) {
+        float difference = normalizeAngle(target - current);
+        if (difference > maximumStep) difference = maximumStep;
+        if (difference < -maximumStep) difference = -maximumStep;
+        return normalizeAngle(current + difference);
+    }
+    @Override public int wartecGetWirePower() { return getPower(); }
+    @Override public void wartecSetWirePower(int power) { setPower(power); }
+    @Override public int wartecGetWireCapacity() { return getEnergyCapacity(); }
+
     private static void tell(EntityPlayer player, String text) {
         if (player != null) player.func_145747_a(new ChatComponentText(text));
     }

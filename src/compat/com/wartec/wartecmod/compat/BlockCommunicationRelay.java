@@ -38,7 +38,8 @@ public final class BlockCommunicationRelay extends BlockContainer {
         if (tile instanceof TileEntityCommunicationRelay
                 && placer instanceof EntityPlayer) {
             ((TileEntityCommunicationRelay) tile).setOwnerTeam(
-                    NetworkTeamHelper.getPlayerTeam((EntityPlayer) placer));
+                    TeamOwnedItemHelper.resolvePlacementTeam(
+                            stack, (EntityPlayer) placer));
         }
         if (!world.field_72995_K) {
             boolean clear = true;

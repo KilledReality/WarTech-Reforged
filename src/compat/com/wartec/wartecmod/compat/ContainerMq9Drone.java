@@ -69,6 +69,14 @@ public final class ContainerMq9Drone extends Container {
     }
 
     @Override public boolean func_75140_a(EntityPlayer player, int action) {
+        if (action == 4
+                && !(drone instanceof com.wartec.wartecmod.entity.missile.EntityTacticalAircraft)) {
+            return drone.beginRemoteControl(player);
+        }
+        if (action == 5
+                && drone instanceof com.wartec.wartecmod.entity.missile.EntityTacticalAircraft) {
+            return drone.beginRemoteControl(player);
+        }
         return drone.handleGuiAction(action, player);
     }
 

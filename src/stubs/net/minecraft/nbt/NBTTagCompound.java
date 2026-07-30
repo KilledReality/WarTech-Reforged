@@ -21,6 +21,10 @@ public class NBTTagCompound extends NBTBase {
         Object value = values.get(key);
         return value instanceof NBTTagCompound ? (NBTTagCompound) value : new NBTTagCompound();
     }
+    public NBTTagList func_150295_c(String key, int type) {
+        Object value = values.get(key);
+        return value instanceof NBTTagList ? (NBTTagList) value : new NBTTagList();
+    }
     public NBTBase func_74737_b() {
         NBTTagCompound copy = new NBTTagCompound();
         copy.values.putAll(values);

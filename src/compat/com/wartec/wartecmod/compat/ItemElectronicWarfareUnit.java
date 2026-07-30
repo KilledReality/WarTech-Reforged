@@ -50,7 +50,8 @@ public final class ItemElectronicWarfareUnit extends Item {
         }
         EntityElectronicWarfareUnit unit = new EntityElectronicWarfareUnit(world);
         unit.setMode(stack.func_77960_j());
-        unit.setOwnerTeam(NetworkTeamHelper.getPlayerTeam(player));
+        unit.setOwnerTeam(TeamOwnedItemHelper.resolvePlacementTeam(
+                stack, player));
         unit.func_70012_b(x + 0.5D, y + 1.02D, z + 0.5D,
                 Math.round(player.field_70177_z / 90.0F) * 90.0F, 0.0F);
         if (!world.func_72838_d(unit)) {

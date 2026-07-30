@@ -6,6 +6,9 @@ import com.wartec.wartecmod.compat.IRadarGuiTarget;
 import com.wartec.wartecmod.compat.RadarGuiHandler;
 import com.wartec.wartecmod.compat.VehicleEnergyHelper;
 import com.wartec.wartecmod.compat.WarTecBootstrap;
+import com.wartec.wartecmod.compat.HbmEntityPowerLink;
+import com.wartec.wartecmod.compat.IWirePoweredEntity;
+import com.wartec.wartecmod.compat.ITeamOwned;
 import cpw.mods.fml.common.network.internal.FMLNetworkHandler;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.EntityPlayer;
@@ -17,7 +20,8 @@ import net.minecraft.util.DamageSource;
 import net.minecraft.world.World;
 
 public final class EntityS400Radar extends Entity
-        implements IAntiRadiationTarget, IRadarGuiTarget {
+        implements IAntiRadiationTarget, IRadarGuiTarget, IWirePoweredEntity,
+        ITeamOwned {
     public static final double RADAR_RANGE = 1200.0D;
     public static final double RADAR_CEILING = 900.0D;
     public static final int CONTACT_LIMIT = 32;
@@ -70,6 +74,12 @@ public final class EntityS400Radar extends Entity
         return field_70180_af.func_75679_c(DW_POWER);
     }
 
+    @Override
+    public String getOwnerTeam() {
+        return ownerTeam;
+    }
+
+    @Override
     public void setOwnerTeam(String team) {
         ownerTeam = team == null ? "" : team;
     }
@@ -84,6 +94,7 @@ public final class EntityS400Radar extends Entity
         if (field_70170_p.field_72995_K) {
             return;
         }
+        HbmEntityPowerLink.tick(this);
         int power = VehicleEnergyHelper.chargeFromStack(battery,
                 getPower(), ENERGY_CAPACITY);
         if (power != getPower()) {
@@ -244,6 +255,7 @@ public final class EntityS400Radar extends Entity
         tag.func_74768_a("Power", getPower());
         tag.func_74780_a("RadarHealth", radarHealth);
         tag.func_74778_a("RadarTeam", ownerTeam);
+        tag.func_74778_a("WarTechOwnerTeam", ownerTeam);
         if (battery != null) {
             tag.func_74782_a("RadarBattery", battery.func_77955_b(new NBTTagCompound()));
         }
@@ -259,7 +271,9 @@ public final class EntityS400Radar extends Entity
             radarHealth = Math.max(1.0D,
                     Math.min(MAX_HEALTH, tag.func_74769_h("RadarHealth")));
         }
-        ownerTeam = tag.func_74779_i("RadarTeam");
+        ownerTeam = tag.func_74764_b("WarTechOwnerTeam")
+                ? tag.func_74779_i("WarTechOwnerTeam")
+                : tag.func_74779_i("RadarTeam");
         battery = tag.func_74764_b("RadarBattery")
                 ? ItemStack.func_77949_a(tag.func_74775_l("RadarBattery")) : null;
     }
@@ -278,6 +292,9 @@ public final class EntityS400Radar extends Entity
                 Math.min(ENERGY_CAPACITY, power))));
     }
     @Override public int wartecGetCapacity() { return ENERGY_CAPACITY; }
+    @Override public int wartecGetWirePower() { return getPower(); }
+    @Override public void wartecSetWirePower(int power) { wartecSetPower(power); }
+    @Override public int wartecGetWireCapacity() { return ENERGY_CAPACITY; }
     @Override public int wartecGetContacts() { return getRadarContacts(); }
     @Override public int wartecGetRange() { return (int) RADAR_RANGE; }
     @Override public int wartecGetCeiling() { return (int) RADAR_CEILING; }

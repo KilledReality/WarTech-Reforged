@@ -2,6 +2,7 @@ package com.wartec.wartecmod.entity.missile;
 
 import com.wartec.wartecmod.compat.AviationOrdnance;
 import com.wartec.wartecmod.compat.MissileTrackingService;
+import com.wartec.wartecmod.compat.RemoteControlNetwork;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.nbt.NBTTagCompound;
@@ -225,6 +226,72 @@ public final class EntityTacticalAircraft extends EntityMq9Drone {
         }
         return getVariant() == SU27 ? 3400 : 3000;
     }
+
+    @Override public int getRemoteVehicleType() {
+        return getVariant() == SU27
+                ? RemoteControlNetwork.VEHICLE_SU27
+                : RemoteControlNetwork.VEHICLE_F16;
+    }
+
+    @Override protected double getRemoteMaximumTurnRate() {
+        return getVariant() == SU27 ? 3.65D : 4.20D;
+    }
+    @Override protected double getRemoteGroundTurnRate() {
+        return getVariant() == SU27 ? 2.10D : 2.35D;
+    }
+    @Override protected double getRemoteYawErrorGain() {
+        return getVariant() == SU27 ? 0.16D : 0.19D;
+    }
+    @Override protected double getRemoteTurnResponse() {
+        return getVariant() == SU27 ? 0.28D : 0.32D;
+    }
+    @Override protected double getRemoteTurnDecay() {
+        return getVariant() == SU27 ? 0.15D : 0.18D;
+    }
+    @Override protected double getRemoteMinimumPitch() {
+        return getVariant() == SU27 ? -38.0D : -42.0D;
+    }
+    @Override protected double getRemoteMaximumPitch() {
+        return getVariant() == SU27 ? 31.0D : 34.0D;
+    }
+    @Override protected double getRemoteInputMinimumPitch() {
+        return getRemoteMinimumPitch();
+    }
+    @Override protected double getRemoteInputMaximumPitch() {
+        return getRemoteMaximumPitch();
+    }
+    @Override protected double getRemotePitchResponse() {
+        return getVariant() == SU27 ? 0.105D : 0.12D;
+    }
+    @Override protected double getRemoteMaximumSpeed() {
+        return getVariant() == SU27 ? 1.22D : 1.34D;
+    }
+    @Override protected double getRemoteGroundSpeed() {
+        return getVariant() == SU27 ? 0.88D : 0.96D;
+    }
+    @Override protected double getRemoteMinimumFlightSpeed() {
+        return getVariant() == SU27 ? 0.46D : 0.50D;
+    }
+    @Override protected double getRemoteThrottleResponse() {
+        return getVariant() == SU27 ? 0.055D : 0.065D;
+    }
+    @Override protected double getRemoteHorizontalResponse() {
+        return getVariant() == SU27 ? 0.24D : 0.28D;
+    }
+    @Override protected double getRemoteVerticalResponse() {
+        return getVariant() == SU27 ? 0.15D : 0.18D;
+    }
+    @Override protected float getRemoteTakeoffThrottle() {
+        return getVariant() == SU27 ? 0.68F : 0.64F;
+    }
+    @Override protected double getRemoteTakeoffSpeed() {
+        return getVariant() == SU27 ? 0.70D : 0.76D;
+    }
+    @Override protected int getRemoteTakeoffTicks() {
+        return getVariant() == SU27 ? 58 : 50;
+    }
+    @Override protected float getRemoteInitialGroundThrottle() { return 0.18F; }
+    @Override protected float getRemoteInitialFlightThrottle() { return 0.62F; }
 
     @Override public int getEnergyCapacity() {
         return getVariant() == SU27 ? 1800000 : 1400000;

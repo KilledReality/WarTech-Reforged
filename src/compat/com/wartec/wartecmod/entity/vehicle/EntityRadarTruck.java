@@ -6,6 +6,9 @@ import com.wartec.wartecmod.compat.IRadarGuiTarget;
 import com.wartec.wartecmod.compat.RadarGuiHandler;
 import com.wartec.wartecmod.compat.VehicleEnergyHelper;
 import com.wartec.wartecmod.compat.WarTecBootstrap;
+import com.wartec.wartecmod.compat.HbmEntityPowerLink;
+import com.wartec.wartecmod.compat.IWirePoweredEntity;
+import com.wartec.wartecmod.compat.ITeamOwned;
 import cpw.mods.fml.common.network.internal.FMLNetworkHandler;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.EntityPlayer;
@@ -16,7 +19,8 @@ import net.minecraft.util.DamageSource;
 import net.minecraft.world.World;
 
 public final class EntityRadarTruck extends Entity
-        implements IAntiRadiationTarget, IRadarGuiTarget {
+        implements IAntiRadiationTarget, IRadarGuiTarget, IWirePoweredEntity,
+        ITeamOwned {
     public static final double RADAR_RANGE = 600.0D;
     public static final double RADAR_CEILING = 500.0D;
     public static final int ENERGY_CAPACITY = 1000000;
@@ -66,6 +70,12 @@ public final class EntityRadarTruck extends Entity
         return isRadarActive() && getPower() >= ENERGY_USE;
     }
 
+    @Override
+    public String getOwnerTeam() {
+        return ownerTeam;
+    }
+
+    @Override
     public void setOwnerTeam(String team) {
         ownerTeam = team == null ? "" : team;
     }
@@ -80,6 +90,7 @@ public final class EntityRadarTruck extends Entity
         if (field_70170_p.field_72995_K) {
             return;
         }
+        HbmEntityPowerLink.tick(this);
         int charged = VehicleEnergyHelper.chargeFromStack(battery,
                 getPower(), ENERGY_CAPACITY);
         if (charged != getPower()) {
@@ -229,6 +240,7 @@ public final class EntityRadarTruck extends Entity
         tag.func_74757_a("RadarActive", isRadarActive());
         tag.func_74780_a("RadarHealth", radarHealth);
         tag.func_74778_a("RadarTeam", ownerTeam);
+        tag.func_74778_a("WarTechOwnerTeam", ownerTeam);
         tag.func_74768_a("RadarPower", getPower());
         if (battery != null) {
             tag.func_74782_a("RadarBattery", battery.func_77955_b(new NBTTagCompound()));
@@ -242,7 +254,9 @@ public final class EntityRadarTruck extends Entity
         if (tag.func_74764_b("RadarHealth")) {
             radarHealth = Math.max(1.0D, Math.min(MAX_HEALTH, tag.func_74769_h("RadarHealth")));
         }
-        ownerTeam = tag.func_74779_i("RadarTeam");
+        ownerTeam = tag.func_74764_b("WarTechOwnerTeam")
+                ? tag.func_74779_i("WarTechOwnerTeam")
+                : tag.func_74779_i("RadarTeam");
         if (tag.func_74764_b("RadarPower")) {
             field_70180_af.func_75692_b(DW_POWER, Integer.valueOf(Math.max(0,
                     Math.min(ENERGY_CAPACITY, tag.func_74762_e("RadarPower")))));
@@ -265,6 +279,9 @@ public final class EntityRadarTruck extends Entity
                 Math.min(ENERGY_CAPACITY, power))));
     }
     @Override public int wartecGetCapacity() { return ENERGY_CAPACITY; }
+    @Override public int wartecGetWirePower() { return getPower(); }
+    @Override public void wartecSetWirePower(int power) { wartecSetPower(power); }
+    @Override public int wartecGetWireCapacity() { return ENERGY_CAPACITY; }
     @Override public int wartecGetContacts() { return getRadarContacts(); }
     @Override public int wartecGetRange() { return (int) RADAR_RANGE; }
     @Override public int wartecGetCeiling() { return (int) RADAR_CEILING; }

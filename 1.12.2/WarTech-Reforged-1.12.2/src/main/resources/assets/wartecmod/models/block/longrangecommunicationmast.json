@@ -1,0 +1,21 @@
+{
+  "ambientocclusion": false,
+  "textures": {
+    "particle": "minecraft:blocks/iron_block",
+    "mast": "minecraft:blocks/iron_block"
+  },
+  "elements": [
+    {
+      "from": [2, 0, 2],
+      "to": [14, 16, 14],
+      "faces": {
+        "down": {"texture": "#mast"},
+        "up": {"texture": "#mast"},
+        "north": {"texture": "#mast"},
+        "south": {"texture": "#mast"},
+        "west": {"texture": "#mast"},
+        "east": {"texture": "#mast"}
+      }
+    }
+  ]
+}

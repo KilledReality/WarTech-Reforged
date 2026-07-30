@@ -91,9 +91,12 @@ public final class SalvageWrenchCompat {
             dropInventory(tile, world, x, y, z);
             Item item = Item.func_150898_a(block);
             if (item != null) {
+                ItemStack recovered = TeamOwnedItemHelper.preserveOwner(
+                        new ItemStack(item, 1,
+                                world.func_72805_g(x, y, z)), tile);
                 world.func_72838_d(new EntityItem(world,
                         x + 0.5D, y + 0.5D, z + 0.5D,
-                        new ItemStack(item, 1, world.func_72805_g(x, y, z))));
+                        recovered));
             }
         }
         world.func_147468_f(x, y, z);
@@ -121,40 +124,37 @@ public final class SalvageWrenchCompat {
     }
 
     private static ItemStack recoveryStack(Entity entity) {
+        ItemStack recovered;
         if (entity instanceof EntityTacticalAircraft) {
-            return new ItemStack(((EntityTacticalAircraft) entity).getVariant()
+            recovered = new ItemStack(
+                    ((EntityTacticalAircraft) entity).getVariant()
                     == EntityTacticalAircraft.SU27
                     ? TacticalAviationContent.su27Aircraft
                     : TacticalAviationContent.f16Aircraft);
-        }
-        if (entity instanceof EntityMq9Drone) {
-            return new ItemStack(DroneStrikeContent.mq9Drone);
-        }
-        if (entity instanceof EntityTu95Bomber) {
-            return new ItemStack(StrategicAviationContent.tu95Bomber);
-        }
-        if (entity instanceof EntityRadarTruck) {
-            return new ItemStack(RadarNetworkContent.radarTruck);
-        }
-        if (entity instanceof EntityS400Radar) {
-            return new ItemStack(RadarNetworkContent.s400Radar);
-        }
-        if (entity instanceof EntityCommandTruck) {
-            return new ItemStack(RadarNetworkContent.commandTruck);
-        }
-        if (entity instanceof EntityElectronicWarfareUnit) {
-            return new ItemStack(RadarNetworkContent.electronicWarfareUnit,
+        } else if (entity instanceof EntityMq9Drone) {
+            recovered = new ItemStack(DroneStrikeContent.mq9Drone);
+        } else if (entity instanceof EntityTu95Bomber) {
+            recovered = new ItemStack(StrategicAviationContent.tu95Bomber);
+        } else if (entity instanceof EntityRadarTruck) {
+            recovered = new ItemStack(RadarNetworkContent.radarTruck);
+        } else if (entity instanceof EntityS400Radar) {
+            recovered = new ItemStack(RadarNetworkContent.s400Radar);
+        } else if (entity instanceof EntityCommandTruck) {
+            recovered = new ItemStack(RadarNetworkContent.commandTruck);
+        } else if (entity instanceof EntityElectronicWarfareUnit) {
+            recovered = new ItemStack(
+                    RadarNetworkContent.electronicWarfareUnit,
                     1, ((EntityElectronicWarfareUnit) entity).getMode());
-        }
-        if (entity instanceof EntityMobileAirDefense) {
-            return new ItemStack(RadarNetworkContent.mobileAirDefense,
+        } else if (entity instanceof EntityMobileAirDefense) {
+            recovered = new ItemStack(RadarNetworkContent.mobileAirDefense,
                     1, ((EntityMobileAirDefense) entity).getVariant());
-        }
-        if (entity instanceof EntityMobileArtillery) {
-            return new ItemStack(MobileArtilleryContent.mobileArtillery,
+        } else if (entity instanceof EntityMobileArtillery) {
+            recovered = new ItemStack(MobileArtilleryContent.mobileArtillery,
                     1, ((EntityMobileArtillery) entity).getMount());
+        } else {
+            return null;
         }
-        return null;
+        return TeamOwnedItemHelper.preserveOwner(recovered, entity);
     }
 
     private static boolean isRecoverableBlock(Block block) {

@@ -11,6 +11,8 @@ public class GuiScreen extends Gui {
     public void func_73863_a(int mouseX, int mouseY, float partialTicks) {}
     public void func_146276_q_() {}
     public void func_73866_w_() {}
+    public void func_73876_c() {}
     protected void func_146284_a(GuiButton button) {}
+    protected void func_73864_a(int mouseX, int mouseY, int button) {}
     public boolean func_73868_f() { return true; }
 }

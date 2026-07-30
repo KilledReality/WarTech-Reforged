@@ -21,7 +21,7 @@ public final class AdvancedMissileClient {
         RenderAdvancedMissile geran = new RenderAdvancedMissile(
                 "models/geran/geran2.obj",
                 "textures/models/geran/geran2.png",
-                0.008F, 0.0F, 0.0F, -0.8F, -25.0F, true);
+                0.008F, 180.0F, 0.0F, -0.8F, -25.0F, true, true);
         RenderingRegistry.registerEntityRenderingHandler(EntityStormShadow.class, storm);
         RenderingRegistry.registerEntityRenderingHandler(EntityGeran.class, geran);
         MinecraftForgeClient.registerItemRenderer(AdvancedMissileContent.stormShadow,

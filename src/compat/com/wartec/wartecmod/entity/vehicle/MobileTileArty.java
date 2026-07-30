@@ -1,9 +1,27 @@
 package com.wartec.wartecmod.entity.vehicle;
 
 import com.hbm.tileentity.turret.TileEntityTurretArty;
+import com.wartec.wartecmod.compat.HbmTilePowerLink;
+import com.wartec.wartecmod.compat.MissileTrackingService;
+import net.minecraft.item.ItemStack;
 import net.minecraft.util.Vec3;
 
 public final class MobileTileArty extends TileEntityTurretArty {
+    private String ownerTeam = "";
+
+    public void setOwnerTeam(String team) {
+        ownerTeam = team == null ? "" : team;
+    }
+
+    @Override
+    public void spawnShell(ItemStack ammunition) {
+        super.spawnShell(ammunition);
+        MissileTrackingService.assignNewestArtilleryProjectile(
+                field_145850_b, field_145851_c + 0.5D,
+                field_145848_d + 1.3D, field_145849_e + 0.5D,
+                ownerTeam, false);
+    }
+
     @Override
     public void handleButtonPacket(int value, int id) {
         super.handleButtonPacket(value, id);
@@ -23,6 +41,7 @@ public final class MobileTileArty extends TileEntityTurretArty {
 
     @Override
     protected void updateConnections() {
-        // The mobile mount is powered from batteries in its own inventory.
+        super.updateConnections();
+        HbmTilePowerLink.subscribeNearby(this, this, 7, 4);
     }
 }

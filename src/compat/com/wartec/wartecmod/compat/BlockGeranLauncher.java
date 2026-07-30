@@ -28,7 +28,8 @@ public final class BlockGeranLauncher extends VlsVerticalLauncher {
             EntityLivingBase placer, ItemStack stack) {
         super.func_149689_a(world, x, y, z, placer, stack);
         if (placer instanceof EntityPlayer) {
-            bindNearestCore(world, x, y, z, (EntityPlayer) placer, false);
+            bindNearestCore(world, x, y, z, (EntityPlayer) placer,
+                    false, stack);
         }
     }
 
@@ -38,7 +39,19 @@ public final class BlockGeranLauncher extends VlsVerticalLauncher {
         ItemStack held = player.func_71045_bC();
         if (player.func_70093_af() && held != null
                 && held.func_77973_b() == RadarNetworkContent.iffConfigurator
-                && bindNearestCore(world, x, y, z, player, true)) {
+                && bindNearestCore(world, x, y, z, player, true, null)) {
+            return true;
+        }
+        if (player.func_70093_af() && held == null) {
+            if (!world.field_72995_K) {
+                TileEntityGeranLauncher launcher = findNearestCore(world, x, y, z);
+                if (launcher == null) {
+                    player.func_145747_a(new ChatComponentText(
+                            "Geran-2 launcher core not found."));
+                } else {
+                    launcher.launchRemote(player);
+                }
+            }
             return true;
         }
         return super.func_149727_a(world, x, y, z, player,
@@ -71,7 +84,26 @@ public final class BlockGeranLauncher extends VlsVerticalLauncher {
     }
 
     private static boolean bindNearestCore(World world, int x, int y, int z,
-            EntityPlayer player, boolean notify) {
+            EntityPlayer player, boolean notify, ItemStack placementStack) {
+        TileEntityGeranLauncher nearest = findNearestCore(world, x, y, z);
+        if (nearest == null) return false;
+        if (!world.field_72995_K) {
+            String team = placementStack == null
+                    ? NetworkTeamHelper.getPlayerTeam(player)
+                    : TeamOwnedItemHelper.resolvePlacementTeam(
+                            placementStack, player);
+            nearest.setOwnerTeam(team);
+            if (notify) {
+                player.func_145747_a(new ChatComponentText(
+                        "Geran launcher bound to IFF team: " + team));
+            }
+        }
+        return true;
+    }
+
+    private static TileEntityGeranLauncher findNearestCore(
+            World world, int x, int y, int z) {
+        if (world.field_147482_g == null) return null;
         TileEntityGeranLauncher nearest = null;
         double nearestDistance = Double.MAX_VALUE;
         for (Object value : world.field_147482_g) {
@@ -86,15 +118,6 @@ public final class BlockGeranLauncher extends VlsVerticalLauncher {
                 nearestDistance = distance;
             }
         }
-        if (nearest == null) return false;
-        if (!world.field_72995_K) {
-            String team = NetworkTeamHelper.getPlayerTeam(player);
-            nearest.setOwnerTeam(team);
-            if (notify) {
-                player.func_145747_a(new ChatComponentText(
-                        "Geran launcher bound to IFF team: " + team));
-            }
-        }
-        return true;
+        return nearest;
     }
 }

@@ -33,13 +33,18 @@ public final class GuiMq9Drone extends GuiContainer {
         if (drone instanceof EntityTacticalAircraft) {
             field_146292_n.add(new GuiButton(4, field_147003_i + 158,
                     field_147009_r + 6, 66, 18, "MODE"));
+            field_146292_n.add(new GuiButton(5, field_147003_i + 158,
+                    field_147009_r + 25, 66, 18, "REMOTE"));
+        } else {
+            field_146292_n.add(new GuiButton(4, field_147003_i + 158,
+                    field_147009_r + 6, 66, 18, "REMOTE"));
         }
     }
 
     @Override
     protected void func_146284_a(GuiButton button) {
         if (!button.field_146124_l) return;
-        if (button.field_146127_k >= 0 && button.field_146127_k <= 4) {
+        if (button.field_146127_k >= 0 && button.field_146127_k <= 5) {
             field_146297_k.field_71442_b.func_78756_a(
                     field_147002_h.field_75152_c, button.field_146127_k);
         }
@@ -120,11 +125,19 @@ public final class GuiMq9Drone extends GuiContainer {
             } else if (button.field_146127_k == 1) {
                 int type = drone.getSelectedPayload();
                 button.field_146126_j = shortName(type);
-            } else if (button.field_146127_k == 4) {
+            } else if (button.field_146127_k == 4
+                    && drone instanceof EntityTacticalAircraft) {
                 EntityTacticalAircraft fighter = (EntityTacticalAircraft) drone;
                 button.field_146126_j = fighter.isInterceptorMode()
                         ? "INTERCEPT" : "STRIKE";
                 button.field_146124_l = fighter.isReady();
+            } else if (button.field_146127_k == 5
+                    && drone instanceof EntityTacticalAircraft) {
+                button.field_146126_j = "REMOTE PILOT";
+                button.field_146124_l = drone.isReady();
+            } else if (button.field_146127_k == 4) {
+                button.field_146126_j = "REMOTE PILOT";
+                button.field_146124_l = drone.isReady();
             }
         }
     }

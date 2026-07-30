@@ -10,6 +10,10 @@ import com.wartec.wartecmod.compat.RadarGuiHandler;
 import com.wartec.wartecmod.compat.WarTecBootstrap;
 import com.wartec.wartecmod.compat.HeavyVehicleDynamics;
 import com.wartec.wartecmod.compat.HeavyVehicleDynamics.Motion;
+import com.wartec.wartecmod.compat.HbmEntityPowerLink;
+import com.wartec.wartecmod.compat.IWirePoweredEntity;
+import com.wartec.wartecmod.compat.FactionTerritoryData;
+import com.wartec.wartecmod.compat.NetworkTeamHelper;
 import cpw.mods.fml.common.network.internal.FMLNetworkHandler;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.EntityPlayer;
@@ -22,7 +26,8 @@ import net.minecraft.util.DamageSource;
 import net.minecraft.world.World;
 
 public final class EntityCommandTruck extends Entity
-        implements IAntiRadiationTarget, IInventory, ITeamOwned {
+        implements IAntiRadiationTarget, IInventory, ITeamOwned,
+        IWirePoweredEntity {
     public static final int ENERGY_CAPACITY = 2000000;
     private static final int ENERGY_USE = 120;
     private static final int DW_DEPLOYED = 18;
@@ -116,6 +121,7 @@ public final class EntityCommandTruck extends Entity
             updateClientInterpolation();
             return;
         }
+        HbmEntityPowerLink.tick(this);
         int charged = VehicleEnergyHelper.chargeFromStack(battery,
                 getPower(), ENERGY_CAPACITY);
         if (charged != getPower()) setPower(charged);
@@ -125,6 +131,10 @@ public final class EntityCommandTruck extends Entity
             field_70179_y = 0.0D;
             int power = getPower();
             if (power >= ENERGY_USE) {
+                if (field_70173_aa % 200 == Math.abs(func_145782_y()) % 200) {
+                    FactionTerritoryData.claimAt(field_70170_p, ownerTeam,
+                            field_70165_t, field_70161_v);
+                }
                 field_70180_af.func_75692_b(DW_POWER,
                         Integer.valueOf(power - ENERGY_USE));
                 ElectronicWarfareService.updateEmitter(field_70170_p, func_145782_y(),
@@ -260,6 +270,31 @@ public final class EntityCommandTruck extends Entity
         }
         if (player.func_70093_af()) {
             boolean deployed = !isDeployed();
+            if (deployed) {
+                if (ownerTeam.length() == 0) {
+                    ownerTeam = NetworkTeamHelper.getPlayerTeam(player);
+                }
+                int claim = FactionTerritoryData.claimAt(field_70170_p,
+                        ownerTeam, field_70165_t, field_70161_v);
+                if (claim == FactionTerritoryData.CONFLICT) {
+                    tell(player, "Sector belongs to another IFF faction.");
+                    return true;
+                }
+                if (claim == FactionTerritoryData.INVALID_TEAM) {
+                    tell(player, "Assign an IFF faction before deployment.");
+                    return true;
+                }
+                if (claim == FactionTerritoryData.LIMIT_REACHED) {
+                    tell(player, "Faction sector limit reached.");
+                    return true;
+                }
+                if (claim == FactionTerritoryData.CLAIMED) {
+                    tell(player, "Faction defense sector "
+                            + FactionTerritoryData.getSectorX(field_70165_t)
+                            + ":" + FactionTerritoryData.getSectorZ(field_70161_v)
+                            + " claimed.");
+                }
+            }
             field_70180_af.func_75692_b(DW_DEPLOYED,
                     Byte.valueOf((byte) (deployed ? 1 : 0)));
             driveSpeed = 0.0D;
@@ -412,6 +447,10 @@ public final class EntityCommandTruck extends Entity
         field_70180_af.func_75692_b(DW_POWER, Integer.valueOf(Math.max(0,
                 Math.min(ENERGY_CAPACITY, power))));
     }
+
+    @Override public int wartecGetWirePower() { return getPower(); }
+    @Override public void wartecSetWirePower(int power) { setPower(power); }
+    @Override public int wartecGetWireCapacity() { return ENERGY_CAPACITY; }
 
     private void dropBattery() {
         if (battery != null) {

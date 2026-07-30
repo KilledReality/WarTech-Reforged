@@ -22,6 +22,9 @@ public class Block {
     public void func_149719_a(IBlockAccess world, int x, int y, int z) {}
     public boolean func_149662_c() { return true; }
     public boolean func_149686_d() { return true; }
+    public int func_149645_b() { return 0; }
+    public net.minecraft.item.Item func_149650_a(int metadata,
+            java.util.Random random, int fortune) { return null; }
     public void func_149689_a(World world, int x, int y, int z,
             EntityLivingBase placer, ItemStack stack) {}
     public boolean func_149727_a(World world, int x, int y, int z,

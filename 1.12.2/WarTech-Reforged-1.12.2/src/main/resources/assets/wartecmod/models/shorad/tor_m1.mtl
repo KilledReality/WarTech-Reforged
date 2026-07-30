@@ -1,0 +1,60 @@
+#
+# Wavefront material file
+# Converted by the SAP 3D Visual Enterprise Author 8.0 (8.0.401.57225)
+# SAP AG
+# http://www.sap.com/
+#
+
+newmtl _625cab9_dds
+Ka 1 1 1
+Kd 0.584314 0.584314 0.584314
+Ks 0 0 0
+illum 2
+Ns 8
+map_Kd 3625cab9.png
+map_opacity 3625cab9.png
+map_d 3625cab9.png
+map_kA 3625cab9.png
+
+newmtl _db25e93_dds
+Ka 1 1 1
+Kd 0.584314 0.584314 0.584314
+Ks 1 1 1
+illum 2
+Ns 8
+map_Kd 59009a9e.png
+
+newmtl _d44668a_dds
+Ka 1 1 1
+Kd 0.584314 0.584314 0.584314
+Ks 0 0 0
+illum 2
+Ns 8
+map_Kd 7d44668a.png
+
+newmtl ef107a98_dds
+Ka 1 1 1
+Kd 0.584314 0.584314 0.584314
+Ks 0 0 0
+illum 2
+Ns 8
+map_Kd 3625cab9.png
+map_opacity 3625cab9.png
+map_d 3625cab9.png
+
+newmtl f5419b8e_dds
+Ka 1 1 1
+Kd 0.584314 0.584314 0.584314
+Ks 0 0 0
+illum 2
+Ns 8
+map_Kd b59d6cc9.png
+map_opacity b59d6cc9.png
+map_d b59d6cc9.png
+
+newmtl Explorer_Default
+Ka 0.117647 0.117647 0.117647
+Kd 0.752941 0.752941 0.752941
+Ks 0.752941 0.752941 0.752941
+illum 2
+Ns 8

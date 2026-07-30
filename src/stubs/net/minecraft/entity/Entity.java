@@ -15,12 +15,19 @@ public class Entity {
     public double field_70165_t, field_70163_u, field_70161_v;
     public double field_70159_w, field_70181_x, field_70179_y;
     public double field_70169_q, field_70167_r, field_70166_s;
+    public double field_70142_S, field_70137_T, field_70136_U;
     public float field_70177_z, field_70125_A, field_70126_B, field_70127_C;
     public float field_70138_W;
+    public float field_70143_R;
+    public float field_70130_N = 1.0F;
     public float field_70131_O = 1.0F;
     public boolean field_70128_L;
+    public boolean field_70158_ak;
+    public boolean field_70145_X;
+    private boolean stubInvisible;
     public boolean field_70122_E, field_70123_F, field_70156_m;
     public int field_70173_aa;
+    public int field_70176_ah, field_70164_aj;
     public float field_70129_M;
     public Entity field_70153_n, field_70154_o;
     public final AxisAlignedBB field_70121_D = AxisAlignedBB.func_72330_a(0, 0, 0, 0, 0, 0);
@@ -37,8 +44,14 @@ public class Entity {
     protected void func_70014_b(NBTTagCompound tag) {}
     protected void func_70037_a(NBTTagCompound tag) {}
 
-    public void func_70012_b(double x, double y, double z, float yaw, float pitch) {}
-    public void func_70080_a(double x, double y, double z, float yaw, float pitch) {}
+    public void func_70012_b(double x, double y, double z, float yaw, float pitch) {
+        func_70107_b(x, y, z);
+        field_70177_z = yaw;
+        field_70125_A = pitch;
+    }
+    public void func_70080_a(double x, double y, double z, float yaw, float pitch) {
+        func_70012_b(x, y, z, yaw, pitch);
+    }
     public void func_70056_a(double x, double y, double z, float yaw, float pitch, int increments) {}
     public float func_70111_Y() { return 0.1F; }
     public AxisAlignedBB func_70046_E() { return field_70121_D; }
@@ -51,7 +64,10 @@ public class Entity {
     }
     public void func_70106_y() { field_70128_L = true; }
     public void func_70071_h_() {}
-    public void func_70105_a(float width, float height) {}
+    public void func_70105_a(float width, float height) {
+        field_70130_N = width;
+        field_70131_O = height;
+    }
     public void func_70091_d(double x, double y, double z) {}
     public void func_70043_V() {}
     public double func_70042_X() { return 0; }
@@ -64,8 +80,17 @@ public class Entity {
     public double func_70033_W() { return 0; }
     public boolean func_70067_L() { return false; }
     public boolean func_70097_a(DamageSource source, float amount) { return false; }
+    public boolean func_85032_ar() { return false; }
     public boolean func_130002_c(EntityPlayer player) { return false; }
-    public void func_70078_a(Entity entity) {}
+    public void func_70078_a(Entity entity) {
+        if (field_70154_o != null && field_70154_o.field_70153_n == this) {
+            field_70154_o.field_70153_n = null;
+        }
+        field_70154_o = entity;
+        if (entity != null) entity.field_70153_n = this;
+    }
+    public void func_82142_c(boolean invisible) { stubInvisible = invisible; }
+    public boolean func_82150_aj() { return stubInvisible; }
     public EntityItem func_70099_a(ItemStack stack, float offset) { return null; }
     public int func_145782_y() { return stubId; }
     public boolean func_70112_a(double distance) { return true; }

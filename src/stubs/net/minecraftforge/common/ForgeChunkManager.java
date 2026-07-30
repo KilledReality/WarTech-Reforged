@@ -2,6 +2,8 @@ package net.minecraftforge.common;
 
 import java.util.ArrayList;
 import java.util.List;
+import net.minecraft.entity.Entity;
+import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.world.ChunkCoordIntPair;
 import net.minecraft.world.World;
 
@@ -21,7 +23,10 @@ public final class ForgeChunkManager {
 
     public static final class Ticket {
         public int depth;
+        private final NBTTagCompound modData = new NBTTagCompound();
         public void setChunkListDepth(int depth) { this.depth = depth; }
+        public void bindEntity(Entity entity) {}
+        public NBTTagCompound getModData() { return modData; }
     }
 
     public static void setForcedChunkLoadingCallback(Object mod, LoadingCallback callback) {}

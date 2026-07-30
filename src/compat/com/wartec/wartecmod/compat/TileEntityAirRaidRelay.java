@@ -8,7 +8,8 @@ import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.world.World;
 
-public final class TileEntityAirRaidRelay extends TileEntity {
+public final class TileEntityAirRaidRelay extends TileEntity
+        implements ITeamOwned {
     private static final double COMMAND_LINK_RANGE = 96.0D;
     private static final Method NOTIFY_NEIGHBORS = findWorldMethod(
             "func_147453_f", Integer.TYPE, Integer.TYPE, Integer.TYPE,
@@ -18,6 +19,7 @@ public final class TileEntityAirRaidRelay extends TileEntity {
     private String ownerTeam = "";
     private boolean alarmActive;
 
+    @Override
     public void setOwnerTeam(String team) {
         String nextTeam = team == null ? "" : team;
         if (!ownerTeam.equals(nextTeam)) {
@@ -29,6 +31,11 @@ public final class TileEntityAirRaidRelay extends TileEntity {
 
     public boolean isAlarmActive() {
         return alarmActive;
+    }
+
+    @Override
+    public String getOwnerTeam() {
+        return ownerTeam;
     }
 
     @Override

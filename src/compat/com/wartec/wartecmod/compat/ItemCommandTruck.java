@@ -19,7 +19,8 @@ public final class ItemCommandTruck extends Item {
             return true;
         }
         EntityCommandTruck command = new EntityCommandTruck(world);
-        command.setOwnerTeam(NetworkTeamHelper.getPlayerTeam(player));
+        command.setOwnerTeam(TeamOwnedItemHelper.resolvePlacementTeam(
+                stack, player));
         command.func_70012_b(x + 0.5D, y + 1.05D, z + 0.5D,
                 Math.round(player.field_70177_z / 90.0F) * 90.0F, 0.0F);
         if (!world.func_72838_d(command)) {

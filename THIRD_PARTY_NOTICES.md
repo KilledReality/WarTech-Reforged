@@ -25,7 +25,10 @@ Reforged. Its official project is licensed under LGPL-3.0-only:
 - https://modrinth.com/mod/ntm
 - https://www.curseforge.com/minecraft/mc-mods/hbms-nuclear-tech-mod
 
-WarTech Reforged currently targets HBM NTM `1.0.27 X5751` specifically.
+The stable Minecraft 1.7.10 release targets HBM NTM `1.0.27 X5751` and HBM NTM
+Space `X5758 H261`. The experimental Minecraft 1.12.2 port targets NTM Extended
+`3.0.3`. These dependencies are external and are not included in either
+WarTech Reforged release package.
 
 ## Verified Model Attribution
 

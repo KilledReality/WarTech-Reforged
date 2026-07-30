@@ -12,6 +12,11 @@ import net.minecraft.item.ItemStack;
 public final class ContainerRadarVehicle extends Container {
     private final IRadarGuiTarget radar;
     private int lastPower = -1;
+    private int lastContacts = -1;
+    private int lastFlags = -1;
+    private int lastBlipCount = -1;
+    private int lastWarmup = -1;
+    private final int[] lastBlips = new int[16];
 
     public ContainerRadarVehicle(InventoryPlayer playerInventory, IRadarGuiTarget radar) {
         this.radar = radar;
@@ -36,6 +41,7 @@ public final class ContainerRadarVehicle extends Container {
     public void func_75132_a(ICrafting crafter) {
         super.func_75132_a(crafter);
         sendPower(crafter, radar.wartecGetPower());
+        sendStrategicState(crafter, true);
     }
 
     @Override
@@ -47,6 +53,13 @@ public final class ContainerRadarVehicle extends Container {
                 sendPower((ICrafting) value, power);
             }
             lastPower = power;
+        }
+        if (radar instanceof TileEntityStrategicRadar) {
+            if (hasStrategicStateChanged()) {
+                for (Object value : (List) field_75149_d) {
+                    sendStrategicState((ICrafting) value, true);
+                }
+            }
         }
     }
 
@@ -62,15 +75,32 @@ public final class ContainerRadarVehicle extends Container {
             radar.wartecSetPower((power & -65536) | (value & 65535));
         } else if (id == 1) {
             radar.wartecSetPower((power & 65535) | ((value & 65535) << 16));
+        } else if (radar instanceof TileEntityStrategicRadar) {
+            TileEntityStrategicRadar strategic =
+                    (TileEntityStrategicRadar) radar;
+            if (id == 2) strategic.setClientContacts(value);
+            else if (id == 3) strategic.setClientFlags(value);
+            else if (id == 4) strategic.setClientBlipCount(value);
+            else if (id == 5) strategic.setClientWarmupPercent(value);
+            else if (id >= 10 && id < 42) {
+                int offset = id - 10;
+                strategic.setClientBlipHalf(offset / 2,
+                        (offset & 1) != 0, value);
+            }
         }
     }
 
     @Override
     public boolean func_75145_c(EntityPlayer player) {
         Entity entity = radar.wartecGetEntity();
-        return entity != null && !entity.field_70128_L
-                && player.func_70092_e(entity.field_70165_t,
-                        entity.field_70163_u + 1.0D, entity.field_70161_v) <= 256.0D;
+        if (entity != null) {
+            return !entity.field_70128_L
+                    && player.func_70092_e(entity.field_70165_t,
+                            entity.field_70163_u + 1.0D,
+                            entity.field_70161_v) <= 256.0D;
+        }
+        return radar instanceof TileEntityStrategicRadar
+                && ((TileEntityStrategicRadar) radar).func_70300_a(player);
     }
 
     @Override
@@ -110,5 +140,56 @@ public final class ContainerRadarVehicle extends Container {
         public boolean func_75214_a(ItemStack stack) {
             return VehicleEnergyHelper.isBattery(stack);
         }
+    }
+
+    private void sendStrategicState(ICrafting crafter, boolean force) {
+        if (!(radar instanceof TileEntityStrategicRadar)) return;
+        TileEntityStrategicRadar strategic = (TileEntityStrategicRadar) radar;
+        int contacts = strategic.wartecGetContacts();
+        int flags = strategic.getClientFlags();
+        int count = strategic.wartecGetBlipCount();
+        int warmup = strategic.getWarmupPercent();
+        if (force || contacts != lastContacts) {
+            crafter.func_71112_a(this, 2, contacts);
+        }
+        if (force || flags != lastFlags) {
+            crafter.func_71112_a(this, 3, flags);
+        }
+        if (force || count != lastBlipCount) {
+            crafter.func_71112_a(this, 4, count);
+        }
+        if (force || warmup != lastWarmup) {
+            crafter.func_71112_a(this, 5, warmup);
+        }
+        for (int i = 0; i < 16; ++i) {
+            int packed = strategic.wartecGetPackedBlip(i);
+            if (force || packed != lastBlips[i]) {
+                crafter.func_71112_a(this, 10 + i * 2, packed & 65535);
+                crafter.func_71112_a(this, 11 + i * 2,
+                        packed >>> 16 & 65535);
+                lastBlips[i] = packed;
+            }
+        }
+        lastContacts = contacts;
+        lastFlags = flags;
+        lastBlipCount = count;
+        lastWarmup = warmup;
+    }
+
+    private boolean hasStrategicStateChanged() {
+        TileEntityStrategicRadar strategic =
+                (TileEntityStrategicRadar) radar;
+        if (strategic.wartecGetContacts() != lastContacts
+                || strategic.getClientFlags() != lastFlags
+                || strategic.wartecGetBlipCount() != lastBlipCount
+                || strategic.getWarmupPercent() != lastWarmup) {
+            return true;
+        }
+        for (int i = 0; i < 16; ++i) {
+            if (strategic.wartecGetPackedBlip(i) != lastBlips[i]) {
+                return true;
+            }
+        }
+        return false;
     }
 }

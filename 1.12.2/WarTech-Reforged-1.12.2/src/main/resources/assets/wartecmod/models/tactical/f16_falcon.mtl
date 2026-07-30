@@ -1,0 +1,46 @@
+# Blender MTL File: 'Sketchfab_2022_02_28_12_38_46.blend'
+# Material Count: 4
+
+newmtl F-16C_FightingFalcon_pilot
+Ns 199.999995
+Ka 1.000000 1.000000 1.000000
+Kd 1.000000 1.000000 1.000000
+Ks 1.000000 1.000000 1.000000
+Ke 0.000000 0.000000 0.000000
+Ni 1.450000
+d 1.000000
+illum 2
+map_Kd C:\\Users\\kiril\\Documents\\htm dop\\Desktop\\Models_E0502A005\\Pilot_usa.png
+
+newmtl F-16C_FightingFalcon_plane
+Ns 199.999995
+Ka 1.000000 1.000000 1.000000
+Kd 0.403922 0.403922 0.403922
+Ks 1.000000 1.000000 1.000000
+Ke 0.000000 0.000000 0.000000
+Ni 1.450000
+d 1.000000
+illum 2
+map_Kd C:\\Users\\kiril\\Documents\\htm dop\\Desktop\\Models_E0502A005\\F-16C_FightingFalcon_P01.png
+map_d C:\\Users\\kiril\\Documents\\htm dop\\Desktop\\Models_E0502A005\\F-16C_FightingFalcon_P01.png
+
+newmtl F-16C_FightingFalcon_seat
+Ns 199.999995
+Ka 1.000000 1.000000 1.000000
+Kd 1.000000 1.000000 1.000000
+Ks 1.000000 1.000000 1.000000
+Ke 0.000000 0.000000 0.000000
+Ni 1.450000
+d 1.000000
+illum 2
+map_Kd C:\\Users\\kiril\\Documents\\htm dop\\Desktop\\Models_E0502A005\\Eject_Seat.png
+
+newmtl Solid_Glass
+Ns 199.999995
+Ka 1.000000 1.000000 1.000000
+Kd 0.000000 0.000000 0.000000
+Ks 1.000000 1.000000 1.000000
+Ke 0.000000 0.000000 0.000000
+Ni 1.450000
+d 0.472157
+illum 9

@@ -1,19 +1,21 @@
 package com.wartec.wartecmod.compat;
 
+import api.hbm.energy.IEnergyUser;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.inventory.IInventory;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.tileentity.TileEntity;
+import net.minecraftforge.common.util.ForgeDirection;
 
 /** Powered communication mast with a persistent 3x3 chunk-loading sector. */
 public final class TileEntityCommunicationRelay extends TileEntity
-        implements IInventory {
+        implements IInventory, IEnergyUser, ITeamOwned {
     public static final int ENERGY_CAPACITY = 500000;
     public static final int LINK_RANGE = 2400;
     private static final int ENERGY_USE_PER_TICK = 20;
     private String ownerTeam = "";
-    private int power;
+    private long power;
     private boolean enabled = true;
     private boolean online;
     private int linkedRelays;
@@ -24,19 +26,30 @@ public final class TileEntityCommunicationRelay extends TileEntity
                 field_145851_c, field_145848_d, field_145849_e);
     }
 
+    @Override
     public void setOwnerTeam(String team) {
         ownerTeam = team == null ? "" : team;
         func_70296_d();
     }
 
-    public int getPower() { return power; }
+    @Override public long getPower() { return power; }
     public boolean isEnabled() { return enabled; }
     public boolean isOnline() { return online; }
-    public String getOwnerTeam() { return ownerTeam; }
+    @Override public String getOwnerTeam() { return ownerTeam; }
 
-    public void setPower(int value) {
-        power = Math.max(0, Math.min(ENERGY_CAPACITY, value));
+    @Override
+    public void setPower(long value) {
+        power = Math.max(0L, Math.min(ENERGY_CAPACITY, value));
         func_70296_d();
+    }
+
+    @Override public long getMaxPower() { return ENERGY_CAPACITY; }
+    @Override public boolean canConnect(ForgeDirection direction) {
+        return direction != ForgeDirection.UNKNOWN;
+    }
+    @Override public boolean isLoaded() {
+        return field_145850_b != null && field_145850_b.func_147438_o(
+                field_145851_c, field_145848_d, field_145849_e) == this;
     }
 
     public void setClientState(boolean nextEnabled, boolean nextOnline,
@@ -48,12 +61,12 @@ public final class TileEntityCommunicationRelay extends TileEntity
 
     public int chargeFromPlayer(EntityPlayer player) {
         int charged = VehicleEnergyHelper.chargeFromHeld(
-                player, power, ENERGY_CAPACITY);
+                player, (int) power, ENERGY_CAPACITY);
         if (charged != power) {
             power = charged;
             func_70296_d();
         }
-        return power;
+        return (int) power;
     }
 
     public void toggleEnabled() {
@@ -77,8 +90,9 @@ public final class TileEntityCommunicationRelay extends TileEntity
     @Override
     public void func_145845_h() {
         if (field_145850_b == null || field_145850_b.field_72995_K) return;
+        updateWireConnections();
         int charged = VehicleEnergyHelper.chargeFromStack(
-                battery, power, ENERGY_CAPACITY);
+                battery, (int) power, ENERGY_CAPACITY);
         if (charged != power) {
             power = charged;
             func_70296_d();
@@ -87,6 +101,11 @@ public final class TileEntityCommunicationRelay extends TileEntity
         if (nextOnline) {
             power -= ENERGY_USE_PER_TICK;
             MissileChunkLoader.trackCommunicationNode(this);
+            if (field_145850_b.func_82737_E() % 200L
+                    == Math.abs(getRelayKey()) % 200L) {
+                FactionTerritoryData.claimAt(field_145850_b, ownerTeam,
+                        field_145851_c + 0.5D, field_145849_e + 0.5D);
+            }
             if (field_145850_b.func_82737_E() % 10L == 0L) {
                 MissileTrackingService.updateCommunicationRelay(field_145850_b,
                         getRelayKey(), field_145851_c + 0.5D,
@@ -117,6 +136,16 @@ public final class TileEntityCommunicationRelay extends TileEntity
         }
     }
 
+    private void updateWireConnections() {
+        for (ForgeDirection direction : ForgeDirection.VALID_DIRECTIONS) {
+            trySubscribe(field_145850_b,
+                    field_145851_c + direction.offsetX,
+                    field_145848_d + direction.offsetY,
+                    field_145849_e + direction.offsetZ, direction);
+        }
+        HbmTilePowerLink.subscribeNearby(this, this, 6, 8);
+    }
+
     public void shutdown() {
         if (field_145850_b != null && !field_145850_b.field_72995_K) {
             MissileTrackingService.removeCommunicationRelay(
@@ -136,7 +165,7 @@ public final class TileEntityCommunicationRelay extends TileEntity
     public void func_145841_b(NBTTagCompound tag) {
         super.func_145841_b(tag);
         tag.func_74778_a("WarTechOwnerTeam", ownerTeam);
-        tag.func_74768_a("WarTechRelayPower", power);
+        tag.func_74772_a("WarTechRelayPower", power);
         tag.func_74757_a("WarTechRelayEnabled", enabled);
         if (battery != null) {
             tag.func_74782_a("WarTechRelayBattery",
@@ -148,8 +177,8 @@ public final class TileEntityCommunicationRelay extends TileEntity
     public void func_145839_a(NBTTagCompound tag) {
         super.func_145839_a(tag);
         ownerTeam = tag.func_74779_i("WarTechOwnerTeam");
-        power = Math.max(0, Math.min(ENERGY_CAPACITY,
-                tag.func_74762_e("WarTechRelayPower")));
+        power = Math.max(0L, Math.min(ENERGY_CAPACITY,
+                tag.func_74763_f("WarTechRelayPower")));
         enabled = !tag.func_74764_b("WarTechRelayEnabled")
                 || tag.func_74767_n("WarTechRelayEnabled");
         battery = tag.func_74764_b("WarTechRelayBattery")

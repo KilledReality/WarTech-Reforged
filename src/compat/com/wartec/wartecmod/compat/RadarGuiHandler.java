@@ -18,6 +18,7 @@ public final class RadarGuiHandler implements IGuiHandler {
     public static final int GUI_ID_MQ9 = 74;
     public static final int GUI_ID_TU95 = 75;
     public static final int GUI_ID_COMMUNICATION_MAST = 76;
+    public static final int GUI_ID_STRATEGIC_RADAR = 77;
 
     @Override
     public Object getServerGuiElement(int id, EntityPlayer player, World world,
@@ -42,8 +43,13 @@ public final class RadarGuiHandler implements IGuiHandler {
         }
         TileEntityCommunicationRelay relay = findCommunicationRelay(
                 id, world, x, y, z);
-        return relay == null ? null
-                : new ContainerCommunicationRelay(player.field_71071_by, relay);
+        if (relay != null) {
+            return new ContainerCommunicationRelay(player.field_71071_by, relay);
+        }
+        TileEntityStrategicRadar strategic = findStrategicRadar(
+                id, world, x, y, z);
+        return strategic == null ? null
+                : new ContainerRadarVehicle(player.field_71071_by, strategic);
     }
 
     @Override
@@ -105,6 +111,16 @@ public final class RadarGuiHandler implements IGuiHandler {
                         TileEntityCommunicationRelay.class);
                 return constructor.newInstance(player.field_71071_by, relay);
             }
+            TileEntityStrategicRadar strategic = findStrategicRadar(
+                    id, world, x, y, z);
+            if (strategic != null) {
+                Class<?> gui = Class.forName(
+                        "com.wartec.wartecmod.compat.client.GuiRadarVehicle");
+                Constructor<?> constructor = gui.getConstructor(
+                        net.minecraft.entity.player.InventoryPlayer.class,
+                        IRadarGuiTarget.class);
+                return constructor.newInstance(player.field_71071_by, strategic);
+            }
         } catch (Throwable ignored) {
         }
         return null;
@@ -150,5 +166,13 @@ public final class RadarGuiHandler implements IGuiHandler {
         TileEntity tile = world.func_147438_o(x, y, z);
         return tile instanceof TileEntityCommunicationRelay
                 ? (TileEntityCommunicationRelay) tile : null;
+    }
+
+    private static TileEntityStrategicRadar findStrategicRadar(int id,
+            World world, int x, int y, int z) {
+        if (id != GUI_ID_STRATEGIC_RADAR || world == null) return null;
+        TileEntity tile = world.func_147438_o(x, y, z);
+        return tile instanceof TileEntityStrategicRadar
+                ? (TileEntityStrategicRadar) tile : null;
     }
 }

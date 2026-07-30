@@ -1,9 +1,12 @@
 package tools;
 
 import com.wartec.wartecmod.compat.NetworkTeamHelper;
+import com.wartec.wartecmod.compat.TeamOwnedItemHelper;
 import java.util.HashMap;
 import java.util.Map;
 import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.item.Item;
+import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.world.World;
 
@@ -17,9 +20,13 @@ public final class SmokeNetworkTeamPersistence {
         assertEquals("alpha", firstWorld.scoreboard.playerTeam);
         assertEquals("alpha", NetworkTeamHelper.getPlayerTeam(first));
 
+        NBTTagCompound firstDiskRead = diskRoundTrip(saved);
+        if (firstDiskRead == saved) {
+            throw new AssertionError("Player NBT was not reconstructed");
+        }
         FakeWorld reconnectWorld = new FakeWorld();
         FakePlayer reconnect = new FakePlayer(
-                reconnectWorld, "TestPilot", saved);
+                reconnectWorld, "TestPilot", firstDiskRead);
         assertEquals("alpha", NetworkTeamHelper.getPlayerTeam(reconnect));
         assertEquals("alpha", reconnectWorld.scoreboard.playerTeam);
 
@@ -27,9 +34,10 @@ public final class SmokeNetworkTeamPersistence {
         reconnectWorld.scoreboard.playerTeam = "bravo";
         assertEquals("bravo", NetworkTeamHelper.getPlayerTeam(reconnect));
 
+        NBTTagCompound secondDiskRead = diskRoundTrip(firstDiskRead);
         FakeWorld secondReconnectWorld = new FakeWorld();
         FakePlayer secondReconnect = new FakePlayer(
-                secondReconnectWorld, "TestPilot", saved);
+                secondReconnectWorld, "TestPilot", secondDiskRead);
         assertEquals("bravo", NetworkTeamHelper.getPlayerTeam(secondReconnect));
 
         assertEquals("player:TestPilot",
@@ -41,7 +49,29 @@ public final class SmokeNetworkTeamPersistence {
                 || NetworkTeamHelper.areFriendly("alpha", "bravo")) {
             throw new AssertionError("IFF comparison failed");
         }
+        ItemStack installation = new ItemStack(new Item());
+        TeamOwnedItemHelper.setStoredTeam(installation, "charlie");
+        ItemStack recoveredAfterRestart = new ItemStack(new Item());
+        recoveredAfterRestart.field_77990_d =
+                diskRoundTrip(installation.field_77990_d);
+        assertEquals("charlie",
+                TeamOwnedItemHelper.getStoredTeam(recoveredAfterRestart));
         System.out.println("TEAM_PERSISTENCE_PASS");
+    }
+
+    private static NBTTagCompound diskRoundTrip(NBTTagCompound source) {
+        NBTTagCompound restored = new NBTTagCompound();
+        restored.func_74778_a("WarTechIFFTeam",
+                source.func_74779_i("WarTechIFFTeam"));
+        restored.func_74778_a("WarTechOwnerTeam",
+                source.func_74779_i("WarTechOwnerTeam"));
+        NBTTagCompound sourcePersisted =
+                source.func_74775_l("PlayerPersisted");
+        NBTTagCompound restoredPersisted = new NBTTagCompound();
+        restoredPersisted.func_74778_a("WarTechIFFTeam",
+                sourcePersisted.func_74779_i("WarTechIFFTeam"));
+        restored.func_74782_a("PlayerPersisted", restoredPersisted);
+        return restored;
     }
 
     private static void assertEquals(String expected, String actual) {

@@ -9,11 +9,16 @@ import com.wartec.wartecmod.items.wartecmodItems;
 import com.wartec.wartecmod.tileentity.vls.TileEntityVlsExhaust;
 import com.wartec.wartecmod.tileentity.vls.TileEntityVlsLaunchTube;
 import java.lang.reflect.Constructor;
+import java.util.ArrayDeque;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.WeakHashMap;
 import net.minecraft.entity.Entity;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
+import net.minecraft.tileentity.TileEntity;
 import net.minecraft.world.World;
 import net.minecraft.world.WorldServer;
 
@@ -89,7 +94,62 @@ public final class VlsDefenseCompat {
                 nearest.field_145851_c, nearest.field_145848_d, nearest.field_145849_e};
     }
 
+    /**
+     * Finds an exhaust connected through the horizontal VLS grid without
+     * recursively revisiting the same launch tubes.
+     */
+    public static int[] findConnectedVlsExhaust(TileEntityVlsLaunchTube origin) {
+        if (origin == null) return null;
+        World world = origin.wartecGetWorld();
+        if (world == null || world.field_147482_g == null) return null;
+
+        final int maxDistance = 30;
+        final int originX = origin.field_145851_c;
+        final int originY = origin.field_145848_d;
+        final int originZ = origin.field_145849_e;
+        Map<Long, Byte> grid = new HashMap<Long, Byte>();
+        for (Object value : world.field_147482_g) {
+            if (!(value instanceof TileEntityVlsLaunchTube)) continue;
+            TileEntity tile = (TileEntity) value;
+            if (tile.field_145848_d != originY
+                    || Math.abs(tile.field_145851_c - originX) > maxDistance
+                    || Math.abs(tile.field_145849_e - originZ) > maxDistance) {
+                continue;
+            }
+            grid.put(packXZ(tile.field_145851_c, tile.field_145849_e),
+                    Byte.valueOf((byte) (value instanceof TileEntityVlsExhaust ? 2 : 1)));
+        }
+
+        ArrayDeque<int[]> queue = new ArrayDeque<int[]>();
+        Set<Long> visited = new HashSet<Long>();
+        queue.add(new int[] {originX, originZ, 0});
+        visited.add(Long.valueOf(packXZ(originX, originZ)));
+        final int[][] offsets = {{0, -1}, {0, 1}, {-1, 0}, {1, 0}};
+        while (!queue.isEmpty()) {
+            int[] current = queue.removeFirst();
+            if (current[2] >= maxDistance) continue;
+            for (int[] offset : offsets) {
+                int x = current[0] + offset[0];
+                int z = current[1] + offset[1];
+                long key = packXZ(x, z);
+                if (!visited.add(Long.valueOf(key))) continue;
+                Byte type = grid.get(Long.valueOf(key));
+                if (type == null) continue;
+                if (type.byteValue() == 2) {
+                    return new int[] {x, z};
+                }
+                queue.addLast(new int[] {x, z, current[2] + 1});
+            }
+        }
+        return null;
+    }
+
+    private static long packXZ(int x, int z) {
+        return ((long) x << 32) ^ (z & 0xffffffffL);
+    }
+
     public static void tickAutoDefense(TileEntityVlsLaunchTube tube) {
+        HbmTilePowerLink.subscribeNearby(tube, tube, 10, 6);
         if (!(tube instanceof TileEntityVlsExhaust)) {
             return;
         }
@@ -99,6 +159,26 @@ public final class VlsDefenseCompat {
         }
 
         int tier = getLoadedTier(tube);
+        long ownerKey = getLauncherKey(tube.field_145851_c,
+                tube.field_145848_d, tube.field_145849_e);
+        String ownerTeam = getLauncherTeam(tube);
+        if (ownerTeam.length() == 0) {
+            ownerTeam = MissileTrackingService.findNetworkTeamNear(world,
+                    tube.field_145851_c + 0.5D, tube.field_145848_d + 0.5D,
+                    tube.field_145849_e + 0.5D);
+            if (ownerTeam.length() > 0 && tube instanceof ITeamOwned) {
+                ((ITeamOwned) tube).setOwnerTeam(ownerTeam);
+            }
+        }
+        long presencePhase = Math.abs((long) tube.field_145851_c * 31L
+                + (long) tube.field_145849_e * 17L) % 10L;
+        if ((world.func_82737_E() + presencePhase) % 10L == 0L) {
+            MissileTrackingService.updateLauncherPresence(world,
+                    tube.field_145851_c + 0.5D,
+                    tube.field_145848_d + getLaunchOffset(tube),
+                    tube.field_145849_e + 0.5D,
+                    getNetworkTier(tube, tier), ownerKey, ownerTeam);
+        }
         if (tier == 0 || tube.power < 50000L) {
             if (tube.shoot == 0 && tube.open) {
                 tube.open = false;
@@ -122,10 +202,9 @@ public final class VlsDefenseCompat {
         }
 
         double launchOffset = getLaunchOffset(tube);
-        long ownerKey = getLauncherKey(tube.field_145851_c, tube.field_145848_d, tube.field_145849_e);
         Entity target = MissileTrackingService.findThreat(world, tube.field_145851_c + 0.5D,
                 tube.field_145848_d + launchOffset, tube.field_145849_e + 0.5D,
-                tier, RANGES[tier], ownerKey);
+                tier, RANGES[tier], ownerKey, ownerTeam);
         if (target != null) {
             tube.shoot = 50;
             tube.func_70296_d();
@@ -147,8 +226,16 @@ public final class VlsDefenseCompat {
 
         double launchOffset = getLaunchOffset(tube);
         long ownerKey = getLauncherKey(x, y, z);
+        String ownerTeam = getLauncherTeam(tube);
+        if (ownerTeam.length() == 0) {
+            ownerTeam = MissileTrackingService.findNetworkTeamNear(
+                    world, x + 0.5D, y + launchOffset, z + 0.5D);
+            if (ownerTeam.length() > 0 && tube instanceof ITeamOwned) {
+                ((ITeamOwned) tube).setOwnerTeam(ownerTeam);
+            }
+        }
         Entity target = MissileTrackingService.findThreat(world, x + 0.5D, y + launchOffset,
-                z + 0.5D, tier, RANGES[tier], ownerKey);
+                z + 0.5D, tier, RANGES[tier], ownerKey, ownerTeam);
         if (target == null) {
             return BombReturnCode.ERROR_MISSING_COMPONENT;
         }
@@ -314,7 +401,9 @@ public final class VlsDefenseCompat {
         GuidanceState state = updateTargetMotion(interceptor, target, world.func_82737_E());
         int targetTier = getTargetTier(target);
         double speed = getInterceptorSpeed(tier, targetTier, target);
-        if (interceptor.field_70173_aa <= (tier == 1 ? 4 : 12)) {
+        boolean henryTarget = MissileTrackingService.isHbmArtilleryRocket(target);
+        int boostTicks = henryTarget ? 1 : tier == 1 ? 4 : 12;
+        if (interceptor.field_70173_aa <= boostTicks) {
             interceptor.field_70159_w *= 0.75D;
             interceptor.field_70181_x = tier == 3 ? 2.8D : tier == 2 ? 2.4D : 2.2D;
             interceptor.field_70179_y *= 0.75D;
@@ -545,6 +634,21 @@ public final class VlsDefenseCompat {
         return getMissileTier(tube, getLoadedMissileSlot(tube));
     }
 
+    private static int getNetworkTier(TileEntityVlsLaunchTube tube,
+            int loadedTier) {
+        if (loadedTier > 0) return loadedTier;
+        String name = tube.getClass().getName();
+        if (name.endsWith("TileEntityS400Launcher")) return 3;
+        if (name.endsWith("TileEntityPatriotLauncher")) return 2;
+        return 1;
+    }
+
+    private static String getLauncherTeam(TileEntityVlsLaunchTube tube) {
+        if (!(tube instanceof ITeamOwned)) return "";
+        String team = ((ITeamOwned) tube).getOwnerTeam();
+        return team == null ? "" : team;
+    }
+
     public static int getVlsInventorySlotCount(TileEntityVlsLaunchTube tube) {
         return tube instanceof TileEntityVlsExhaust ? 9 : 3;
     }
@@ -696,6 +800,9 @@ public final class VlsDefenseCompat {
         if (entity == null || entity.field_70128_L) {
             return 0;
         }
+        if (MissileTrackingService.isHbmArtilleryTarget(entity)) {
+            return MissileTrackingService.getThreatTier(entity);
+        }
         for (Class<?> type = entity.getClass(); type != null; type = type.getSuperclass()) {
             String name = type.getName();
             if ("com.wartec.wartecmod.entity.missile.EntityHypersonicCruiseMissileBase".equals(name)) {
@@ -759,6 +866,17 @@ public final class VlsDefenseCompat {
                     : interceptorTier == 2 ? 16.0D : 19.0D;
             speed = Math.max(speed, ballisticSpeed);
         }
+        if (MissileTrackingService.isHbmArtilleryRocket(target)) {
+            double targetSpeed = Math.sqrt(
+                    target.field_70159_w * target.field_70159_w
+                    + target.field_70181_x * target.field_70181_x
+                    + target.field_70179_y * target.field_70179_y);
+            double minimum = interceptorTier == 1 ? 24.0D
+                    : interceptorTier == 2 ? 30.0D : 36.0D;
+            speed = Math.max(speed,
+                    Math.min(42.0D, Math.max(minimum,
+                            targetSpeed * 1.35D + 6.0D)));
+        }
         return speed;
     }
 
@@ -771,7 +889,8 @@ public final class VlsDefenseCompat {
 
     private static void intercept(World world, Entity interceptor, Entity target, int interceptorTier) {
         int targetTier = getTargetTier(target);
-        double chance = INTERCEPT_CHANCES[interceptorTier][targetTier];
+        double chance = getInterceptChance(
+                interceptorTier, targetTier, target);
         if (world.field_73012_v.nextDouble() >= chance) {
             failedIntercept(world, interceptor, target, interceptorTier, targetTier, chance);
             return;
@@ -798,6 +917,15 @@ public final class VlsDefenseCompat {
         }
         System.out.println("[WarTec PVO] Successful intercept T" + interceptorTier + " vs T" + targetTier
                 + " at " + x + ", " + y + ", " + z + ", chance=" + chance + ", fire=" + fireEffect);
+    }
+
+    private static double getInterceptChance(int interceptorTier,
+            int targetTier, Entity target) {
+        if (MissileTrackingService.isHbmHeavyArtilleryRocket(target)) {
+            if (interceptorTier == 1) return 0.25D;
+            if (interceptorTier >= 2) return 1.0D;
+        }
+        return INTERCEPT_CHANCES[interceptorTier][targetTier];
     }
 
     private static void failedIntercept(World world, Entity interceptor, Entity target, int interceptorTier,

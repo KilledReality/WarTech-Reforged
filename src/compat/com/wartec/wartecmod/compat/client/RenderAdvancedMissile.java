@@ -17,11 +17,19 @@ public final class RenderAdvancedMissile extends Render {
     private final float offsetY;
     private final float offsetZ;
     private final boolean forwardAlongZ;
+    private final boolean levelAlongZ;
     private int displayList;
 
     public RenderAdvancedMissile(String modelPath, String texturePath, float scale,
             float yawOffset, float offsetX, float offsetY, float offsetZ,
             boolean forwardAlongZ) {
+        this(modelPath, texturePath, scale, yawOffset, offsetX, offsetY,
+                offsetZ, forwardAlongZ, false);
+    }
+
+    public RenderAdvancedMissile(String modelPath, String texturePath, float scale,
+            float yawOffset, float offsetX, float offsetY, float offsetZ,
+            boolean forwardAlongZ, boolean levelAlongZ) {
         this.texture = new ResourceLocation("wartecmod", texturePath);
         this.model = AdvancedModelLoader.loadModel(new ResourceLocation("wartecmod", modelPath));
         this.scale = scale;
@@ -30,6 +38,7 @@ public final class RenderAdvancedMissile extends Render {
         this.offsetY = offsetY;
         this.offsetZ = offsetZ;
         this.forwardAlongZ = forwardAlongZ;
+        this.levelAlongZ = levelAlongZ;
     }
 
     @Override
@@ -46,9 +55,11 @@ public final class RenderAdvancedMissile extends Render {
                 + (entity.field_70177_z - entity.field_70126_B) * partialTicks;
         float renderPitch = entity.field_70127_C
                 + (entity.field_70125_A - entity.field_70127_C) * partialTicks;
-        GL11.glRotatef(renderYaw + yawOffset, 0.0F, 1.0F, 0.0F);
+        GL11.glRotatef(forwardYawRotation(renderYaw, yawOffset, levelAlongZ),
+                0.0F, 1.0F, 0.0F);
         if (forwardAlongZ) {
-            GL11.glRotatef(180.0F - (renderPitch + 90.0F), 1.0F, 0.0F, 0.0F);
+            GL11.glRotatef(forwardPitchRotation(renderPitch, levelAlongZ),
+                    1.0F, 0.0F, 0.0F);
         } else {
             GL11.glRotatef(renderPitch + 90.0F, 0.0F, 0.0F, 1.0F);
         }
@@ -58,6 +69,16 @@ public final class RenderAdvancedMissile extends Render {
         renderCached();
         GL11.glPopAttrib();
         GL11.glPopMatrix();
+    }
+
+    private static float forwardPitchRotation(float renderPitch,
+            boolean levelAlongZ) {
+        return (levelAlongZ ? 0.0F : 90.0F) - renderPitch;
+    }
+
+    private static float forwardYawRotation(float renderYaw, float yawOffset,
+            boolean levelAlongZ) {
+        return (levelAlongZ ? -renderYaw : renderYaw) + yawOffset;
     }
 
     void renderInventoryModel(float inventoryScale, float inventoryYaw) {

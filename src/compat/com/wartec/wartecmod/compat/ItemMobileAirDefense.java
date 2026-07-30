@@ -49,7 +49,8 @@ public final class ItemMobileAirDefense extends Item {
         }
         EntityMobileAirDefense system = new EntityMobileAirDefense(world);
         system.setVariant(stack.func_77960_j());
-        system.setOwnerTeam(NetworkTeamHelper.getPlayerTeam(player));
+        system.setOwnerTeam(TeamOwnedItemHelper.resolvePlacementTeam(
+                stack, player));
         system.func_70012_b(x + 0.5D, y + 1.05D, z + 0.5D,
                 Math.round(player.field_70177_z / 90.0F) * 90.0F, 0.0F);
         if (!world.func_72838_d(system)) {

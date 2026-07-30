@@ -39,7 +39,7 @@ public final class ContainerCommunicationRelay extends Container {
     @Override
     public void func_75142_b() {
         super.func_75142_b();
-        int power = relay.getPower();
+        int power = (int) relay.getPower();
         int flags = (relay.isEnabled() ? 1 : 0) | (relay.isOnline() ? 2 : 0);
         int links = relay.getLinkedRelayCount();
         if (power == lastPower && flags == lastFlags && links == lastLinks) return;
@@ -52,7 +52,7 @@ public final class ContainerCommunicationRelay extends Container {
     }
 
     private void sendState(ICrafting crafter) {
-        int power = relay.getPower();
+        int power = (int) relay.getPower();
         crafter.func_71112_a(this, 0, power & 65535);
         crafter.func_71112_a(this, 1, power >>> 16);
         crafter.func_71112_a(this, 2,

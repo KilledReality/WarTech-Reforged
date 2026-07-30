@@ -30,7 +30,8 @@ public final class BlockAirRaidRelay extends BlockContainer {
         TileEntity tile = world.func_147438_o(x, y, z);
         if (tile instanceof TileEntityAirRaidRelay && placer instanceof EntityPlayer) {
             ((TileEntityAirRaidRelay) tile).setOwnerTeam(
-                    NetworkTeamHelper.getPlayerTeam((EntityPlayer) placer));
+                    TeamOwnedItemHelper.resolvePlacementTeam(
+                            stack, (EntityPlayer) placer));
         }
     }
 

@@ -8,6 +8,8 @@ import com.wartec.wartecmod.entity.vehicle.EntityElectronicWarfareUnit;
 import com.wartec.wartecmod.entity.missile.EntityAntiRadiationMissile;
 import com.wartec.wartecmod.entity.vehicle.EntityMobileAirDefense;
 import cpw.mods.fml.client.registry.RenderingRegistry;
+import cpw.mods.fml.client.registry.ClientRegistry;
+import net.minecraft.item.Item;
 import net.minecraftforge.client.MinecraftForgeClient;
 
 public final class RadarNetworkClient {
@@ -44,5 +46,12 @@ public final class RadarNetworkClient {
                 mobileDefenseRenderer);
         MinecraftForgeClient.registerItemRenderer(RadarNetworkContent.mobileAirDefense,
                 new ItemRenderMobileAirDefense(mobileDefenseRenderer));
+        RenderStrategicRadar strategicRenderer = new RenderStrategicRadar();
+        ClientRegistry.bindTileEntitySpecialRenderer(
+                com.wartec.wartecmod.compat.TileEntityStrategicRadar.class,
+                strategicRenderer);
+        MinecraftForgeClient.registerItemRenderer(
+                Item.func_150898_a(RadarNetworkContent.strategicRadar),
+                new ItemRenderStrategicRadar(strategicRenderer));
     }
 }

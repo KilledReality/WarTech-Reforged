@@ -2,6 +2,7 @@
 /build/
 *.class
 *.jar
+!1.12.2/WarTech-Reforged-1.12.2/gradle/wrapper/gradle-wrapper.jar
 *.bak
 javac.*.args
 

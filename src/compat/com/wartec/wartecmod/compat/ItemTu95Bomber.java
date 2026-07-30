@@ -27,7 +27,8 @@ public final class ItemTu95Bomber extends Item {
             int x, int y, int z, int side, float hitX, float hitY, float hitZ) {
         if (world.field_72995_K) return true;
         EntityTu95Bomber bomber = new EntityTu95Bomber(world);
-        bomber.setOwnerTeam(NetworkTeamHelper.getPlayerTeam(player));
+        bomber.setOwnerTeam(TeamOwnedItemHelper.resolvePlacementTeam(
+                stack, player));
         float yaw = Math.round(player.field_70177_z / 90.0F) * 90.0F;
         bomber.func_70012_b(x + 0.5D, y + 1.05D, z + 0.5D, yaw, 0.0F);
         bomber.initializeHome();

@@ -1,0 +1,13 @@
+# Blender MTL File: 'missiles.blend'
+# Material Count: 1
+
+newmtl JDAM
+Ns 125.702493
+Ka 0.807273 0.807273 0.807273
+Kd 0.588200 0.588200 0.588200
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+d 1.000000
+illum 3
+map_Kd C:\\Users\\kiril\\Documents\\htm dop\\build\\tactical-aviation-import\\weapons\\source\\bf4_missiles\\bf4_missiles\\textures\\t_jdam_d.dds

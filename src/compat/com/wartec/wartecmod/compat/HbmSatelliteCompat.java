@@ -40,10 +40,13 @@ public final class HbmSatelliteCompat {
             throw new IllegalArgumentException("Satellite class and item are required");
         }
         Class<?> registryClass = Satellite.class;
-        if (invokeRegistrationMethod(registryClass, satelliteClass, item)) {
+        // Space builds declare client-only rendering methods on Satellite.
+        // Enumerating those methods on a dedicated server resolves WorldClient
+        // and crashes before a compatible registerSatellite overload is found.
+        if (registerThroughFields(registryClass, satelliteClass, item)) {
             return;
         }
-        if (registerThroughFields(registryClass, satelliteClass, item)) {
+        if (invokeRegistrationMethod(registryClass, satelliteClass, item)) {
             return;
         }
         throw new IllegalStateException("Unsupported HBM satellite registry API");
@@ -51,7 +54,14 @@ public final class HbmSatelliteCompat {
 
     private static boolean invokeRegistrationMethod(Class<?> registryClass,
             Class<?> satelliteClass, Item item) {
-        Method[] methods = registryClass.getDeclaredMethods();
+        Method[] methods;
+        try {
+            methods = registryClass.getDeclaredMethods();
+        } catch (RuntimeException ignored) {
+            return false;
+        } catch (LinkageError ignored) {
+            return false;
+        }
         for (Method method : methods) {
             if (!Modifier.isStatic(method.getModifiers())
                     || !"registerSatellite".equals(method.getName())) {
@@ -104,7 +114,15 @@ public final class HbmSatelliteCompat {
             Class<?> satelliteClass, Item item) {
         List satelliteTypes = findNamedList(registryClass, "satellites", "satelliteTypes");
         Map itemMappings = findNamedMap(registryClass, "itemToClass", "satelliteItems");
-        for (Field field : registryClass.getDeclaredFields()) {
+        Field[] fields;
+        try {
+            fields = registryClass.getDeclaredFields();
+        } catch (RuntimeException ignored) {
+            return false;
+        } catch (LinkageError ignored) {
+            return false;
+        }
+        for (Field field : fields) {
             if (!Modifier.isStatic(field.getModifiers())) {
                 continue;
             }

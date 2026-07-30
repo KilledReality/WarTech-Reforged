@@ -1,9 +1,23 @@
 package com.wartec.wartecmod.compat;
 
 import com.wartec.wartecmod.tileentity.vls.TileEntityVlsExhaust;
+import net.minecraft.nbt.NBTTagCompound;
 
-public final class TileEntityS400Launcher extends TileEntityVlsExhaust {
+public final class TileEntityS400Launcher extends TileEntityVlsExhaust
+        implements ITeamOwned {
     private boolean cleanedLegacyHeight;
+    private String ownerTeam = "";
+
+    @Override
+    public String getOwnerTeam() {
+        return ownerTeam;
+    }
+
+    @Override
+    public void setOwnerTeam(String team) {
+        ownerTeam = team == null ? "" : team;
+        func_70296_d();
+    }
 
     @Override
     public void func_145845_h() {
@@ -27,5 +41,17 @@ public final class TileEntityS400Launcher extends TileEntityVlsExhaust {
                 }
             }
         }
+    }
+
+    @Override
+    public void func_145841_b(NBTTagCompound tag) {
+        super.func_145841_b(tag);
+        tag.func_74778_a("WarTechOwnerTeam", ownerTeam);
+    }
+
+    @Override
+    public void func_145839_a(NBTTagCompound tag) {
+        super.func_145839_a(tag);
+        ownerTeam = tag.func_74779_i("WarTechOwnerTeam");
     }
 }

@@ -10,6 +10,7 @@ import net.minecraft.world.chunk.Chunk;
 
 public class World implements IBlockAccess {
     public boolean field_72995_K;
+    public WorldProvider field_73011_w = new WorldProvider();
     public List field_72996_f;
     public List field_73010_i;
     public List field_147482_g;

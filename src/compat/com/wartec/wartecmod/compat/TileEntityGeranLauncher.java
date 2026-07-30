@@ -5,23 +5,28 @@ import com.hbm.interfaces.IBomb.BombReturnCode;
 import com.wartec.wartecmod.entity.missile.EntityGeran;
 import com.wartec.wartecmod.tileentity.vls.TileEntityVlsExhaust;
 import com.wartec.wartecmod.tileentity.vls.TileEntityVlsLaunchTube;
+import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.AxisAlignedBB;
+import net.minecraft.util.ChatComponentText;
 import net.minecraft.util.Vec3;
 import net.minecraft.world.World;
 import net.minecraft.world.WorldServer;
 
-public final class TileEntityGeranLauncher extends TileEntityVlsLaunchTube {
+public final class TileEntityGeranLauncher extends TileEntityVlsLaunchTube
+        implements ITeamOwned {
     private static final long LAUNCH_POWER = 25000L;
     private static final double MAX_RANGE = 1000.0D;
     private String ownerTeam = "";
 
+    @Override
     public void setOwnerTeam(String team) {
         ownerTeam = team == null ? "" : team;
         func_70296_d();
     }
 
+    @Override
     public String getOwnerTeam() {
         return ownerTeam;
     }
@@ -45,6 +50,23 @@ public final class TileEntityGeranLauncher extends TileEntityVlsLaunchTube {
 
     @Override
     public BombReturnCode shoot(World world, int x, int y, int z) {
+        return launch(world, null);
+    }
+
+    public BombReturnCode launchRemote(EntityPlayer operator) {
+        if (operator == null || field_145850_b == null) {
+            return BombReturnCode.ERROR_MISSING_COMPONENT;
+        }
+        BombReturnCode result = launch(field_145850_b, operator);
+        if (result != BombReturnCode.LAUNCHED) {
+            operator.func_145747_a(new ChatComponentText(
+                    "Geran-2 remote launch failed: check drone, designator, "
+                    + "power and 20-1000 block target range."));
+        }
+        return result;
+    }
+
+    private BombReturnCode launch(World world, EntityPlayer operator) {
         if (world.field_72995_K || slots == null || slots.length < 3 || slots[0] == null
                 || slots[0].func_77973_b() != AdvancedMissileContent.geranDrone
                 || slots[1] == null || power < LAUNCH_POWER) {
@@ -77,6 +99,9 @@ public final class TileEntityGeranLauncher extends TileEntityVlsLaunchTube {
         MissileChunkLoader.track(drone);
         MissileTrackingService.registerLaunch(drone,
                 launchX + 0.5D, launchY + 1.35D, launchZ + 0.5D, targetX, targetZ);
+        if (operator != null) {
+            drone.beginRemoteControl(operator);
+        }
 
         power -= LAUNCH_POWER;
         slots[0] = null;

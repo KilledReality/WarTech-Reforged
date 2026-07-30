@@ -2,6 +2,7 @@ package com.wartec.wartecmod.compat.client;
 
 import com.wartec.wartecmod.compat.ContainerRadarVehicle;
 import com.wartec.wartecmod.compat.IRadarGuiTarget;
+import com.wartec.wartecmod.compat.TileEntityStrategicRadar;
 import net.minecraft.client.gui.Gui;
 import net.minecraft.client.gui.GuiButton;
 import net.minecraft.client.gui.inventory.GuiContainer;
@@ -107,6 +108,18 @@ public final class GuiRadarVehicle extends GuiContainer {
         field_146289_q.func_78276_b(radar.wartecGetRadarName(), 142, 9, white);
         String status = radar.wartecIsOperational() ? "ONLINE"
                 : radar.wartecIsEnabled() ? "NO POWER" : "STANDBY";
+        if (radar instanceof TileEntityStrategicRadar) {
+            TileEntityStrategicRadar strategic =
+                    (TileEntityStrategicRadar) radar;
+            status = !strategic.isStructureFormed() ? "STRUCTURE ERROR"
+                    : radar.wartecIsOperational() ? "ONLINE"
+                    : radar.wartecIsEnabled()
+                            && strategic.wartecGetPower() > 0
+                                    ? "WARMUP "
+                                            + strategic.getWarmupPercent() + "%"
+                                    : radar.wartecIsEnabled()
+                                            ? "NO POWER" : "STANDBY";
+        }
         field_146289_q.func_78276_b(status, 142, 23,
                 radar.wartecIsOperational() ? green : 0xFFB34F);
         field_146289_q.func_78276_b("CONTACTS  " + radar.wartecGetContacts(),
@@ -118,6 +131,10 @@ public final class GuiRadarVehicle extends GuiContainer {
         int percent = (int) Math.round(100.0D * radar.wartecGetPower()
                 / Math.max(1, radar.wartecGetCapacity()));
         field_146289_q.func_78276_b("POWER " + percent + "%", 142, 83, white);
+        if (radar instanceof TileEntityStrategicRadar) {
+            field_146289_q.func_78276_b("LARGE ONLY",
+                    142, 95, 0x93D9FF);
+        }
         field_146289_q.func_78276_b("BATTERY", 207, 96, white);
         field_146289_q.func_78276_b("INVENTORY", 8, 129, white);
         for (Object value : field_146292_n) {

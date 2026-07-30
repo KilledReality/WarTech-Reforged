@@ -19,5 +19,6 @@ public final class DroneStrikeClient {
                 new ItemRenderMq9Drone(drone));
         MinecraftForgeClient.registerItemRenderer(DroneStrikeContent.mq9Payload,
                 new ItemRenderMq9Payload(ordnance));
+        RemoteControlClient.register();
     }
 }

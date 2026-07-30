@@ -1,0 +1,37 @@
+# Blender MTL File: 'Sketchfab_2022_02_28_12_38_46.blend'
+# Material Count: 3
+
+newmtl mat_197
+Ns 250.000000
+Ka 1.000000 1.000000 1.000000
+Kd 0.800000 0.800000 0.800000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.450000
+d 1.000000
+illum 2
+map_Kd C:\\Users\\etaic\\AppData\\Roaming\\Ninja Ripper\\2026.07.17_12.41.03_wargame3.exe_35784\\su-27pu-ussr\\39238424.dds
+
+newmtl mat_64
+Ns 250.000000
+Ka 1.000000 1.000000 1.000000
+Kd 0.800000 0.800000 0.800000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.450000
+d 1.000000
+illum 2
+map_Kd C:\\Users\\kiril\\Documents\\htm dop\\build\\tactical-aviation-import\\su27\\source\\model\\su27pu-hull.png
+map_d C:\\Users\\kiril\\Documents\\htm dop\\build\\tactical-aviation-import\\su27\\source\\model\\su27pu-hull.png
+
+newmtl mat_65
+Ns 250.000000
+Ka 1.000000 1.000000 1.000000
+Kd 0.800000 0.800000 0.800000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.450000
+d 1.000000
+illum 2
+map_Kd C:\\Users\\kiril\\Documents\\htm dop\\build\\tactical-aviation-import\\su27\\source\\model\\su27pu-window.png
+map_d C:\\Users\\kiril\\Documents\\htm dop\\build\\tactical-aviation-import\\su27\\source\\model\\su27pu-window.png

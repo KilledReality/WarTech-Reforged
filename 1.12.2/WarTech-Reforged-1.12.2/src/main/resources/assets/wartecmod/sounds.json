@@ -1,0 +1,65 @@
+{
+  "weapon.cruisemissiletakeoff": {
+    "category": "player",
+    "sounds": [
+      {
+        "name": "wartecmod:weapon/cruisemissiletakeoff",
+        "stream": false
+      }
+    ]
+  },
+  "weapon.cruisemissileengine": {
+    "category": "player",
+    "sounds": [
+      {
+        "name": "wartecmod:weapon/cruisemissileengine",
+        "stream": false
+      }
+    ]
+  },
+  "weapon.cruisemissilewhistle": {
+    "category": "player",
+    "sounds": [
+      {
+        "name": "wartecmod:weapon/cruisemissilewhistle",
+        "stream": false
+      }
+    ]
+  },
+  "weapon.ballisticmissiletakeoff": {
+    "category": "player",
+    "sounds": [
+      {
+        "name": "wartecmod:weapon/ballisticmissiletakeoff",
+        "stream": false
+      }
+    ]
+  },
+  "entity.bombdet3": {
+    "category": "player",
+    "sounds": [
+      {
+        "name": "wartecmod:entity/bombdet3",
+        "stream": false
+      }
+    ]
+  },
+  "weapon.missile_takeoff_alt": {
+    "category": "player",
+    "sounds": [
+      {
+        "name": "wartecmod:weapon/missile_takeoff_alt",
+        "stream": false
+      }
+    ]
+  },
+  "weapon.explosion_medium": {
+    "category": "player",
+    "sounds": [
+      {
+        "name": "wartecmod:weapon/explosion_medium",
+        "stream": false
+      }
+    ]
+  }
+}

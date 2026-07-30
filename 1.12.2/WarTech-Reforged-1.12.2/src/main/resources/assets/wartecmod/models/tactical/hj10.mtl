@@ -1,0 +1,14 @@
+# Blender MTL File: 'missiles.blend'
+# Material Count: 1
+
+newmtl HJ-10
+Ns 440.413253
+Ka 1.000000 1.000000 1.000000
+Kd 0.207431 0.207431 0.207431
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+d 1.000000
+illum 3
+map_Bump C:\\Users\\kiril\\Documents\\htm dop\\build\\tactical-aviation-import\\weapons\\source\\bf4_missiles\\bf4_missiles\\textures\\ch_hj-10d_n.dds
+map_Kd C:\\Users\\kiril\\Documents\\htm dop\\build\\tactical-aviation-import\\weapons\\source\\bf4_missiles\\bf4_missiles\\textures\\ch_hj-10d_d.dds

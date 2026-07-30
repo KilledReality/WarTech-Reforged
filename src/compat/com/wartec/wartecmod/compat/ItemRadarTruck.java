@@ -19,7 +19,8 @@ public final class ItemRadarTruck extends Item {
             return true;
         }
         EntityRadarTruck radar = new EntityRadarTruck(world);
-        radar.setOwnerTeam(NetworkTeamHelper.getPlayerTeam(player));
+        radar.setOwnerTeam(TeamOwnedItemHelper.resolvePlacementTeam(
+                stack, player));
         radar.func_70012_b(x + 0.5D, y + 1.05D, z + 0.5D,
                 snapYaw(player.field_70177_z), 0.0F);
         if (!world.func_72838_d(radar)) {

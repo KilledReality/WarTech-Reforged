@@ -25,11 +25,13 @@ public final class GuiTu95Bomber extends GuiContainer {
                 field_147009_r + 91, 46, 20, "LAST"));
         field_146292_n.add(new GuiButton(2, field_147003_i + 178,
                 field_147009_r + 91, 46, 20, "ALL"));
+        field_146292_n.add(new GuiButton(3, field_147003_i + 150,
+                field_147009_r + 25, 74, 18, "REMOTE"));
     }
 
     @Override protected void func_146284_a(GuiButton button) {
         if (button.field_146124_l && button.field_146127_k >= 0
-                && button.field_146127_k <= 2) {
+                && button.field_146127_k <= 3) {
             field_146297_k.field_71442_b.func_78756_a(
                     field_147002_h.field_75152_c, button.field_146127_k);
         }
@@ -85,9 +87,14 @@ public final class GuiTu95Bomber extends GuiContainer {
         field_146289_q.func_78276_b("HP " + bomber.getHealthPercent() + "%", 164, 113, white);
         field_146289_q.func_78276_b("INVENTORY", 24, 130, white);
         for (Object value : field_146292_n) {
-            if (value instanceof GuiButton && ((GuiButton) value).field_146127_k == 0) {
-                ((GuiButton) value).field_146126_j = bomber.isReady()
+            if (!(value instanceof GuiButton)) continue;
+            GuiButton button = (GuiButton) value;
+            if (button.field_146127_k == 0) {
+                button.field_146126_j = bomber.isReady()
                         ? "LAUNCH MISSION" : "RETURN TO BASE";
+            } else if (button.field_146127_k == 3) {
+                button.field_146126_j = "REMOTE PILOT";
+                button.field_146124_l = bomber.isReady();
             }
         }
     }

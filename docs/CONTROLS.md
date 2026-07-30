@@ -1,6 +1,6 @@
 # WarTech Reforged Controls Guide
 
-This guide applies to WarTech Reforged `1.5.0` with HBM NTM `1.0.27 X5751` or HBM NTM Space `X5758 H261`. The default Minecraft controls are assumed. If key bindings were changed, use the bound keys instead.
+This guide applies to stable WarTech Reforged `1.6.0` for Minecraft 1.7.10 with HBM NTM `1.0.27 X5751` or HBM NTM Space `X5758 H261`. The same control layout is used by the experimental Minecraft 1.12.2 port for NTM Extended `3.0.3`, although that port may still contain compatibility bugs. The default Minecraft controls are assumed. If key bindings were changed, use the bound keys instead.
 
 ## English
 
@@ -57,6 +57,11 @@ The selector stores coordinates, not an entity. For AGM-88, select a point close
 - Apply a redstone signal to launch.
 - Valid target distance is approximately 20 to 1,000 blocks.
 - Climb, cruise, route separation, and terminal descent are calculated automatically.
+- Use **Shift+RMB with an empty hand** on a loaded catapult to launch in Remote
+  Pilot mode. `W/S` changes throttle, `A/D` steers, `Space/Left Shift` changes
+  pitch, `C` switches nose/chase cameras, `R` toggles course hold/free look,
+  and `X` releases control to the autopilot. The Geran has no selectable
+  hardpoint or flare control.
 
 ### MQ-9 Reaper
 
@@ -65,6 +70,11 @@ The selector stores coordinates, not an entity. For AGM-88, select a point close
 - Set coordinates on an HBM designator, then use **RMB on the MQ-9 while holding it** to append a strike point. Up to six points are retained.
 - Use **Shift+RMB with the designator** to discard the old route and start a new target list with the selected point. `LAST` removes the last queued point; `ALL` clears the complete list.
 - Select a weapon and press `LAUNCH MISSION`, or use **Shift+RMB with an empty hand** on the parked MQ-9.
+- Press `REMOTE PILOT` to fly manually. `W/S` changes throttle, `A/D` steers,
+  `Space/Left Shift` changes pitch, `C` switches nose/chase cameras, `R`
+  holds the current course for free camera aiming, `Z` selects a loaded
+  hardpoint, `LMB` fires, `F` deploys flares, and `X` exits to return autopilot.
+  The operator is restored to the position where the remote link was opened.
 - The MQ-9 attacks queued points in order, consuming one available weapon per point, then returns and lands automatically.
 - Maximum mission radius is **2,400 blocks from the recorded takeoff point**. Every queued point must be inside this radius.
 - AGM-114 has a 95-block release range; HJ-10 extends the light-missile envelope to 145 blocks. GBU-12 releases at 90 blocks, JDAM glides from 245 blocks, and unguided Mk 82 dynamically calculates a 20-66 block release from current altitude and velocity.
@@ -80,6 +90,9 @@ The selector stores coordinates, not an entity. For AGM-88, select a point close
 - Both fighters accept the complete unified ground-strike catalogue: AGM-114, HJ-10, AGM-65, Kh-29, GBU-12, Mk 82, KAB-500L, and JDAM. The same ammunition items, ranges, guidance, accuracy, blast, and energy costs also apply when a compatible item is used by the MQ-9.
 - Missile release ranges are AGM-114 95, HJ-10 145, AGM-65 285, and Kh-29 410 blocks. Bomb release ranges are GBU-12 90, KAB-500L 155, JDAM 245, and a dynamic 20-66 blocks for Mk 82.
 - Configure up to six points with the HBM designator exactly as on the MQ-9. `LAST`, `ALL`, weapon selection, `LAUNCH MISSION`, **Shift+RMB launch/return**, automatic routing, energy consumption, countermeasures, crash behavior, and salvage-wrench removal all follow the same controls.
+- `REMOTE PILOT` starts the same manual flight interface as the MQ-9. The F-16C
+  is faster and turns more aggressively; the Su-27 has a heavier, smoother
+  response. Their normal strike radii remain 3,000 and 3,400 blocks.
 - One loaded weapon is consumed per queued strike point. An F-16 cannot use its two locked slots, and incompatible payloads cannot be inserted through shift-clicking, automation, or the GUI.
 - Load **WT-AAM Skyguard** missiles and press the `STRIKE / INTERCEPT` button to arm fighter-interceptor mode. The parked fighter then waits for a hostile track from a powered radar and a deployed, powered command Ural belonging to the same scoreboard team.
 - In interceptor mode the network patrol radius is **6,500 blocks for F-16C** and **8,000 blocks for Su-27**. Their normal ground-strike mission radii remain 3,000 and 3,400 blocks.
@@ -91,6 +104,10 @@ The selector stores coordinates, not an entity. For AGM-88, select a point close
 - **RMB** on the parked Tu-95 opens strategic aviation control. Load up to six **Kh-555** missiles, one compatible charged HBM battery into `BAT`, and up to 16 countermeasure packs into `LTC`.
 - Set coordinates on an HBM designator and use **RMB on the aircraft while holding it** to append up to six targets. **Shift+RMB with the designator** replaces the route; `LAST` and `ALL` remove queued targets.
 - Press `LAUNCH MISSION`, or use **Shift+RMB with an empty hand**. Every target must be 250-8,000 blocks from the recorded airfield.
+- `REMOTE PILOT` provides manual control with the same keys as the MQ-9. The
+  Tu-95 has a long takeoff roll, slow pitch and yaw response, an 8,000-block
+  combat radius, selectable Kh-555/FAB-5000/KAB-3000 hardpoints, and a wider
+  chase camera that frames the complete aircraft.
 - With one target, all six loaded missiles form a timed salvo. With several targets, loaded hardpoints are distributed between them. Every Kh-555 uses the Tier 2 cruise-missile flight model and an independently randomized route.
 - The Tu-95 climbs to its cruise level and releases from a randomized standoff corridor approximately 1,700-1,900 blocks from a distant target. It does not overfly the target. For a closer target it first flies away on the reciprocal heading and releases from a safe cruise distance.
 - Kh-555 also works in the standard WarTech cruise-missile launch tube. Its normal valid range is 250-2,000 blocks.
@@ -108,6 +125,11 @@ An active jammer receives high seeker priority. If an emitter switches off after
 ### Patriot, S-400, and interceptor launchers
 
 - **RMB**: open the launcher interface.
+- A newly placed Patriot or S-400 stores the placing player's IFF. An existing
+  unbound launcher automatically adopts the nearest active WarTech command,
+  radar, or relay team.
+- **Shift+RMB with the WarTech IFF Configurator**: explicitly rebind an
+  existing Patriot or S-400 to the player's current IFF team.
 - Load one or more compatible WTI interceptor missiles into the missile cells.
 - Provide compatible HBM energy.
 - **Do not insert a target selector.** Air-defense launchers acquire confirmed airborne threats automatically through the radar/command network.
@@ -119,6 +141,20 @@ Interceptor engagement ranges:
 - **WTI-1 Falcon**: 100 blocks.
 - **WTI-2 Lance**: 250 blocks.
 - **WTI-3 Sentinel**: 400 blocks.
+
+Henry rockets use caliber-aware air-defense tiers:
+
+- The standard 227 mm rocket is a Tier 1 threat and remains the normal WTI-1
+  target.
+- Both 610 mm variants are Tier 2 threats. WTI-2 receives them at its normal
+  range and has a 100% intercept roll when the interceptor itself does not
+  malfunction.
+- WTI-1 is only a close-range fallback against 610 mm rockets: acquisition is
+  limited to 70 blocks and the intercept roll is 25%.
+
+All Henry engagements retain the accelerated guidance profile needed to catch
+the HBM projectile. The interceptor leaves the vertical launch phase after one
+tick and accelerates above the measured target speed.
 
 If the first interceptor misses or fails, another launcher waits roughly five to seven seconds before reacting to the same threat. A failed interceptor still leaves toward the threat, then diverts away and can explode or ignite terrain on impact.
 
@@ -169,7 +205,7 @@ The radar only joins the tracking network while deployed, powered, and operation
 - **W / S / A / D**: drive while retracted.
 - **Left Shift**: leave the driver's seat.
 
-The command post does not move while deployed. Its interface reports connected radars, launchers, confirmed tracks, hostile emitters, and active interceptions. It must be deployed and powered to participate fully in the network.
+The command post does not move while deployed. Its interface reports connected radars, launchers, confirmed tracks, hostile emitters, and active interceptions. It must be deployed and powered to participate fully in the network. Map symbols are `C` for command, `R` for tactical radar, `S` for strategic radar, `L` for an air-defense launcher, and `T` for a communication relay. Henry rockets use the `RK` track code. Friendly tracks are green; hostile tracks are red or magenta. `RADAR ONLY - NO PVO` means the command network currently sees no linked air-defense launcher.
 
 ### Automatic HBM air-raid siren
 
@@ -224,13 +260,23 @@ Synytsia affects radar tracking within roughly 350 blocks. Passive ESM listens f
 - To use the HBM artillery range designator, deploy the platform and use **RMB on the vehicle while holding it**. This links the designator to the mobile turret proxy.
 - The vehicle confirms accepted target coordinates in chat.
 
+#### MLRS, tracking, and interception
+
+- The HEMTT with a **Henry** module is WarTech's separate MLRS. It keeps the native HBM ammunition, targeting, and firing interface.
+- Both the standard 227 mm salvo rockets and the heavy 610 mm Henry rocket are visible to tactical and strategic radars and may be engaged by every compatible air-defense layer.
+- Greg shells are deliberately hidden from strategic radars. Only point-defense and short-range systems may intercept them, with a maximum engagement range of 220 blocks.
+- Generic HBM bullets, fragments, and unlisted artillery entities are ignored by the WarTech tracking network.
+- A placed HEMTT stores its IFF team and passes it to every Greg shell or Henry rocket it fires. Use the IFF Configurator with **Shift+RMB** to rebind an existing vehicle.
+- A standalone HBM Greg or Henry installation can infer its projectile team when it fires within 192 blocks of an active WarTech command vehicle, radar, launcher, or communication relay. Otherwise its projectiles remain unowned and are treated as hostile.
+- The command map displays a friendly Henry rocket as a green `FRIEND RK` track, but friendly air defense does not engage it. Use an opposing IFF team or an unowned launcher when testing interception; hostile rockets appear as `HOSTILE RK`.
+
 ### Scoreboard teams and IFF
 
 The **WarTech IFF Configurator** in the Support tab is the recommended setup method:
 
 - **RMB** opens the selector. Choose `ALPHA`, `BRAVO`, `CHARLIE`, `DELTA`, or `PERSONAL`.
 - The selected team is stored in persistent player data, mirrored to the vanilla scoreboard, and restored after reconnecting, changing dimensions, or dying.
-- **Shift+RMB on a WarTech vehicle, radar, EW unit, communication mast, or siren relay** rebinds already placed equipment to the player's current IFF team.
+- **Shift+RMB on a WarTech vehicle, radar, Patriot/S-400 launcher, EW unit, communication mast, or siren relay** rebinds already placed equipment to the player's current IFF team.
 - `!wtteam status`, `!wtteam <name>`, and `!wtteam personal` provide a chat fallback and support custom team names.
 
 Vanilla scoreboard commands remain supported:
@@ -242,7 +288,7 @@ Vanilla scoreboard commands remain supported:
 
 Use different team names for opposing sides. Equipment placed before joining can now be rebound with the IFF Configurator instead of being dismantled.
 
-Aircraft, UAVs, Geran drones, Kh-555 missiles, mobile/fixed launchers, radars, command vehicles, and their spawned guided weapons pass this team identity through the tracking network. A radar and its launchers ignore tracks carrying the same non-empty team identity; hostile or unowned tracks remain eligible targets. Empty-team equipment remains interoperable for ordinary single-player worlds, but scoreboard teams are required for reliable multiplayer IFF.
+Aircraft, UAVs, Geran drones, Kh-555 missiles, HBM Greg shells and Henry rockets, mobile/fixed launchers, radars, command vehicles, and their spawned guided weapons pass this team identity through the tracking network. A radar and its launchers ignore tracks carrying the same non-empty team identity; hostile or unowned tracks remain eligible targets. Empty-team equipment remains interoperable for ordinary single-player worlds, but scoreboard teams are required for reliable multiplayer IFF.
 
 ### Quick troubleshooting
 
@@ -326,6 +372,11 @@ Tier-3 long-range tracking is intentionally not instantaneous: the contact must 
 - Подайте сигнал красного камня для запуска.
 - Допустимая дальность цели составляет примерно от 20 до 1 000 блоков.
 - Набор высоты, маршевый участок, разделение маршрутов и терминальное снижение рассчитываются автоматически.
+- **Shift+ПКМ пустой рукой** по загруженной катапульте запускает ручной режим.
+  `W/S` меняют тягу, `A/D` поворачивают, `Пробел/Левый Shift` меняют тангаж,
+  `C` переключает носовую и внешнюю камеры, `R` включает удержание курса и
+  свободный обзор, а `X` передаёт управление автопилоту. У «Герани» нет выбора
+  подвесов и управления ЛТЦ.
 
 ### MQ-9 Reaper
 
@@ -334,6 +385,11 @@ Tier-3 long-range tracking is intentionally not instantaneous: the contact must 
 - Настройте координаты на целеуказателе HBM, затем нажмите **ПКМ по MQ-9 с целеуказателем в руке**, чтобы добавить точку удара. Сохраняется до шести точек.
 - **Shift+ПКМ с целеуказателем** удаляет старый маршрут и начинает новый список с выбранной точки. `LAST` удаляет последнюю точку, а `ALL` полностью очищает очередь.
 - Выберите оружие и нажмите `LAUNCH MISSION` либо используйте **Shift+ПКМ пустой рукой** по стоящему MQ-9.
+- Кнопка `REMOTE PILOT` включает ручной полёт. `W/S` меняют тягу, `A/D`
+  поворачивают, `Пробел/Левый Shift` меняют тангаж, `C` переключает носовую и
+  внешнюю камеры, `R` удерживает курс для свободного наведения камерой, `Z`
+  выбирает загруженный подвес, `ЛКМ` запускает оружие, `F` выпускает ЛТЦ, `X`
+  завершает управление и включает возврат. Оператор возвращается в точку входа.
 - MQ-9 атакует точки по порядку, расходуя по одному доступному боеприпасу на точку, затем автоматически возвращается и садится.
 - ЛТЦ заметно отстреливаются на конечном сближении ракеты-перехватчика либо незадолго до очереди уже наведённых пушек «Панциря». Одна кассета создаёт короткое окно противодействия; шанс отвода составляет 25% против ракет 1-го тира, 15% против 2-го и 10% против 3-го. Неудачный отстрел виден, но не предотвращает попадание.
 - Получивший смертельный урон MQ-9 не исчезает: он падает с дымом и огнём, взрывается при ударе, выбрасывает уцелевшее содержимое и оставляет физический обломок корпуса.
@@ -350,6 +406,9 @@ Tier-3 long-range tracking is intentionally not instantaneous: the contact must 
 - Оба самолёта принимают полный унифицированный набор: AGM-114, HJ-10, AGM-65, Х-29, GBU-12, Mk 82, КАБ-500Л и JDAM. Для совместимого носителя используются те же предметы, дальности, наведение, точность, мощность и расход энергии, что и у MQ-9.
 - Рубежи ракет: AGM-114 95, HJ-10 145, AGM-65 285 и Х-29 410 блоков. Рубежи бомб: GBU-12 90, КАБ-500Л 155, JDAM 245 и динамические 20-66 блоков у Mk 82.
 - До шести целей задаются целеуказателем HBM так же, как для MQ-9. Кнопки `LAST`, `ALL`, выбор оружия, `LAUNCH MISSION`, **Shift+ПКМ для запуска/возврата**, автоматические маршруты, расход энергии, ЛТЦ, падение и демонтаж ключом работают одинаково.
+- `REMOTE PILOT` включает тот же ручной интерфейс, что у MQ-9. F-16C быстрее и
+  резче, а Су-27 тяжелее и плавнее. Боевой радиус ударного режима остаётся
+  равным 3 000 и 3 400 блокам соответственно.
 - На каждую точку расходуется один боеприпас. Два заблокированных слота F-16 нельзя использовать, а несовместимое оружие нельзя вставить через интерфейс, Shift-клик или автоматизацию.
 - Загрузите ракеты **WT-AAM Skyguard** и нажмите кнопку `STRIKE / INTERCEPT`, чтобы включить режим истребителя-перехватчика. Стоящий самолёт будет ждать вражескую трассу от запитанной РЛС и развёрнутого запитанного командного Урала своей scoreboard-команды.
 - В режиме перехватчика сетевой радиус дежурства составляет **6 500 блоков для F-16C** и **8 000 блоков для Су-27**. Обычная дальность ударных миссий остаётся прежней: 3 000 и 3 400 блоков.
@@ -361,6 +420,10 @@ Tier-3 long-range tracking is intentionally not instantaneous: the contact must 
 - **ПКМ** по стоящему Ту-95 открывает управление стратегической авиацией. Загрузите до шести ракет **Х-555**, заряженный совместимый аккумулятор HBM в `BAT` и до 16 кассет ЛТЦ в `LTC`.
 - Задайте координаты целеуказателем HBM и нажмите **ПКМ по самолёту с целеуказателем в руке**, чтобы добавить до шести целей. **Shift+ПКМ с целеуказателем** заменяет маршрут; `LAST` и `ALL` удаляют точки из очереди.
 - Нажмите `LAUNCH MISSION` либо **Shift+ПКМ пустой рукой**. Каждая цель должна находиться в 250-8 000 блоках от записанного аэродрома.
+- `REMOTE PILOT` включает ручное управление с теми же клавишами, что у MQ-9.
+  У Ту-95 длинный разбег, медленный отклик по тангажу и рысканию, радиус 8 000
+  блоков, выбор подвесов Х-555/FAB-5000/KAB-3000 и более дальняя внешняя камера,
+  в которой самолёт помещается целиком.
 - При одной цели все шесть загруженных ракет образуют последовательный залп. При нескольких целях узлы подвески распределяются между ними. Каждая Х-555 использует модель полёта крылатой ракеты Tier 2 и отдельный случайный маршрут.
 - Ту-95 набирает эшелон и выполняет пуск из случайного коридора примерно в 1 700-1 900 блоках от дальней цели, не пролетая над ней. Для близкой цели самолёт сначала уходит от неё обратным курсом и запускает ракету с безопасной дистанции.
 - Х-555 также совместима со стандартным контейнером запуска крылатых ракет WarTech. Обычная допустимая дальность составляет 250-2 000 блоков.
@@ -439,7 +502,7 @@ Tier-3 long-range tracking is intentionally not instantaneous: the contact must 
 - **W / S / A / D**: управление машиной в походном положении.
 - **Левый Shift**: покинуть водительское место.
 
-Развёрнутый командный пункт не двигается. Интерфейс показывает подключённые РЛС и пусковые, подтверждённые цели, вражеские излучатели и активные перехваты. Для полноценной работы в сети машина должна быть развёрнута и запитана.
+Развёрнутый командный пункт не двигается. Интерфейс показывает подключённые РЛС и пусковые, подтверждённые цели, вражеские излучатели и активные перехваты. Для полноценной работы в сети машина должна быть развёрнута и запитана. Обозначения карты: `C` — командная машина, `R` — тактическая РЛС, `S` — стратегическая РЛС, `L` — установка ПВО, `T` — ретранслятор. Ракеты Henry обозначаются `RK`. Свои трассы зелёные, вражеские — красные или пурпурные. Надпись `RADAR ONLY - NO PVO` означает, что сеть не видит ни одной подключённой установки ПВО.
 
 ### Автоматическая воздушная тревога через сирену HBM
 
@@ -494,6 +557,16 @@ Tier-3 long-range tracking is intentionally not instantaneous: the contact must 
 - Для артиллерийского дальномера-целеуказателя HBM сначала разверните платформу, затем нажмите **ПКМ по машине с дальномером в руке**. Предмет привяжется к мобильной турели.
 - Машина подтверждает принятые координаты цели сообщением в чате.
 
+#### РСЗО, сопровождение и перехват
+
+- HEMTT с модулем **Henry** является отдельной РСЗО WarTech и использует штатные боеприпасы, наведение и интерфейс HBM.
+- И стандартные 227-мм ракеты залпа, и тяжёлая одиночная 610-мм ракета Henry видны тактическим и стратегическим РЛС и могут перехватываться всеми подходящими эшелонами ПВО.
+- Снаряды Greg намеренно не отображаются на стратегических РЛС. Их перехватывают только комплексы объектовой и ближней ПВО на дистанции не более 220 блоков.
+- Обычные пули, осколки и прочие неразрешённые артиллерийские сущности HBM сеть сопровождения WarTech игнорирует.
+- Установленная платформа HEMTT хранит свою IFF-команду и передаёт её каждому снаряду Greg или ракете Henry. Уже созданную машину можно перепривязать IFF-конфигуратором через **Shift+ПКМ**.
+- Стационарная установка HBM Greg или Henry может определить команду своих снарядов при пуске в пределах 192 блоков от активной командной машины, РЛС, пусковой или ретранслятора WarTech. Вне такой сети снаряд остаётся без владельца и считается враждебным.
+- Свою ракету Henry командная карта показывает зелёной трассой `FRIEND RK`, но своя ПВО её не атакует. Для проверки перехвата назначьте пусковой противоположную IFF-команду либо используйте бесхозную установку; вражеская ракета отображается как `HOSTILE RK`.
+
 ### Команды scoreboard и система «свой-чужой»
 
 Рекомендуемый способ настройки — **IFF-конфигуратор WarTech** во вкладке поддержки:
@@ -512,7 +585,9 @@ Tier-3 long-range tracking is intentionally not instantaneous: the contact must 
 
 Для противоборствующих сторон используйте разные названия команд. Ранее установленную технику теперь можно перепривязать IFF-конфигуратором без демонтажа.
 
-Самолёты, БПЛА, «Герани», Х-555, мобильные и стационарные пусковые, РЛС, командные машины и создаваемое ими управляемое оружие передают эту принадлежность по сети сопровождения. РЛС и пусковые игнорируют трассы с той же непустой командой; чужие цели и цели без владельца остаются допустимыми. В одиночной игре техника без команды продолжает взаимодействовать, но для надёжного сетевого «свой-чужой» scoreboard-команды обязательны.
+Команда сохраняется в `player.dat`, scoreboard и NBT каждой установки. При демонтаже ключом она также переносится в NBT выпавшего предмета, поэтому выход из мира, подбор и повторная установка не сбрасывают IFF. Чтобы сознательно передать трофей другой стороне, после установки перепривяжите его IFF-конфигуратором через Shift+ПКМ.
+
+Самолёты, БПЛА, «Герани», Х-555, снаряды HBM Greg, ракеты Henry, мобильные и стационарные пусковые, РЛС, командные машины и создаваемое ими управляемое оружие передают эту принадлежность по сети сопровождения. РЛС и пусковые игнорируют трассы с той же непустой командой; чужие цели и цели без владельца остаются допустимыми. В одиночной игре техника без команды продолжает взаимодействовать, но для надёжного сетевого «свой-чужой» scoreboard-команды обязательны.
 
 ### Быстрая диагностика
 

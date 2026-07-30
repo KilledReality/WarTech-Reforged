@@ -16,16 +16,16 @@ public final class ContainerCommandVehicle extends Container {
     public ContainerCommandVehicle(InventoryPlayer playerInventory,
             EntityCommandTruck command) {
         this.command = command;
-        func_75146_a(new BatterySlot(command, 0, 228, 105));
+        func_75146_a(new BatterySlot(command, 0, 510, 270));
         for (int row = 0; row < 3; ++row) {
             for (int column = 0; column < 9; ++column) {
                 func_75146_a(new Slot(playerInventory, column + row * 9 + 9,
-                        8 + column * 18, 140 + row * 18));
+                        12 + column * 18, 270 + row * 18));
             }
         }
         for (int column = 0; column < 9; ++column) {
             func_75146_a(new Slot(playerInventory, column,
-                    8 + column * 18, 198));
+                    12 + column * 18, 328));
         }
     }
 

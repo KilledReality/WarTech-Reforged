@@ -4,7 +4,10 @@ import com.wartec.wartecmod.compat.ElectronicWarfareService;
 import com.wartec.wartecmod.compat.AircraftCountermeasureCompat;
 import com.wartec.wartecmod.compat.HeavyVehicleDynamics;
 import com.wartec.wartecmod.compat.HeavyVehicleDynamics.Motion;
+import com.wartec.wartecmod.compat.HbmEntityPowerLink;
 import com.wartec.wartecmod.compat.IAntiRadiationTarget;
+import com.wartec.wartecmod.compat.IWirePoweredEntity;
+import com.wartec.wartecmod.compat.ITeamOwned;
 import com.wartec.wartecmod.compat.ItemPantsirAmmoBelt;
 import com.wartec.wartecmod.compat.MissileTrackingService;
 import com.wartec.wartecmod.compat.RadarGuiHandler;
@@ -25,7 +28,8 @@ import net.minecraft.world.World;
 import net.minecraft.world.WorldServer;
 
 public final class EntityMobileAirDefense extends Entity
-        implements IInventory, IAntiRadiationTarget {
+        implements IInventory, IAntiRadiationTarget, IWirePoweredEntity,
+        ITeamOwned {
     public static final int VARIANT_TOR = 0;
     public static final int VARIANT_PANTSIR = 1;
     public static final int FIRE_HOLD = 0;
@@ -244,6 +248,12 @@ public final class EntityMobileAirDefense extends Entity
                 : getFireMode() == FIRE_EMERGENCY ? "EMERGENCY" : "AUTO";
     }
 
+    @Override
+    public String getOwnerTeam() {
+        return ownerTeam;
+    }
+
+    @Override
     public void setOwnerTeam(String team) {
         ownerTeam = team == null ? "" : team;
     }
@@ -257,6 +267,7 @@ public final class EntityMobileAirDefense extends Entity
             return;
         }
 
+        HbmEntityPowerLink.tick(this);
         int charged = VehicleEnergyHelper.chargeFromStack(inventory[BATTERY_SLOT],
                 getPower(), ENERGY_CAPACITY);
         if (charged != getPower()) {
@@ -944,6 +955,7 @@ public final class EntityMobileAirDefense extends Entity
         tag.func_74768_a("Power", getPower());
         tag.func_74780_a("VehicleHealth", vehicleHealth);
         tag.func_74778_a("OwnerTeam", ownerTeam);
+        tag.func_74778_a("WarTechOwnerTeam", ownerTeam);
         for (int i = 0; i < inventory.length; ++i) {
             if (inventory[i] == null) continue;
             NBTTagCompound item = new NBTTagCompound();
@@ -970,7 +982,9 @@ public final class EntityMobileAirDefense extends Entity
         vehicleHealth = tag.func_74764_b("VehicleHealth")
                 ? Math.max(1.0D, Math.min(MAX_HEALTH,
                         tag.func_74769_h("VehicleHealth"))) : MAX_HEALTH;
-        ownerTeam = tag.func_74779_i("OwnerTeam");
+        ownerTeam = tag.func_74764_b("WarTechOwnerTeam")
+                ? tag.func_74779_i("WarTechOwnerTeam")
+                : tag.func_74779_i("OwnerTeam");
         for (int i = 0; i < inventory.length; ++i) inventory[i] = null;
         for (int i = 0; i < inventory.length; ++i) {
             String key = "InventorySlot" + i;
@@ -1030,6 +1044,10 @@ public final class EntityMobileAirDefense extends Entity
         return slot >= 0 && slot < getMissileCapacity()
                 && VlsDefenseCompat.getInterceptorTier(stack) == getRequiredInterceptorTier();
     }
+
+    @Override public int wartecGetWirePower() { return getPower(); }
+    @Override public void wartecSetWirePower(int power) { setPower(power); }
+    @Override public int wartecGetWireCapacity() { return ENERGY_CAPACITY; }
 
     private static void tell(EntityPlayer player, String text) {
         player.func_145747_a(new ChatComponentText(text));

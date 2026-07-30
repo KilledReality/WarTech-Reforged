@@ -24,6 +24,8 @@ public final class RadarNetworkContent {
     public static Block airRaidRelay;
     public static Block communicationRelay;
     public static Block communicationMastSegment;
+    public static Block strategicRadar;
+    public static Block strategicRadarStructure;
 
     private RadarNetworkContent() {
     }
@@ -78,6 +80,15 @@ public final class RadarNetworkContent {
         communicationMastSegment = new BlockCommunicationMastSegment();
         GameRegistry.registerBlock(communicationMastSegment,
                 "LongRangeCommunicationMastSegment");
+        strategicRadar = new BlockStrategicRadar()
+                .func_149647_a(ReforgedCreativeTabs.AIR_DEFENSE);
+        GameRegistry.registerBlock(strategicRadar,
+                "StrategicEarlyWarningRadar");
+        GameRegistry.registerTileEntity(TileEntityStrategicRadar.class,
+                "wartecStrategicEarlyWarningRadar");
+        strategicRadarStructure = new BlockStrategicRadarStructure();
+        GameRegistry.registerBlock(strategicRadarStructure,
+                "StrategicRadarStructure");
         EntityRegistry.registerModEntity(EntityRadarTruck.class, "entity_Mobile_Radar", 31,
                 wartecmod.instance, 512, 1, true);
         EntityRegistry.registerModEntity(EntityS400Radar.class, "entity_S400_Radar", 32,

@@ -14,7 +14,7 @@ import net.minecraftforge.common.MinecraftForge;
 @Mod(
     modid = "wartecfix",
     name = "WarTech Reforged Compatibility",
-    version = "1.5.1-universal-hbm",
+    version = "1.6.0",
     dependencies = "required-after:hbm;after:wartecmod"
 )
 public final class WarTecBootstrap {
@@ -44,6 +44,8 @@ public final class WarTecBootstrap {
 
             CreativeTabFix.apply();
             LegacyIconFix.apply();
+            RemoteControlNetwork.register();
+            FactionCommandNetwork.register();
             PatriotContent.register();
             AdvancedMissileContent.register();
             MobileArtilleryContent.register();
@@ -72,38 +74,14 @@ public final class WarTecBootstrap {
     public void init(FMLInitializationEvent event) {
         NetworkRegistry.INSTANCE.registerGuiHandler(instance, new RadarGuiHandler());
         if (event.getSide().isClient()) {
-            try {
-                Class.forName("com.wartec.wartecmod.compat.client.PatriotClient")
-                        .getMethod("register")
-                        .invoke(null);
-                Class.forName("com.wartec.wartecmod.compat.client.AdvancedMissileClient")
-                        .getMethod("register")
-                        .invoke(null);
-                Class.forName("com.wartec.wartecmod.compat.client.MobileArtilleryClient")
-                        .getMethod("register")
-                        .invoke(null);
-                Class.forName("com.wartec.wartecmod.compat.client.RadarNetworkClient")
-                        .getMethod("register")
-                        .invoke(null);
-                Class.forName("com.wartec.wartecmod.compat.client.DroneStrikeClient")
-                        .getMethod("register")
-                        .invoke(null);
-                Class.forName("com.wartec.wartecmod.compat.client.OrbitalStrikeClient")
-                        .getMethod("register")
-                        .invoke(null);
-                Class.forName("com.wartec.wartecmod.compat.client.StrategicAviationClient")
-                        .getMethod("register")
-                        .invoke(null);
-            } catch (Throwable t) {
-                t.printStackTrace();
-            }
-            try {
-                Class.forName("com.wartec.wartecmod.compat.client.TacticalAviationClient")
-                        .getMethod("register")
-                        .invoke(null);
-            } catch (Throwable t) {
-                t.printStackTrace();
-            }
+            registerClient("com.wartec.wartecmod.compat.client.PatriotClient");
+            registerClient("com.wartec.wartecmod.compat.client.AdvancedMissileClient");
+            registerClient("com.wartec.wartecmod.compat.client.MobileArtilleryClient");
+            registerClient("com.wartec.wartecmod.compat.client.RadarNetworkClient");
+            registerClient("com.wartec.wartecmod.compat.client.DroneStrikeClient");
+            registerClient("com.wartec.wartecmod.compat.client.OrbitalStrikeClient");
+            registerClient("com.wartec.wartecmod.compat.client.StrategicAviationClient");
+            registerClient("com.wartec.wartecmod.compat.client.TacticalAviationClient");
         }
     }
 
@@ -116,6 +94,15 @@ public final class WarTecBootstrap {
     private static Object get(Class<?> owner, String name) throws Exception {
         Field field = owner.getField(name);
         return field.get(null);
+    }
+
+    private static void registerClient(String className) {
+        try {
+            Class.forName(className).getMethod("register").invoke(null);
+        } catch (Throwable failure) {
+            System.err.println("[WarTech] Client registrar failed: " + className);
+            failure.printStackTrace();
+        }
     }
 
     private static void writeMarker(FMLPreInitializationEvent event, String text) {

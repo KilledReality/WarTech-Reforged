@@ -52,7 +52,8 @@ public final class ItemTacticalAircraft extends Item {
         aircraft.setVariant(variant);
         float yaw = Math.round(player.field_70177_z / 90.0F) * 90.0F;
         aircraft.func_70012_b(x + 0.5D, y + 1.05D, z + 0.5D, yaw, 0.0F);
-        aircraft.setOwnerTeam(NetworkTeamHelper.getPlayerTeam(player));
+        aircraft.setOwnerTeam(TeamOwnedItemHelper.resolvePlacementTeam(
+                stack, player));
         aircraft.initializeHome();
         if (!world.func_72838_d(aircraft)) return false;
         if (!player.field_71075_bZ.field_75098_d) stack.field_77994_a--;

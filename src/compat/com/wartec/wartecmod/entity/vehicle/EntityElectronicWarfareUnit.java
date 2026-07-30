@@ -1,7 +1,10 @@
 package com.wartec.wartecmod.entity.vehicle;
 
 import com.wartec.wartecmod.compat.ElectronicWarfareService;
+import com.wartec.wartecmod.compat.HbmEntityPowerLink;
 import com.wartec.wartecmod.compat.IAntiRadiationTarget;
+import com.wartec.wartecmod.compat.IWirePoweredEntity;
+import com.wartec.wartecmod.compat.ITeamOwned;
 import com.wartec.wartecmod.compat.VehicleEnergyHelper;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.EntityPlayer;
@@ -12,7 +15,8 @@ import net.minecraft.util.ChatComponentText;
 import net.minecraft.util.DamageSource;
 import net.minecraft.world.World;
 
-public final class EntityElectronicWarfareUnit extends Entity implements IAntiRadiationTarget {
+public final class EntityElectronicWarfareUnit extends Entity
+        implements IAntiRadiationTarget, IWirePoweredEntity, ITeamOwned {
     public static final int MODE_JAMMER = 0;
     public static final int MODE_ESM = 1;
     public static final int MODE_DECOY = 2;
@@ -68,6 +72,11 @@ public final class EntityElectronicWarfareUnit extends Entity implements IAntiRa
         return field_70180_af.func_75679_c(DW_POWER);
     }
 
+    public void setPower(int power) {
+        field_70180_af.func_75692_b(DW_POWER, Integer.valueOf(Math.max(0,
+                Math.min(ENERGY_CAPACITY, power))));
+    }
+
     public int getContacts() {
         return field_70180_af.func_75679_c(DW_CONTACTS);
     }
@@ -76,6 +85,12 @@ public final class EntityElectronicWarfareUnit extends Entity implements IAntiRa
         return field_70180_af.func_75683_a(DW_BAND);
     }
 
+    @Override
+    public String getOwnerTeam() {
+        return ownerTeam;
+    }
+
+    @Override
     public void setOwnerTeam(String team) {
         ownerTeam = team == null ? "" : team;
     }
@@ -90,6 +105,7 @@ public final class EntityElectronicWarfareUnit extends Entity implements IAntiRa
         if (field_70170_p.field_72995_K) {
             return;
         }
+        HbmEntityPowerLink.tick(this);
         if (!isActive()) {
             ElectronicWarfareService.removeNode(field_70170_p, func_145782_y());
             setContacts(0);
@@ -258,6 +274,7 @@ public final class EntityElectronicWarfareUnit extends Entity implements IAntiRa
         tag.func_74768_a("EWPower", getPower());
         tag.func_74774_a("EWBand", (byte) getBand());
         tag.func_74778_a("EWTeam", ownerTeam);
+        tag.func_74778_a("WarTechOwnerTeam", ownerTeam);
         tag.func_74780_a("EWHealth", unitHealth);
     }
 
@@ -269,11 +286,17 @@ public final class EntityElectronicWarfareUnit extends Entity implements IAntiRa
         field_70180_af.func_75692_b(DW_POWER, Integer.valueOf(Math.max(0,
                 Math.min(ENERGY_CAPACITY, tag.func_74762_e("EWPower")))));
         field_70180_af.func_75692_b(DW_BAND, Byte.valueOf(tag.func_74771_c("EWBand")));
-        ownerTeam = tag.func_74779_i("EWTeam");
+        ownerTeam = tag.func_74764_b("WarTechOwnerTeam")
+                ? tag.func_74779_i("WarTechOwnerTeam")
+                : tag.func_74779_i("EWTeam");
         if (tag.func_74764_b("EWHealth")) {
             unitHealth = Math.max(1.0D, Math.min(MAX_HEALTH, tag.func_74769_h("EWHealth")));
         }
     }
+
+    @Override public int wartecGetWirePower() { return getPower(); }
+    @Override public void wartecSetWirePower(int power) { setPower(power); }
+    @Override public int wartecGetWireCapacity() { return ENERGY_CAPACITY; }
 
     private static void tell(EntityPlayer player, String text) {
         player.func_145747_a(new ChatComponentText(text));

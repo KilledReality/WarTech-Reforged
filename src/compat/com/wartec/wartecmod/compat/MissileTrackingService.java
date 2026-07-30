@@ -4,8 +4,10 @@ import api.hbm.entity.IRadarDetectable;
 import api.hbm.entity.IRadarDetectable.RadarTargetType;
 import api.hbm.entity.IRadarDetectableNT;
 import com.wartec.wartecmod.entity.missile.EntityMq9Drone;
+import com.wartec.wartecmod.entity.missile.EntityTacticalAircraft;
 import com.wartec.wartecmod.entity.missile.EntityTu95Bomber;
 import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -15,6 +17,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.WeakHashMap;
 import net.minecraft.entity.Entity;
+import net.minecraft.util.Vec3;
 import net.minecraft.world.World;
 
 /** Server-side radar picture shared by every WarTech air-defense launcher. */
@@ -35,9 +38,34 @@ public final class MissileTrackingService {
     private static final int MAX_COMMUNICATION_RELAYS = 64;
     private static final int TIER_3_TRACK_ESTABLISHMENT_TICKS = 50;
     private static final double TIER_3_MIN_RADAR_ALTITUDE = 18.0D;
+    public static final int FACTION_NODE_RADAR = 1;
+    public static final int FACTION_NODE_STRATEGIC_RADAR = 2;
+    public static final int FACTION_NODE_LAUNCHER = 3;
+    public static final int FACTION_NODE_COMMAND = 4;
+    public static final int FACTION_NODE_RELAY = 5;
+    public static final int FACTION_CONTACT_UNKNOWN = 0;
+    public static final int FACTION_CONTACT_MISSILE = 1;
+    public static final int FACTION_CONTACT_AIRCRAFT = 2;
+    public static final int FACTION_CONTACT_HEAVY_AIRCRAFT = 3;
+    public static final int FACTION_CONTACT_BALLISTIC = 4;
+    public static final int FACTION_CONTACT_DRONE = 5;
+    public static final int FACTION_CONTACT_ARTILLERY_ROCKET = 6;
+    private static final int MAX_FACTION_NODES = 192;
+    private static final int MAX_FACTION_CONTACTS = 128;
+    private static final int MAX_FACTION_SECTORS = 256;
+    private static final int HBM_ARTILLERY_NONE = 0;
+    private static final int HBM_ARTILLERY_SHELL = 1;
+    private static final int HBM_ARTILLERY_ROCKET = 2;
+    private static final double ARTILLERY_SHELL_INTERCEPT_RANGE = 220.0D;
+    private static final double ARTILLERY_IFF_INFERENCE_RANGE = 192.0D;
+    private static final double HEAVY_HENRY_TIER_ONE_RANGE = 70.0D;
     private static final Map<World, WorldTracks> WORLDS = new WeakHashMap<World, WorldTracks>();
     private static final Map<Class<?>, CoordinateFields> COORDINATE_FIELDS =
             new WeakHashMap<Class<?>, CoordinateFields>();
+    private static final Map<Class<?>, Integer> HBM_ARTILLERY_TYPES =
+            new WeakHashMap<Class<?>, Integer>();
+    private static final Map<Class<?>, RocketTypeAccess> HBM_ROCKET_TYPE_ACCESS =
+            new WeakHashMap<Class<?>, RocketTypeAccess>();
 
     private MissileTrackingService() {
     }
@@ -114,10 +142,11 @@ public final class MissileTrackingService {
         if (world == null || world.field_72995_K) {
             return null;
         }
+        WorldTracks tracks = getWorldTracks(world);
+        long now = world.func_82737_E();
+        refresh(world, tracks, now);
         String resolvedTeam = normalizeTeam(defenseTeam);
         if (resolvedTeam.length() == 0) {
-            WorldTracks tracks = getWorldTracks(world);
-            long now = world.func_82737_E();
             expireNetworkNodes(tracks, now);
             CommandStation command = findLinkedCommand(tracks,
                     defenseX, defenseY, defenseZ, now);
@@ -132,8 +161,11 @@ public final class MissileTrackingService {
             }
             Entity entity = (Entity) value;
             int tier = getTargetTier(entity);
+            Track track = tracks.tracks.get(
+                    Integer.valueOf(entity.func_145782_y()));
             if (tier == 0 || entity.field_70128_L
-                    || NetworkTeamHelper.isFriendly(resolvedTeam, entity)) {
+                    || NetworkTeamHelper.isFriendly(resolvedTeam, entity)
+                    || isFriendlyTrack(resolvedTeam, track)) {
                 continue;
             }
             double dx = entity.field_70165_t - defenseX;
@@ -255,6 +287,9 @@ public final class MissileTrackingService {
                     || isFriendlyTrack(defenseTeam, track)) {
                 continue;
             }
+            if (!canInterceptorEngage(entity, interceptorTier, range)) {
+                continue;
+            }
             Integer trackKey = Integer.valueOf(track.entityId);
             Long blockedUntil = tracks.blockedUntil.get(trackKey);
             if (!shareReservedTargets && blockedUntil != null
@@ -274,7 +309,14 @@ public final class MissileTrackingService {
             double distanceSquared = dx * dx + dy * dy + dz * dz;
             double acquisitionDistanceSquared = isBallisticTarget(entity)
                     ? dx * dx + dz * dz : distanceSquared;
-            if (acquisitionDistanceSquared > rangeSquared) {
+            double targetRangeSquared = rangeSquared;
+            if (interceptorTier == 1
+                    && isHbmHeavyArtilleryRocket(entity)) {
+                double targetRange = Math.min(
+                        range, HEAVY_HENRY_TIER_ONE_RANGE);
+                targetRangeSquared = targetRange * targetRange;
+            }
+            if (acquisitionDistanceSquared > targetRangeSquared) {
                 clearThreatState(track, ownerKey);
                 continue;
             }
@@ -344,6 +386,21 @@ public final class MissileTrackingService {
     public static int updateRadarSweep(World world, int radarId, double radarX, double radarY,
             double radarZ, double range, double ceiling, int contactLimit,
             String team, int frequencyBand) {
+        return updateRadarSweep(world, radarId, radarX, radarY, radarZ,
+                range, ceiling, contactLimit, team, frequencyBand, false);
+    }
+
+    public static int updateStrategicRadarSweep(World world, int radarId,
+            double radarX, double radarY, double radarZ, double range,
+            double ceiling, int contactLimit, String team, int frequencyBand) {
+        return updateRadarSweep(world, radarId, radarX, radarY, radarZ,
+                range, ceiling, contactLimit, team, frequencyBand, true);
+    }
+
+    private static int updateRadarSweep(World world, int radarId,
+            double radarX, double radarY, double radarZ, double range,
+            double ceiling, int contactLimit, String team, int frequencyBand,
+            boolean strategicProfile) {
         if (world == null || world.field_72995_K || radarId <= 0) {
             return 0;
         }
@@ -377,7 +434,7 @@ public final class MissileTrackingService {
         for (Track track : tracks.tracks.values()) {
             Entity entity = track.entity;
             if (entity == null || entity.field_70128_L || getTargetTier(entity) == 0
-                    || isFriendlyTrack(radar.team, track)) {
+                    || strategicProfile && !isStrategicRadarTarget(entity)) {
                 continue;
             }
             double dx = entity.field_70165_t - radarX;
@@ -404,6 +461,30 @@ public final class MissileTrackingService {
         }
         expireRadars(tracks, now);
         return Math.min(contactLimit, contacts + jamming.falseContacts);
+    }
+
+    /**
+     * Large early-warning arrays see aircraft and missile bodies, but reject
+     * the small UAV signature represented by MQ-9 and Geran-2.
+     */
+    public static boolean isStrategicRadarTarget(Entity entity) {
+        if (entity == null || entity.field_70128_L) return false;
+        if (isHbmArtilleryShell(entity)) return false;
+        if (isHbmArtilleryRocket(entity)) return true;
+        if (entity instanceof EntityTacticalAircraft) {
+            return ((EntityTacticalAircraft) entity).isFlying();
+        }
+        if (entity instanceof EntityTu95Bomber) {
+            return ((EntityTu95Bomber) entity).isFlying();
+        }
+        if (entity instanceof EntityMq9Drone) return false;
+        String name = entity.getClass().getName();
+        String lower = name.toLowerCase(java.util.Locale.ROOT);
+        if (name.endsWith(".EntityGeran") || lower.contains("drone")
+                || lower.contains(".uav") || lower.contains("quadcopter")) {
+            return false;
+        }
+        return getTargetTier(entity) > 0;
     }
 
     public static void removeRadar(World world, int radarId) {
@@ -471,6 +552,146 @@ public final class MissileTrackingService {
 
     private static int clampSignedShort(int value) {
         return Math.max(Short.MIN_VALUE, Math.min(Short.MAX_VALUE, value));
+    }
+
+    public static FactionSnapshot getFactionSnapshot(World world, String team,
+            double centerX, double centerZ) {
+        String faction = normalizeTeam(team);
+        if (world == null || world.field_72995_K || faction.length() == 0) {
+            return FactionSnapshot.EMPTY;
+        }
+        WorldTracks tracks = getWorldTracks(world);
+        long now = world.func_82737_E();
+        refresh(world, tracks, now);
+        expireRadars(tracks, now);
+        expireNetworkNodes(tracks, now);
+        expireReservations(world, tracks, now);
+
+        FactionTerritoryData.Sector[] claimed =
+                FactionTerritoryData.getSectors(
+                        world, faction, MAX_FACTION_SECTORS);
+        FactionSector[] sectors = new FactionSector[claimed.length];
+        for (int index = 0; index < claimed.length; ++index) {
+            sectors[index] = new FactionSector(
+                    claimed[index].x, claimed[index].z);
+        }
+
+        List<FactionNode> nodes = new ArrayList<FactionNode>();
+        Set<Integer> factionRadars = new HashSet<Integer>();
+        for (RadarStation radar : tracks.radars.values()) {
+            if (nodes.size() >= MAX_FACTION_NODES) break;
+            if (now - radar.lastUpdate > RADAR_TIMEOUT
+                    || !NetworkTeamHelper.areFriendly(faction, radar.team)
+                    || !FactionTerritoryData.isOwnedBy(
+                            world, faction, radar.x, radar.z)) {
+                continue;
+            }
+            factionRadars.add(Integer.valueOf(radar.entityId));
+            int type = radar.range >= 3000.0D
+                    ? FACTION_NODE_STRATEGIC_RADAR : FACTION_NODE_RADAR;
+            nodes.add(new FactionNode(type, radar.entityId,
+                    radar.x, radar.y, radar.z,
+                    (int) Math.round(radar.range), radar.frequencyBand));
+        }
+        for (LauncherStation launcher : tracks.launchers.values()) {
+            if (nodes.size() >= MAX_FACTION_NODES) break;
+            if (now - launcher.lastUpdate > LAUNCHER_TIMEOUT
+                    || !NetworkTeamHelper.areFriendly(faction, launcher.team)
+                    || !FactionTerritoryData.isOwnedBy(
+                            world, faction, launcher.x, launcher.z)) {
+                continue;
+            }
+            nodes.add(new FactionNode(FACTION_NODE_LAUNCHER,
+                    launcher.ownerKey, launcher.x, launcher.y, launcher.z,
+                    launcher.tier, 0));
+        }
+        for (CommandStation command : tracks.commands.values()) {
+            if (nodes.size() >= MAX_FACTION_NODES) break;
+            if (now - command.lastUpdate > COMMAND_TIMEOUT
+                    || !NetworkTeamHelper.areFriendly(faction, command.team)
+                    || !FactionTerritoryData.isOwnedBy(
+                            world, faction, command.x, command.z)) {
+                continue;
+            }
+            nodes.add(new FactionNode(FACTION_NODE_COMMAND,
+                    command.entityId, command.x, command.y, command.z, 0, 0));
+        }
+        for (CommunicationRelay relay : tracks.communicationRelays.values()) {
+            if (nodes.size() >= MAX_FACTION_NODES) break;
+            if (now - relay.lastUpdate > COMMUNICATION_RELAY_TIMEOUT
+                    || !NetworkTeamHelper.areFriendly(faction, relay.team)
+                    || !FactionTerritoryData.isOwnedBy(
+                            world, faction, relay.x, relay.z)) {
+                continue;
+            }
+            nodes.add(new FactionNode(FACTION_NODE_RELAY,
+                    relay.key, relay.x, relay.y, relay.z, 0, 0));
+        }
+
+        List<FactionContact> contacts = new ArrayList<FactionContact>();
+        List<FactionContact> friendlyContacts =
+                new ArrayList<FactionContact>();
+        for (Track track : tracks.tracks.values()) {
+            if (track.entity == null || track.entity.field_70128_L
+                    || now - track.lastSeen > TRACK_TIMEOUT) {
+                continue;
+            }
+            float quality = 0.0F;
+            int sourceCount = 0;
+            for (Map.Entry<Integer, Long> seen : track.radarSeen.entrySet()) {
+                if (!factionRadars.contains(seen.getKey())
+                        || now - seen.getValue().longValue() > RADAR_TIMEOUT) {
+                    continue;
+                }
+                ++sourceCount;
+                Float sample = track.radarQuality.get(seen.getKey());
+                if (sample != null && sample.floatValue() > quality) {
+                    quality = sample.floatValue();
+                }
+            }
+            if (sourceCount == 0) continue;
+            boolean friendly = isFriendlyTrack(faction, track);
+            FactionContact contact = new FactionContact(track.entityId,
+                    classifyFactionContact(track.entity),
+                    getTargetTier(track.entity),
+                    track.lastX, track.lastY, track.lastZ,
+                    track.velocityX, track.velocityZ,
+                    quality, sourceCount,
+                    tracks.reservations.containsKey(
+                            Integer.valueOf(track.entityId)),
+                    friendly);
+            if (friendly) {
+                friendlyContacts.add(contact);
+            } else if (contacts.size() < MAX_FACTION_CONTACTS) {
+                contacts.add(contact);
+            }
+        }
+        for (FactionContact contact : friendlyContacts) {
+            if (contacts.size() >= MAX_FACTION_CONTACTS) break;
+            contacts.add(contact);
+        }
+        return new FactionSnapshot(faction,
+                world.field_73011_w == null ? 0
+                        : world.field_73011_w.field_76574_g,
+                centerX, centerZ, now, sectors,
+                nodes.toArray(new FactionNode[nodes.size()]),
+                contacts.toArray(new FactionContact[contacts.size()]));
+    }
+
+    private static int classifyFactionContact(Entity entity) {
+        if (isHbmArtilleryRocket(entity)) {
+            return FACTION_CONTACT_ARTILLERY_ROCKET;
+        }
+        if (isDroneTarget(entity)) return FACTION_CONTACT_DRONE;
+        if (entity instanceof EntityTu95Bomber) {
+            return FACTION_CONTACT_HEAVY_AIRCRAFT;
+        }
+        if (entity instanceof EntityTacticalAircraft) {
+            return FACTION_CONTACT_AIRCRAFT;
+        }
+        if (isBallisticTarget(entity)) return FACTION_CONTACT_BALLISTIC;
+        return getTargetTier(entity) > 0
+                ? FACTION_CONTACT_MISSILE : FACTION_CONTACT_UNKNOWN;
     }
 
     public static CommandSnapshot updateCommandPost(World world, int commandId,
@@ -743,6 +964,15 @@ public final class MissileTrackingService {
         return team == null ? "" : team;
     }
 
+    public static String findNetworkTeamNear(World world, double x,
+            double y, double z) {
+        if (world == null || world.field_72995_K) return "";
+        WorldTracks tracks = getWorldTracks(world);
+        long now = world.func_82737_E();
+        expireNetworkNodes(tracks, now);
+        return findNetworkTeamNear(tracks, x, y, z, now);
+    }
+
     private static boolean isFriendlyTrack(String team, Track track) {
         return track != null && NetworkTeamHelper.areFriendly(
                 normalizeTeam(team), normalizeTeam(track.team));
@@ -855,6 +1085,9 @@ public final class MissileTrackingService {
         if (entity == null) {
             return false;
         }
+        if (isHbmArtilleryTarget(entity)) {
+            return true;
+        }
         for (Class<?> type = entity.getClass(); type != null; type = type.getSuperclass()) {
             String name = type.getName();
             if ("com.wartec.wartecmod.entity.missile.EntityBallisticMissileBase".equals(name)
@@ -868,6 +1101,94 @@ public final class MissileTrackingService {
 
     public static int getThreatTier(Entity entity) {
         return getTargetTier(entity);
+    }
+
+    public static boolean isHbmArtilleryTarget(Entity entity) {
+        return getHbmArtilleryType(entity) != HBM_ARTILLERY_NONE;
+    }
+
+    public static boolean isHbmArtilleryShell(Entity entity) {
+        return getHbmArtilleryType(entity) == HBM_ARTILLERY_SHELL;
+    }
+
+    public static boolean isHbmArtilleryRocket(Entity entity) {
+        return getHbmArtilleryType(entity) == HBM_ARTILLERY_ROCKET;
+    }
+
+    public static boolean isHbmHeavyArtilleryRocket(Entity entity) {
+        if (!isHbmArtilleryRocket(entity)) return false;
+        RocketTypeAccess access = getRocketTypeAccess(entity.getClass());
+        if (access != null) {
+            try {
+                Object type = access.getType.invoke(entity);
+                if (type != null) {
+                    return access.modelType.getInt(type) == 1;
+                }
+            } catch (Throwable ignored) {
+            }
+        }
+        try {
+            int rawType = entity.field_70180_af.func_75679_c(10);
+            return rawType == 1 || rawType == 5;
+        } catch (Throwable ignored) {
+            return false;
+        }
+    }
+
+    public static boolean canInterceptorEngage(Entity target,
+            int interceptorTier, double range) {
+        if (getTargetTier(target) == 0
+                || interceptorTier < 1 || interceptorTier > 3) {
+            return false;
+        }
+        return !isHbmArtilleryShell(target)
+                || interceptorTier <= 2
+                && range <= ARTILLERY_SHELL_INTERCEPT_RANGE;
+    }
+
+    /** Assigns IFF without adding a second chunk-loader to HBM projectiles. */
+    public static void assignProjectileTeam(Entity projectile, String team) {
+        if (projectile == null || projectile.field_70170_p == null
+                || projectile.field_70170_p.field_72995_K
+                || !isHbmArtilleryTarget(projectile)) {
+            return;
+        }
+        String resolved = normalizeTeam(team);
+        if (resolved.length() == 0) return;
+        World world = projectile.field_70170_p;
+        Track track = getOrCreateTrack(getWorldTracks(world), projectile,
+                world.func_82737_E());
+        track.team = resolved;
+    }
+
+    /** Tags the projectile just spawned by an HBM artillery tile. */
+    public static void assignNewestArtilleryProjectile(World world,
+            double x, double y, double z, String team, boolean rocket) {
+        String resolved = normalizeTeam(team);
+        if (world == null || world.field_72995_K || resolved.length() == 0
+                || world.field_72996_f == null) {
+            return;
+        }
+        Entity best = null;
+        double bestDistance = 256.0D;
+        for (int index = world.field_72996_f.size() - 1; index >= 0; --index) {
+            Object value = world.field_72996_f.get(index);
+            if (!(value instanceof Entity)) continue;
+            Entity entity = (Entity) value;
+            if (entity.field_70128_L || entity.field_70173_aa > 1
+                    || rocket != isHbmArtilleryRocket(entity)) {
+                continue;
+            }
+            if (!rocket && !isHbmArtilleryShell(entity)) continue;
+            double distance = distanceSquared(x, y, z,
+                    entity.field_70165_t, entity.field_70163_u,
+                    entity.field_70161_v);
+            if (distance <= bestDistance) {
+                bestDistance = distance;
+                best = entity;
+            }
+        }
+        if (best != null) assignProjectileTeam(best, resolved);
     }
 
     public static boolean isDroneTarget(Entity entity) {
@@ -1082,7 +1403,15 @@ public final class MissileTrackingService {
             tracks.tracks.put(key, track);
         }
         String entityTeam = NetworkTeamHelper.getEntityTeam(entity);
-        if (entityTeam.length() > 0) track.team = entityTeam;
+        if (entityTeam.length() > 0) {
+            track.team = entityTeam;
+        } else if (track.team.length() == 0
+                && isHbmArtilleryTarget(entity)
+                && entity.field_70173_aa <= 8) {
+            track.team = findArtilleryLaunchTeamNear(tracks,
+                    entity.field_70165_t, entity.field_70163_u,
+                    entity.field_70161_v, now);
+        }
         return track;
     }
 
@@ -1129,6 +1458,15 @@ public final class MissileTrackingService {
                 track.targetZ = fields.targetZ.getInt(entity);
                 track.targetKnown = true;
             }
+            if (!track.targetKnown && fields.targetVector != null) {
+                Object value = fields.targetVector.get(entity);
+                if (value instanceof Vec3) {
+                    Vec3 target = (Vec3) value;
+                    track.targetX = (int) Math.floor(target.field_72450_a);
+                    track.targetZ = (int) Math.floor(target.field_72449_c);
+                    track.targetKnown = true;
+                }
+            }
         } catch (Throwable ignored) {
         }
     }
@@ -1145,6 +1483,9 @@ public final class MissileTrackingService {
                 if (fields.startZ == null) fields.startZ = findField(type, "startZ");
                 if (fields.targetX == null) fields.targetX = findField(type, "targetX");
                 if (fields.targetZ == null) fields.targetZ = findField(type, "targetZ");
+                if (fields.targetVector == null) {
+                    fields.targetVector = findField(type, "lastTargetPos");
+                }
             }
             COORDINATE_FIELDS.put(entityClass, fields);
             return fields;
@@ -1171,6 +1512,9 @@ public final class MissileTrackingService {
         if (entity instanceof EntityTu95Bomber && !((EntityTu95Bomber) entity).isFlying()) {
             return 0;
         }
+        if (isHbmArtilleryTarget(entity)) {
+            return isHbmHeavyArtilleryRocket(entity) ? 2 : 1;
+        }
         for (Class<?> type = entity.getClass(); type != null; type = type.getSuperclass()) {
             String name = type.getName();
             if ("com.wartec.wartecmod.entity.missile.EntityHypersonicCruiseMissileBase".equals(name)) {
@@ -1195,6 +1539,99 @@ public final class MissileTrackingService {
         if (level < 0 || level > 9) return 0;
         int tier = level <= 1 ? 1 : level == 2 ? 2 : 3;
         return applyRadarActivationEnvelope(entity, tier);
+    }
+
+    private static int getHbmArtilleryType(Entity entity) {
+        if (entity == null) return HBM_ARTILLERY_NONE;
+        Class<?> entityClass = entity.getClass();
+        synchronized (HBM_ARTILLERY_TYPES) {
+            Integer cached = HBM_ARTILLERY_TYPES.get(entityClass);
+            if (cached != null) return cached.intValue();
+            int result = HBM_ARTILLERY_NONE;
+            for (Class<?> type = entityClass; type != null;
+                    type = type.getSuperclass()) {
+                String name = type.getName();
+                if ("com.hbm.entity.projectile.EntityArtilleryShell"
+                        .equals(name)) {
+                    result = HBM_ARTILLERY_SHELL;
+                    break;
+                }
+                if ("com.hbm.entity.projectile.EntityArtilleryRocket"
+                        .equals(name)) {
+                    result = HBM_ARTILLERY_ROCKET;
+                    break;
+                }
+            }
+            HBM_ARTILLERY_TYPES.put(entityClass, Integer.valueOf(result));
+            return result;
+        }
+    }
+
+    private static RocketTypeAccess getRocketTypeAccess(Class<?> entityClass) {
+        synchronized (HBM_ROCKET_TYPE_ACCESS) {
+            if (HBM_ROCKET_TYPE_ACCESS.containsKey(entityClass)) {
+                return HBM_ROCKET_TYPE_ACCESS.get(entityClass);
+            }
+            RocketTypeAccess access = null;
+            try {
+                Method getType = entityClass.getMethod("getType");
+                Field modelType = getType.getReturnType().getField("modelType");
+                getType.setAccessible(true);
+                modelType.setAccessible(true);
+                access = new RocketTypeAccess(getType, modelType);
+            } catch (Throwable ignored) {
+            }
+            HBM_ROCKET_TYPE_ACCESS.put(entityClass, access);
+            return access;
+        }
+    }
+
+    private static String findArtilleryLaunchTeamNear(WorldTracks tracks,
+            double x, double y, double z, long now) {
+        String bestTeam = "";
+        double bestDistance = ARTILLERY_IFF_INFERENCE_RANGE
+                * ARTILLERY_IFF_INFERENCE_RANGE;
+        for (CommandStation node : tracks.commands.values()) {
+            if (now - node.lastUpdate > COMMAND_TIMEOUT
+                    || node.team.length() == 0) continue;
+            double distance = distanceSquared(
+                    x, y, z, node.x, node.y, node.z);
+            if (distance <= bestDistance) {
+                bestDistance = distance;
+                bestTeam = node.team;
+            }
+        }
+        for (RadarStation node : tracks.radars.values()) {
+            if (now - node.lastUpdate > RADAR_TIMEOUT
+                    || node.team.length() == 0) continue;
+            double distance = distanceSquared(
+                    x, y, z, node.x, node.y, node.z);
+            if (distance <= bestDistance) {
+                bestDistance = distance;
+                bestTeam = node.team;
+            }
+        }
+        for (LauncherStation node : tracks.launchers.values()) {
+            if (now - node.lastUpdate > LAUNCHER_TIMEOUT
+                    || node.team.length() == 0) continue;
+            double distance = distanceSquared(
+                    x, y, z, node.x, node.y, node.z);
+            if (distance <= bestDistance) {
+                bestDistance = distance;
+                bestTeam = node.team;
+            }
+        }
+        for (CommunicationRelay node : tracks.communicationRelays.values()) {
+            if (now - node.lastUpdate > COMMUNICATION_RELAY_TIMEOUT
+                    || node.team.length() == 0) continue;
+            double distance = distanceSquared(
+                    x, y, z, node.x, node.y, node.z);
+            if (distance <= bestDistance) {
+                bestDistance = distance;
+                bestTeam = node.team;
+            }
+        }
+        return bestTeam;
     }
 
     public static boolean holdReservation(World world, int targetId, long ownerKey) {
@@ -1355,6 +1792,110 @@ public final class MissileTrackingService {
         }
     }
 
+    public static final class FactionSnapshot {
+        public static final FactionSnapshot EMPTY = new FactionSnapshot(
+                "", 0, 0.0D, 0.0D, 0L,
+                new FactionSector[0], new FactionNode[0],
+                new FactionContact[0]);
+        public final String team;
+        public final int dimension;
+        public final double centerX;
+        public final double centerZ;
+        public final long generatedAt;
+        public final FactionSector[] sectors;
+        public final FactionNode[] nodes;
+        public final FactionContact[] contacts;
+
+        public FactionSnapshot(String team, int dimension,
+                double centerX, double centerZ, long generatedAt,
+                FactionSector[] sectors, FactionNode[] nodes,
+                FactionContact[] contacts) {
+            this.team = team == null ? "" : team;
+            this.dimension = dimension;
+            this.centerX = centerX;
+            this.centerZ = centerZ;
+            this.generatedAt = generatedAt;
+            this.sectors = sectors == null ? new FactionSector[0] : sectors;
+            this.nodes = nodes == null ? new FactionNode[0] : nodes;
+            this.contacts = contacts == null
+                    ? new FactionContact[0] : contacts;
+        }
+    }
+
+    public static final class FactionSector {
+        public final int x;
+        public final int z;
+
+        public FactionSector(int x, int z) {
+            this.x = x;
+            this.z = z;
+        }
+    }
+
+    public static final class FactionNode {
+        public final int type;
+        public final long id;
+        public final double x;
+        public final double y;
+        public final double z;
+        public final int value;
+        public final int band;
+
+        public FactionNode(int type, long id, double x, double y, double z,
+                int value, int band) {
+            this.type = type;
+            this.id = id;
+            this.x = x;
+            this.y = y;
+            this.z = z;
+            this.value = value;
+            this.band = band;
+        }
+    }
+
+    public static final class FactionContact {
+        public final int entityId;
+        public final int type;
+        public final int tier;
+        public final double x;
+        public final double y;
+        public final double z;
+        public final double velocityX;
+        public final double velocityZ;
+        public final float quality;
+        public final int sourceCount;
+        public final boolean assigned;
+        public final boolean friendly;
+
+        public FactionContact(int entityId, int type, int tier,
+                double x, double y, double z,
+                double velocityX, double velocityZ,
+                float quality, int sourceCount, boolean assigned) {
+            this(entityId, type, tier, x, y, z,
+                    velocityX, velocityZ, quality, sourceCount,
+                    assigned, false);
+        }
+
+        public FactionContact(int entityId, int type, int tier,
+                double x, double y, double z,
+                double velocityX, double velocityZ,
+                float quality, int sourceCount, boolean assigned,
+                boolean friendly) {
+            this.entityId = entityId;
+            this.type = type;
+            this.tier = tier;
+            this.x = x;
+            this.y = y;
+            this.z = z;
+            this.velocityX = velocityX;
+            this.velocityZ = velocityZ;
+            this.quality = quality;
+            this.sourceCount = sourceCount;
+            this.assigned = assigned;
+            this.friendly = friendly;
+        }
+    }
+
     private static final class Track {
         Entity entity;
         final int entityId;
@@ -1402,6 +1943,17 @@ public final class MissileTrackingService {
         Field startZ;
         Field targetX;
         Field targetZ;
+        Field targetVector;
+    }
+
+    private static final class RocketTypeAccess {
+        final Method getType;
+        final Field modelType;
+
+        RocketTypeAccess(Method getType, Field modelType) {
+            this.getType = getType;
+            this.modelType = modelType;
+        }
     }
 
     private static final class Reservation {

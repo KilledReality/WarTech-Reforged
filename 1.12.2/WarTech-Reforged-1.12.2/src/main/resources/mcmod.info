@@ -1,0 +1,16 @@
+[
+{
+  "modid": "wartecmod",
+  "name": "WarTech Reforged",
+  "description": "WarTech Reforged port for Minecraft 1.12.2 and NTM Extended.",
+  "version": "${version}",
+  "mcversion": "${mcversion}",
+  "url": "https://github.com/KilledReality/WarTech-Reforged",
+  "updateUrl": "",
+  "authorList": ["KilledReality"],
+  "credits": "Original WarTech authors and WarTech Reforged contributors",
+  "logoFile": "",
+  "screenshots": [],
+  "dependencies": ["hbm"]
+}
+]
