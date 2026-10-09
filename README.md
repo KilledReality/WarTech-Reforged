@@ -269,7 +269,7 @@ requirements. Full attribution and unresolved release requirements are listed in
 
 # WarTech Reforged на русском
 
-Документация: [История изменений](CHANGELOG.md) | [Описание версии 1.6.0](docs/RELEASE_NOTES_1.6.0.md) | [Пост для Discord](docs/DISCORD_DEV_BLOG_1.6.0.md) | [Experimental-версия 1.12.2](docs/RELEASE_NOTES_1.6.0_EXPERIMENTAL_1.12.2.md) | [Полное управление](docs/CONTROLS.md) | [Радиоэлектронная борьба](docs/ELECTRONIC_WARFARE.md)
+Документация: [Актуальный ченджлог](docs/modular-warfare/CHANGELOG.ru.md) | [Описание версии 1.6.0](docs/RELEASE_NOTES_1.6.0.md) | [Пост для Discord](docs/modular-warfare/DISCORD.ru.md) | [Experimental-версия 1.12.2](docs/RELEASE_NOTES_1.6.0_EXPERIMENTAL_1.12.2.md) | [Полное управление](docs/CONTROLS.md) | [Радиоэлектронная борьба](docs/ELECTRONIC_WARFARE.md)
 
 DISCORD: https://discord.gg/jZAfCe8Z2w
 
