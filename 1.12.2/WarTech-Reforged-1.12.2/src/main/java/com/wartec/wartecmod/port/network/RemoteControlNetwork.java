@@ -2,6 +2,7 @@ package com.wartec.wartecmod.port.network;
 
 import com.wartec.wartecmod.port.entity.EntityWarTechAircraft;
 import com.wartec.wartecmod.port.entity.EntityWarTechMissile;
+import com.wartec.wartecmod.port.entity.EntityCustomUav;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.EntityPlayerMP;
 
@@ -34,6 +35,25 @@ public final class RemoteControlNetwork {
             WarTechNetwork.CHANNEL.sendTo(
                     new RemoteControlTelemetryMessage(missile),
                     (EntityPlayerMP) player);
+        }
+    }
+
+    public static void sendTelemetry(EntityPlayer player,
+            EntityCustomUav uav) {
+        if (player instanceof EntityPlayerMP && uav != null) {
+            WarTechNetwork.CHANNEL.sendTo(
+                    new RemoteControlTelemetryMessage(uav),
+                    (EntityPlayerMP) player);
+        }
+    }
+
+    public static void sendOperatorVisibility(EntityPlayerMP player,
+            boolean hidden) {
+        if (player != null) {
+            WarTechNetwork.CHANNEL.sendToDimension(
+                    new RemoteOperatorVisibilityMessage(
+                            player.getEntityId(), hidden),
+                    player.dimension);
         }
     }
 

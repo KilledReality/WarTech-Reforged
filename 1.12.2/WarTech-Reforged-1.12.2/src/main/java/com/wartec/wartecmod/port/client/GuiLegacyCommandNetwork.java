@@ -40,9 +40,9 @@ public final class GuiLegacyCommandNetwork extends GuiContainer {
     public void initGui() {
         super.initGui();
         buttonList.clear();
-        buttonList.add(new GuiButton(1, guiLeft + 410, guiTop + 222, 32, 20, "+"));
-        buttonList.add(new GuiButton(2, guiLeft + 446, guiTop + 222, 32, 20, "-"));
-        buttonList.add(new GuiButton(3, guiLeft + 482, guiTop + 222, 48, 20, "CTR"));
+        buttonList.add(new WarTechGuiButton(1, guiLeft + 410, guiTop + 222, 32, 20, "+"));
+        buttonList.add(new WarTechGuiButton(2, guiLeft + 446, guiTop + 222, 32, 20, "-"));
+        buttonList.add(new WarTechGuiButton(3, guiLeft + 482, guiTop + 222, 48, 20, "CTR"));
         requestSnapshot();
     }
 
@@ -90,6 +90,7 @@ public final class GuiLegacyCommandNetwork extends GuiContainer {
                 guiLeft + 536, guiTop + 346, 0xFF858A84);
         drawMap();
         drawInventorySlots();
+        GuiTheme.healthBar(guiLeft+190,guiTop+285,270,8,command.getHealthValue()/command.getHealthCapacity());
     }
 
     @Override
@@ -98,7 +99,7 @@ public final class GuiLegacyCommandNetwork extends GuiContainer {
         int green = 0x63F09A;
         int red = 0xFF6868;
         int white = 0xD8E7DF;
-        fontRenderer.drawString("WARTECH // FACTION AIR DEFENSE", 12, 11, white);
+        GuiTheme.text(fontRenderer,"WARTECH // FACTION AIR DEFENSE",12,11,294,white);
         int radarCount = countNodes(snapshot, 1) + countNodes(snapshot, 2);
         int pvoCount = countNodes(snapshot, 3);
         int relayCount = countNodes(snapshot, 5);
@@ -117,7 +118,7 @@ public final class GuiLegacyCommandNetwork extends GuiContainer {
             status = "NETWORK ONLINE";
             statusColor = green;
         }
-        fontRenderer.drawString(status, 526 - fontRenderer.getStringWidth(status),
+        label(status, 526 - fontRenderer.getStringWidth(status),
                 11, statusColor);
         int x = 414;
         drawPair(x, 38, "IFF", snapshot.team.isEmpty()
@@ -136,26 +137,31 @@ public final class GuiLegacyCommandNetwork extends GuiContainer {
         drawPair(x, 129, "HOSTILE", Integer.toString(hostileCount),
                 hostileCount > 0 ? red : green);
         FactionCommandSnapshot.Contact selected = selected(snapshot);
-        fontRenderer.drawString("SELECTED TRACK", x, 151, 0xA9B8B0);
+        label("SELECTED TRACK", x, 151, 0xA9B8B0);
         if (selected == null) {
-            fontRenderer.drawString("NONE", x, 164, 0x6F7E77);
+            label("NONE", x, 164, 0x6F7E77);
         } else {
-            fontRenderer.drawString((selected.friendly ? "FRIEND " : "HOSTILE ")
+            label((selected.friendly ? "FRIEND " : "HOSTILE ")
                     + contactCode(selected.type) + " #" + selected.entityId,
                     x, 164, selected.friendly ? green
                             : selected.assigned ? 0xFFB72A : 0xFF756B);
-            fontRenderer.drawString("POS " + (int) selected.x + " / "
+            label("POS " + (int) selected.x + " / "
                     + (int) selected.z, x, 177, white);
-            fontRenderer.drawString("ALT " + (int) selected.y + "  SPD "
+            label("ALT " + (int) selected.y + "  SPD "
                     + speed(selected), x, 190, white);
-            fontRenderer.drawString("HDG " + heading(selected) + "  SRC "
+            label("HDG " + heading(selected) + "  SRC "
                     + selected.sourceCount, x, 203, white);
-            fontRenderer.drawString("TRACK "
+            label("TRACK "
                     + Math.round(selected.quality * 100.0F) + "%",
                     x, 216, selected.quality >= 0.55F ? green : 0xFFB35D);
         }
-        fontRenderer.drawString("INVENTORY", 12, 260, white);
-        fontRenderer.drawString("BATTERY", 486, 260, white);
+        label("INVENTORY", 12, 260, white);
+        label("BATTERY", 486, 260, white);
+        label(GuiTheme.tr("health_points",Math.round(command.getHealthValue()),Math.round(command.getHealthCapacity())),190,272,white);
+        int repairY=300;
+        for(String line:fontRenderer.listFormattedStringToWidth(GuiTheme.tr("repair_hint"),270)) {
+            if(repairY>337) break;label(line,190,repairY,0x17201D);repairY+=10;
+        }
         drawMapReadout();
         drawLegend();
     }
@@ -265,21 +271,21 @@ public final class GuiLegacyCommandNetwork extends GuiContainer {
     }
 
     private void drawLegend() {
-        fontRenderer.drawString("C HQ", 14, 240, 0xFFFFFF);
-        fontRenderer.drawString("R RADAR", 44, 240, 0x5FE6EF);
-        fontRenderer.drawString("S STRAT", 92, 240, 0x70A8FF);
-        fontRenderer.drawString("L PVO", 140, 240, 0x8BE36C);
-        fontRenderer.drawString("T LINK", 176, 240, 0xE4D568);
-        fontRenderer.drawString("RK HENRY", 218, 240, 0xFF9A58);
-        fontRenderer.drawString("F FRIEND", 278, 240, 0x63F09A);
+        label("C HQ", 14, 240, 0xFFFFFF);
+        label("R RADAR", 44, 240, 0x5FE6EF);
+        label("S STRAT", 92, 240, 0x70A8FF);
+        label("L PVO", 140, 240, 0x8BE36C);
+        label("T LINK", 176, 240, 0xE4D568);
+        label("RK HENRY", 218, 240, 0xFF9A58);
+        label("F FRIEND", 278, 240, 0x63F09A);
     }
 
     private void drawMapReadout() {
-        fontRenderer.drawString("CTR " + (int) viewX + " / " + (int) viewZ,
+        label("CTR " + (int) viewX + " / " + (int) viewZ,
                 14, 34, 0xA9B8B0);
-        fontRenderer.drawString("N", 203, 34, 0xD8E7DF);
+        label("N", 203, 34, 0xD8E7DF);
         String scale = "+/- " + VIEW_RADII[zoomIndex];
-        fontRenderer.drawString(scale, 396 - fontRenderer.getStringWidth(scale),
+        label(scale, 396 - fontRenderer.getStringWidth(scale),
                 34, 0xA9B8B0);
     }
 
@@ -302,9 +308,9 @@ public final class GuiLegacyCommandNetwork extends GuiContainer {
     }
 
     private void drawPair(int x, int y, String label, String value, int color) {
-        fontRenderer.drawString(label, x, y, 0x9EB1A5);
-        fontRenderer.drawString(value, 526 - fontRenderer.getStringWidth(value),
-                y, color);
+        GuiTheme.text(fontRenderer,label,x,y,68,0x9EB1A5);
+        String bounded=GuiTheme.clip(fontRenderer,value,42);
+        label(bounded,526-fontRenderer.getStringWidth(bounded),y,color);
     }
 
     private void selectNearestContact(int mouseX, int mouseY) {
@@ -416,5 +422,9 @@ public final class GuiLegacyCommandNetwork extends GuiContainer {
                 Math.atan2(-contact.velocityX, contact.velocityZ));
         if (heading < 0.0D) heading += 360.0D;
         return (int) Math.round(heading) % 360;
+    }
+    private void label(String text,int x,int y,int color) {
+        int width=x>=410 || y>=258?530-x:MAP_X+MAP_W-x;
+        GuiTheme.text(fontRenderer,text,x,y,Math.max(8,width),color);
     }
 }

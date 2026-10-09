@@ -37,6 +37,9 @@ public final class ContentHooks {
         BlockPos pos,
         EnumFacing facing
     ) {
+        if (!stack.isEmpty() && StrategicFeature.isDisabledItem(stack.getItem())) {
+            return EnumActionResult.FAIL;
+        }
         return handler.handle(new IntentContext(
             provider,
             stack,

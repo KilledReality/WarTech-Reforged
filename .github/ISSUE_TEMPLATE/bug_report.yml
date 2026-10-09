@@ -1,0 +1,34 @@
+name: Bug report / Сообщить об ошибке
+description: Report a reproducible WarTech issue / Опишите воспроизводимую ошибку
+title: "[Bug]: "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Check the guide for your build first. For the Modular Warfare Update use Minecraft 1.12.2 + NTM Community Edition, not Extended. Remove personal addresses and tokens from logs. Do not upload whole worlds or modpacks.
+        Сначала проверьте руководство своей сборки. Modular Warfare Update рассчитан на 1.12.2 + NTM Community Edition, не Extended. Удалите из логов личные адреса и токены. Не загружайте целые миры и сборки модов.
+  - type: textarea
+    id: versions
+    attributes:
+      label: Versions / Версии
+      description: Minecraft, Forge, WarTech filename/version, HBM edition/version, MixinBooter, Java; client or dedicated server / Точные версии и тип запуска
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Reproduction / Как повторить
+      description: Steps, build components, launch method, dimension, IFF teams, distance and exact error / Шаги, детали, пуск, измерение, команды, дистанция и текст ошибки
+    validations:
+      required: true
+  - type: textarea
+    id: expected_actual
+    attributes:
+      label: Expected and actual behavior / Ожидание и результат
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Evidence / Материалы
+      description: Attach relevant latest.log/crash report and screenshots; for flight/chunk issues include wtflight status. Say whether a separate test world reproduces it / Лог, скриншоты, статус полётов и результат в тестовом мире

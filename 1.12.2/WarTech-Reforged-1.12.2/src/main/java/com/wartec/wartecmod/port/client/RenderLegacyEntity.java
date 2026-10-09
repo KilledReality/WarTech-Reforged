@@ -16,8 +16,13 @@ public final class RenderLegacyEntity<T extends EntityWarTechBase> extends Rende
 
     @Override
     public void doRender(T entity, double x, double y, double z, float entityYaw, float partialTicks) {
+        this.shadowSize=Math.max(.25F,Math.min(4.5F,entity.width*.55F));
         if (!RemoteControlClient.shouldHideControlledEntity(entity)) {
-            LegacyRenderLibrary.renderEntity(entity, x, y, z, partialTicks);
+            RemoteControlClient.RemoteRenderPose pose =
+                    RemoteControlClient.resolveControlledRenderPose(
+                            entity, x, y, z, partialTicks);
+            LegacyRenderLibrary.renderEntity(entity, pose.x, pose.y, pose.z,
+                    partialTicks, pose.yaw, pose.pitch);
         }
         super.doRender(entity, x, y, z, entityYaw, partialTicks);
     }

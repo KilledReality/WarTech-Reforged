@@ -1,0 +1,9 @@
+{
+  "parent": "item/generated",
+  "textures": {
+    "layer0": "wartecmod:items/cruise_parts/cruise_blueprint_blank"
+  },
+  "overrides": [
+    {"predicate": {"wartecmod:saved": 1}, "model": "wartecmod:item/uavblueprint_saved"}
+  ]
+}

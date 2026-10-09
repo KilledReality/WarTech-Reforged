@@ -14,7 +14,8 @@ public final class ContainerLegacyTile extends Container {
     private final TileEntityWarTechMachine tile;
     private final int guiId;
     private final int[] clientFields = new int[46];
-    private int lastPower = Integer.MIN_VALUE;
+    private final WindowPropertySync propertySync = new WindowPropertySync(46);
+    private final int[] properties = new int[46];
 
     public ContainerLegacyTile(InventoryPlayer playerInventory,
             TileEntityWarTechMachine tile, int guiId) {
@@ -34,14 +35,14 @@ public final class ContainerLegacyTile extends Container {
             int[] order = {0, 1, 3, 4, 5, 6, 7, 8, 2};
             for (int column = 0; column < 9; ++column) {
                 addSlotToContainer(new MachineSlot(tile, order[column],
-                        8 + column * 18, 17));
+                        18 + column * 18, 39));
             }
         } else {
-            addSlotToContainer(new MachineSlot(tile, 0, 26, 17));
-            addSlotToContainer(new MachineSlot(tile, 1, 80, 17));
-            addSlotToContainer(new MachineSlot(tile, 2, 134, 17));
+            addSlotToContainer(new MachineSlot(tile, 0, 28, 39));
+            addSlotToContainer(new MachineSlot(tile, 1, 82, 39));
+            addSlotToContainer(new MachineSlot(tile, 2, 136, 39));
         }
-        addPlayerSlots(inventory, 8, 84, 142);
+        addPlayerSlots(inventory, 18, 120, 178);
     }
 
     private void addPlayerSlots(InventoryPlayer inventory, int x, int y, int hotbarY) {
@@ -59,39 +60,39 @@ public final class ContainerLegacyTile extends Container {
     @Override
     public void addListener(IContainerListener listener) {
         super.addListener(listener);
-        sendProperties(listener);
+        readProperties();
+        propertySync.send(properties, (id,value) -> listener.sendWindowProperty(this,id,value), true);
     }
 
     @Override
     public void detectAndSendChanges() {
         super.detectAndSendChanges();
-        int power = (int) Math.min(Integer.MAX_VALUE, tile.getPower());
-        for (IContainerListener listener : listeners) sendProperties(listener);
-        lastPower = power;
+        readProperties();
+        for (IContainerListener listener : listeners)
+            propertySync.send(properties, (id,value) -> listener.sendWindowProperty(this,id,value), false);
+        propertySync.remember(properties);
     }
 
-    private void sendProperties(IContainerListener listener) {
+    private void readProperties() {
         int power = (int) Math.min(Integer.MAX_VALUE, tile.getPower());
-        listener.sendWindowProperty(this, 0, power & 65535);
-        listener.sendWindowProperty(this, 1, power >>> 16);
-        listener.sendWindowProperty(this, 2, tile.isRadarEnabled() ? 1 : 0);
-        listener.sendWindowProperty(this, 3, tile.isRadarOperational() ? 1 : 0);
-        listener.sendWindowProperty(this, 4, tile.getRadarContacts().size());
-        listener.sendWindowProperty(this, 5, tile.isRelayEnabled() ? 1 : 0);
-        listener.sendWindowProperty(this, 6, tile.isRelayOnline() ? 1 : 0);
-        listener.sendWindowProperty(this, 7, tile.getLinkedRelays());
-        listener.sendWindowProperty(this, 8, tile.isStructureFormed() ? 1 : 0);
-        listener.sendWindowProperty(this, 9, tile.getWarmupPercent());
-        listener.sendWindowProperty(this, 10, tile.getOpeningAnimation());
-        listener.sendWindowProperty(this, 11, tile.isOpen() ? 1 : 0);
-        listener.sendWindowProperty(this, 12, tile.getLaunchCountdown());
-        listener.sendWindowProperty(this, 13, tile.isAlarmActive() ? 1 : 0);
+        properties[0]=power & 65535;
+        properties[1]=power >>> 16;
+        properties[2]=tile.isRadarEnabled()?1:0;
+        properties[3]=tile.isRadarOperational()?1:0;
+        properties[4]=tile.getRadarContacts().size();
+        properties[5]=tile.isRelayEnabled()?1:0;
+        properties[6]=tile.isRelayOnline()?1:0;
+        properties[7]=tile.getLinkedRelays();
+        properties[8]=tile.isStructureFormed()?1:0;
+        properties[9]=tile.getWarmupPercent();
+        properties[10]=tile.getOpeningAnimation();
+        properties[11]=tile.isOpen()?1:0;
+        properties[12]=tile.getLaunchCountdown();
+        properties[13]=tile.isAlarmActive()?1:0;
         for (int index = 0; index < 16; ++index) {
             int packed = tile.getRadarBlip(index);
-            listener.sendWindowProperty(this, 14 + index * 2,
-                    packed & 65535);
-            listener.sendWindowProperty(this, 15 + index * 2,
-                    packed >>> 16);
+            properties[14+index*2]=packed & 65535;
+            properties[15+index*2]=packed >>> 16;
         }
     }
 

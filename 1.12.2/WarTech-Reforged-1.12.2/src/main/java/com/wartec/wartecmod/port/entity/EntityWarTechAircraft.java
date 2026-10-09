@@ -8,6 +8,7 @@ import com.wartec.wartecmod.port.integration.AviationOrdnance;
 import com.wartec.wartecmod.port.integration.DesignatorCompat;
 import com.wartec.wartecmod.port.integration.MissileChunkLoader;
 import com.wartec.wartecmod.port.integration.NetworkTeamHelper;
+import com.wartec.wartecmod.port.integration.RemotePresenceChunkPolicy;
 import com.wartec.wartecmod.port.network.MissileTrackingService;
 import com.wartec.wartecmod.port.network.RemoteControlNetwork;
 import net.minecraft.entity.Entity;
@@ -26,6 +27,7 @@ import net.minecraft.util.EnumParticleTypes;
 import net.minecraft.util.SoundCategory;
 import net.minecraft.util.math.AxisAlignedBB;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.Vec3d;
 import net.minecraft.util.text.TextComponentString;
 import net.minecraft.world.World;
 import net.minecraft.world.WorldServer;
@@ -39,6 +41,8 @@ public class EntityWarTechAircraft extends EntityWarTechBase
     private static final DataParameter<Integer> TARGET_QUEUE =
             EntityDataManager.createKey(EntityWarTechAircraft.class,
                     DataSerializers.VARINT);
+    private static final DataParameter<NBTTagCompound> CRUISE_STORES =
+            EntityDataManager.createKey(EntityWarTechAircraft.class,DataSerializers.COMPOUND_TAG);
     private static final DataParameter<Integer> AIR_TARGET =
             EntityDataManager.createKey(EntityWarTechAircraft.class,
                     DataSerializers.VARINT);
@@ -47,6 +51,13 @@ public class EntityWarTechAircraft extends EntityWarTechBase
                     DataSerializers.VARINT);
 
     private final int[] missionTargetX = new int[6];
+    private boolean cruiseWithdrawing;
+    private final com.wartec.wartecmod.port.cruise.CruiseCarrierApproach cruiseDeparture=
+        new com.wartec.wartecmod.port.cruise.CruiseCarrierApproach();
+    private boolean cruiseTargetImportManual;
+    private boolean loadingCruiseTargets;
+    private final com.wartec.wartecmod.port.cruise.CruiseAirLaunch.Maneuver cruiseEgress=
+        new com.wartec.wartecmod.port.cruise.CruiseAirLaunch.Maneuver();
     private final int[] missionTargetY = new int[6];
     private final int[] missionTargetZ = new int[6];
 
@@ -122,6 +133,7 @@ public class EntityWarTechAircraft extends EntityWarTechBase
         dataManager.register(TARGET_QUEUE, 0);
         dataManager.register(AIR_TARGET, -1);
         dataManager.register(REMOTE_STATUS, 0);
+        dataManager.register(CRUISE_STORES,new NBTTagCompound());
     }
 
     @Override
@@ -257,7 +269,8 @@ public class EntityWarTechAircraft extends EntityWarTechBase
 
     @Override
     public void setGuidanceTarget(double x, double y, double z) {
-        if (world != null && !world.isRemote) {
+        cruiseTargetImportManual=true;
+        if (!loadingCruiseTargets && world != null && !world.isRemote) {
             queueTarget(floor(x), floor(y), floor(z), true);
         } else {
             super.setGuidanceTarget(x, y, z);
@@ -381,15 +394,15 @@ public class EntityWarTechAircraft extends EntityWarTechBase
         if (stateTicks <= rollTicks) {
             motionY = blend(motionY, 0.0D, 0.45D);
         } else {
-            double rotation = clamp((double) (stateTicks - rollTicks)
-                    / Math.max(1, getTakeoffRotationTicks(profile)), 0.0D, 1.0D);
-            double smooth = rotation * rotation * (3.0D - 2.0D * rotation);
-            motionY = blend(motionY,
-                    getTakeoffClimbSpeed(profile) * smooth, 0.28D);
+            motionY = blend(motionY,FixedWingFlight.rotationClimb(stateTicks,rollTicks,
+                    getTakeoffRotationTicks(profile),Math.hypot(motionX,motionZ),getTakeoffClimbSpeed(profile)),0.12D);
         }
         if (posY >= homeY + getTakeoffAltitude(profile)
                 || stateTicks > getTakeoffTimeoutTicks(profile)) {
             setLegacyState(2);
+        }
+        if(getCustomCruiseCount()>0 && posY>homeY+14) {
+            setLegacyState(2);tickCustomCruiseIngress(findCruiseHardpoint(),false);
         }
     }
 
@@ -403,6 +416,7 @@ public class EntityWarTechAircraft extends EntityWarTechBase
             setLegacyState(4);
             return;
         }
+        if(payload==9) { tickCustomCruiseIngress(findCruiseHardpoint(),false);return; }
         double deltaX = getTargetX() + 0.5D - posX;
         double deltaZ = getTargetZ() + 0.5D - posZ;
         double distance = Math.sqrt(deltaX * deltaX + deltaZ * deltaZ);
@@ -424,6 +438,7 @@ public class EntityWarTechAircraft extends EntityWarTechBase
     }
 
     private double getReleaseRange(int payload) {
+        if(payload==9) return 500;
         double altitude = Math.max(2.0D, posY - (getTargetY() + 1.0D));
         double horizontalSpeed = Math.sqrt(motionX * motionX + motionZ * motionZ);
         return AviationOrdnance.calculateReleaseRange(payload, altitude,
@@ -431,6 +446,11 @@ public class EntityWarTechAircraft extends EntityWarTechBase
     }
 
     private void releaseWeapon(int payload) {
+        if (payload == 9) {
+            int cruise=findCruiseHardpoint();
+            weaponReleased=cruise>=0 && releaseCustomCruise(cruise,null);
+            setLegacyState(4);return;
+        }
         if (payload == AviationOrdnance.AAM && isTactical()) {
             releaseAirToAirMissile();
             return;
@@ -449,7 +469,7 @@ public class EntityWarTechAircraft extends EntityWarTechBase
         ordnance.setLaunchMotion(motionX, motionY, motionZ);
         ordnance.setOwnerIdentity(getOwnerUuid(), getOwnerTeam());
         ordnance.setVisual("ordnance/mq9_payload", payload);
-        if (!world.spawnEntity(ordnance)) {
+        if (!com.wartec.wartecmod.port.integration.MissileChunkLoader.spawnFlight(ordnance)) {
             weaponReleased = false;
             setLegacyState(4);
             return;
@@ -469,7 +489,8 @@ public class EntityWarTechAircraft extends EntityWarTechBase
         int slot = findPayloadSlot(AviationOrdnance.AAM);
         Entity target = getAirTargetId() <= 0
                 ? null : world.getEntityByID(getAirTargetId());
-        if (slot < 0 || target == null || target.isDead) {
+        if (slot < 0 || target == null || target.isDead || isFriendlyOrOwner(target)
+                || !MissileTrackingService.isAirInterceptable(target)) {
             releaseFighterReservation();
             setAirTargetId(-1);
             setLegacyState(4);
@@ -484,7 +505,7 @@ public class EntityWarTechAircraft extends EntityWarTechBase
                 motionY, motionZ + Math.cos(yaw) * 0.55D);
         missile.setOwnerIdentity(getOwnerUuid(), getOwnerTeam());
         missile.setVisual("ordnance/mq9_payload", AviationOrdnance.AAM);
-        if (!world.spawnEntity(missile)) {
+        if (!com.wartec.wartecmod.port.integration.MissileChunkLoader.spawnFlight(missile)) {
             setLegacyState(4);
             return;
         }
@@ -502,18 +523,12 @@ public class EntityWarTechAircraft extends EntityWarTechBase
     }
 
     private void positionAtHardpoint(Entity entity, int slot, double yOffset) {
-        double lateral = getHardpointOffset(slot);
-        double forward = getHardpointForwardOffset(slot);
-        double yaw = Math.toRadians(rotationYaw);
-        double lateralX = Math.cos(yaw);
-        double lateralZ = Math.sin(yaw);
-        double forwardX = -Math.sin(yaw);
-        double forwardZ = Math.cos(yaw);
+        Vec3d at=AircraftStores.mount(getProfile(),getPayloadAt(slot),slot);
+        Vec3d release=getPositionVector().add(AircraftStores.worldOffset(getProfile(),
+            at,rotationYaw,com.wartec.wartecmod.port.cruise.CruiseAircraftLoadout.mountPitch(getProfile(),rotationPitch,getLegacyState())));
         entity.setLocationAndAngles(
-                posX + lateralX * lateral + forwardX * forward,
-                posY + yOffset,
-                posZ + lateralZ * lateral + forwardZ * forward,
-                rotationYaw, rotationPitch);
+                release.x,release.y,release.z,
+                rotationYaw,com.wartec.wartecmod.port.cruise.CruiseAircraftLoadout.mountPitch(getProfile(),rotationPitch,getLegacyState()));
     }
 
     private boolean advanceMissionTarget() {
@@ -622,8 +637,9 @@ public class EntityWarTechAircraft extends EntityWarTechBase
         weaponReleased = false;
         releaseCompleted = false;
         landingPhase = 0;
-        clearTargetQueue();
+        resetTargetQueue();
         setLegacyState(0);
+        importCruiseTargets(false);
         setArmed(false);
         world.playSound(null, posX, posY, posZ,
                 SoundEvents.BLOCK_ANVIL_LAND, SoundCategory.BLOCKS,
@@ -666,16 +682,20 @@ public class EntityWarTechAircraft extends EntityWarTechBase
         double speed = Math.min(0.82D, 0.10D + stateTicks * 0.013D);
         motionX = blend(motionX, forwardX * speed, 0.11D);
         motionZ = blend(motionZ, forwardZ * speed, 0.11D);
-        motionY = stateTicks < 48 ? 0.0D
-                : Math.min(0.18D, (stateTicks - 47) * 0.012D);
+        motionY=blend(motionY,FixedWingFlight.rotationClimb(stateTicks,48,36,Math.hypot(motionX,motionZ),.16),.10);
         if (stateTicks > 78 || posY > homeY + 8.0D) {
             setLegacyState(2);
         }
     }
 
     private void tickTu95Climb() {
-        guideTo(launchX, homeY + 92.0D, launchZ,
-                1.05D, 0.045D, 0.26D, 0.032D);
+        if(getCustomCruiseCount()>0 && posY>homeY+18) {
+            tickCustomCruiseIngress(findCruiseHardpoint(),true);return;
+        }
+        // Keep a forward climb segment; launchX may be close or already behind us.
+        double yaw=Math.toRadians(rotationYaw);
+        guideTo(posX-Math.sin(yaw)*180,homeY+92,posZ+Math.cos(yaw)*180,
+                1.05D,0.045D,0.18D,0.032D);
         if (posY >= homeY + 78.0D || stateTicks > 280) {
             routeStartX = posX;
             routeStartZ = posZ;
@@ -685,6 +705,13 @@ public class EntityWarTechAircraft extends EntityWarTechBase
     }
 
     private void tickTu95Ingress() {
+        if(getCustomCruiseCount()>0) {
+            int custom=findCruiseHardpoint();
+            if(custom>=0 && targetCount>0) { targetIndex=custom%targetCount;syncActiveTarget(); }
+            tickCustomCruiseIngress(custom,true);return;
+        }
+        int cruiseSlot=findAssignedStrategicWeapon(targetIndex);
+        if(cruiseSlot>=0 && getLegacyPayloadCodeAt(cruiseSlot)>=13) { tickCustomCruiseIngress(cruiseSlot,true);return; }
         double deltaX = launchX - posX;
         double deltaZ = launchZ - posZ;
         double distance = Math.sqrt(deltaX * deltaX + deltaZ * deltaZ);
@@ -742,32 +769,31 @@ public class EntityWarTechAircraft extends EntityWarTechBase
     private boolean launchStrategicWeapon(int slot, int targetX,
             int targetY, int targetZ) {
         int code = getLegacyPayloadCodeAt(slot);
+        if(code>=13) return releaseCustomCruise(slot,null);
         if (code == 10) {
             EntityWarTechMissile missile =
                     LegacyEntityFactory.missile(world,
                             com.wartec.wartecmod.port.content.MissileProfile.KH555);
-            double yaw = Math.toRadians(rotationYaw);
-            double lateral = (slot - 2.5D) * 0.72D;
-            missile.setLocationAndAngles(posX + Math.cos(yaw) * lateral,
-                    posY - 1.45D, posZ + Math.sin(yaw) * lateral,
+            Vec3d release=getPositionVector().add(AircraftStores.worldOffset(getProfile(),
+                VehicleDimensions.tuStore(code,slot),rotationYaw,rotationPitch));
+            missile.setLocationAndAngles(release.x,release.y,release.z,
                     rotationYaw, 0.0F);
             missile.setOwnerIdentity(getOwnerUuid(), getOwnerTeam());
             missile.setVisual("missile/kh555", 0);
             missile.setGuidanceTarget(targetX, targetY, targetZ);
             missile.configureAirLaunch(rotationYaw, motionX, motionY, motionZ);
-            if (!world.spawnEntity(missile)) {
+            if (!com.wartec.wartecmod.port.integration.MissileChunkLoader.spawnFlight(missile)) {
                 return false;
             }
             MissileTrackingService.registerLaunch(missile, posX, posY, posZ,
                     targetX, targetZ, getOwnerTeam());
         } else if (code == 11 || code == 12) {
             int type = code == 12 ? 1 : 0;
-            double[] offsets = {-5.7D, -4.15D, -2.7D, 2.7D, 4.15D, 5.7D};
-            double yaw = Math.toRadians(rotationYaw);
-            double lateral = offsets[Math.max(0, Math.min(5, slot))];
-            double x = posX + Math.cos(yaw) * lateral;
-            double y = posY + 1.53D;
-            double z = posZ + Math.sin(yaw) * lateral;
+            Vec3d release=getPositionVector().add(AircraftStores.worldOffset(getProfile(),
+                VehicleDimensions.tuStore(code,slot),rotationYaw,rotationPitch));
+            double x = release.x;
+            double y = release.y;
+            double z = release.z;
             EntityWarTechOrdnance bomb =
                     LegacyEntityFactory.strategicBomb(world,
                             type == 1 ? WarTechEntityProfile.KAB_3000
@@ -1010,14 +1036,23 @@ public class EntityWarTechAircraft extends EntityWarTechBase
             tell(player, getAircraftName() + " is already airborne.");
             return false;
         }
+        // A freshly placed/unloaded carrier may not have received its first entity tick.
+        initializeHome();
+        cruiseEgress.reset();cruiseDeparture.reset();importCruiseTargets(false);
+        if(getCustomCruiseCount()>0) {
+            setLegacyFlags(getLegacyFlags() & ~8);
+            setLegacySelectedPayload(9);
+        }
         if (!hasGuidanceTarget() || targetCount <= 0) {
             tell(player, "No target. Use an HBM designator on the "
                     + getAircraftName() + ".");
             return false;
         }
         if (isTu95()) {
+            if(!validateCruiseStores(player)) return false;
             return launchTu95Mission(player);
         }
+        if(!validateCruiseStores(player)) return false;
         if (findSelectedPayload() < 0) {
             tell(player, "No compatible weapon loaded.");
             return false;
@@ -1048,6 +1083,10 @@ public class EntityWarTechAircraft extends EntityWarTechBase
         landingPhase = 0;
         setLegacyPower(getLegacyPower() - getAircraftLaunchEnergy());
         setLegacyState(1);
+        if(!MissileChunkLoader.prepare(this)) {
+            setLegacyState(0);setLegacyPower(getLegacyPower()+getAircraftLaunchEnergy());
+            if(player!=null) player.sendMessage(new net.minecraft.util.text.TextComponentTranslation("flight.error.chunks"));return false;
+        }
         MissileTrackingService.registerLaunch(this, homeX, homeY, homeZ,
                 floor(getTargetX()), floor(getTargetZ()), getOwnerTeam());
         playMissionLaunchSound();
@@ -1093,6 +1132,10 @@ public class EntityWarTechAircraft extends EntityWarTechBase
         configureTu95Route();
         setLegacyPower(getLegacyPower() - 120000);
         setLegacyState(1);
+        if(!MissileChunkLoader.prepare(this)) {
+            setLegacyState(0);setLegacyPower(getLegacyPower()+120000);
+            if(player!=null) player.sendMessage(new net.minecraft.util.text.TextComponentTranslation("flight.error.chunks"));return false;
+        }
         MissileTrackingService.registerLaunch(this, homeX, homeY, homeZ,
                 floor(getTargetX()), floor(getTargetZ()), getOwnerTeam());
         playMissionLaunchSound();
@@ -1116,6 +1159,7 @@ public class EntityWarTechAircraft extends EntityWarTechBase
     }
 
     public boolean queueTarget(int x, int y, int z, boolean replace) {
+        cruiseTargetImportManual=true;
         if (replace) {
             clearTargetQueue();
         }
@@ -1134,6 +1178,10 @@ public class EntityWarTechAircraft extends EntityWarTechBase
     }
 
     public void clearTargetQueue() {
+        cruiseTargetImportManual=true;
+        resetTargetQueue();
+    }
+    private void resetTargetQueue() {
         targetCount = 0;
         targetIndex = 0;
         super.clearGuidanceTarget();
@@ -1141,6 +1189,7 @@ public class EntityWarTechAircraft extends EntityWarTechBase
     }
 
     public boolean removeLastTarget() {
+        cruiseTargetImportManual=true;
         if (targetCount <= 0) {
             return false;
         }
@@ -1156,7 +1205,7 @@ public class EntityWarTechAircraft extends EntityWarTechBase
 
     private void syncActiveTarget() {
         if (targetCount <= 0) {
-            clearTargetQueue();
+            resetTargetQueue();
             return;
         }
         targetIndex = Math.max(0, Math.min(targetIndex, targetCount - 1));
@@ -1166,6 +1215,7 @@ public class EntityWarTechAircraft extends EntityWarTechBase
     }
 
     private void retargetActive(int x, int y, int z) {
+        cruiseTargetImportManual=true;
         if (targetCount <= 0) {
             queueTarget(x, y, z, true);
             return;
@@ -1219,6 +1269,15 @@ public class EntityWarTechAircraft extends EntityWarTechBase
                 return true;
             }
             BlockPos target = DesignatorCompat.getTarget(world, player, held);
+            if(target==null && DesignatorCompat.isDesignator(held)) {
+                boolean replace=player.isSneaking();
+                boolean queued=isReady() && DesignatorCompat.resolveForEntity(this,player,hand,point->{
+                    if(isReady() && queueTarget(point.getX(),point.getY(),point.getZ(),replace))
+                        player.sendMessage(new net.minecraft.util.text.TextComponentTranslation("uav.message.target_set",getAircraftName(),point.getX(),point.getY(),point.getZ()));
+                });
+                player.sendMessage(new net.minecraft.util.text.TextComponentTranslation(queued?"uav.message.resolving_y":"uav.message.configure_target"));
+                return true;
+            }
             if (target != null) {
                 if (!isReady()) {
                     tell(player, "Target list cannot be changed while "
@@ -1256,6 +1315,12 @@ public class EntityWarTechAircraft extends EntityWarTechBase
 
     @Override
     public boolean handleLegacyGuiAction(int action, EntityPlayer player) {
+        if(action==8) {
+            if(player==null || world.isRemote || !isUsableByPlayer(player) || !isReady()) return false;
+            player.sendMessage(new net.minecraft.util.text.TextComponentTranslation(
+                importCruiseTargets(true)?"cruise.carrier.imported":"cruise.carrier.no_program"));
+            return true;
+        }
         if (isTu95()) {
             if (action == 0) {
                 if (isReady()) launchMission(player); else commandReturn(player);
@@ -1282,6 +1347,7 @@ public class EntityWarTechAircraft extends EntityWarTechBase
             return true;
         }
         if (action == 1) {
+            if(getCustomCruiseCount()>0) { setLegacySelectedPayload(9);return true; }
             if (isInterceptorMode()) {
                 setLegacySelectedPayload(AviationOrdnance.AAM);
             } else {
@@ -1301,6 +1367,7 @@ public class EntityWarTechAircraft extends EntityWarTechBase
             return true;
         }
         if (action == 4 && isTactical()) {
+            if(getCustomCruiseCount()>0) { setLegacyFlags(getLegacyFlags() & ~8);return true; }
             if (isReady()) {
                 setLegacyFlags(getLegacyFlags() ^ 8);
                 if (isInterceptorMode()) {
@@ -1571,6 +1638,12 @@ public class EntityWarTechAircraft extends EntityWarTechBase
             return;
         }
         int slot = getLegacySelectedHardpoint();
+        if(getLegacyPayloadCodeAt(slot)>=13) {
+            if(releaseCustomCruise(slot,player)) {
+                remoteWeaponCooldown=25;setLegacySelectedHardpoint(nextLoadedHardpoint(slot));
+            }
+            return;
+        }
         if (isTu95()) {
             int code = getLegacyPayloadCodeAt(slot);
             if (code == 0) {
@@ -1608,7 +1681,7 @@ public class EntityWarTechAircraft extends EntityWarTechBase
             ordnance.setLaunchMotion(motionX, motionY, motionZ);
             ordnance.setOwnerIdentity(getOwnerUuid(), getOwnerTeam());
             ordnance.setVisual("ordnance/mq9_payload", payload);
-            if (world.spawnEntity(ordnance)) {
+            if (com.wartec.wartecmod.port.integration.MissileChunkLoader.spawnFlight(ordnance)) {
                 MissileTrackingService.registerLaunch(ordnance,
                         posX, posY, posZ, aim[0], aim[2], getOwnerTeam());
                 consumeHardpoint(slot);
@@ -1665,7 +1738,8 @@ public class EntityWarTechAircraft extends EntityWarTechBase
     }
 
     private void clearRemoteController() {
-        restoreRemotePresence(findRemoteController());
+        EntityPlayer controller = findRemoteController();
+        restoreRemotePresence(controller);
         remoteController = "";
         remoteThrottle = 0.0F;
         remoteAirborne = false;
@@ -1716,6 +1790,8 @@ public class EntityWarTechAircraft extends EntityWarTechBase
         player.capabilities.allowFlying = true;
         player.capabilities.isFlying = true;
         serverPlayer.sendPlayerAbilities();
+        RemotePresenceChunkPolicy.begin(serverPlayer);
+        RemoteControlNetwork.sendOperatorVisibility(serverPlayer, true);
         teleportRemotePresence(serverPlayer);
     }
 
@@ -1725,8 +1801,13 @@ public class EntityWarTechAircraft extends EntityWarTechBase
         }
         EntityPlayerMP serverPlayer = (EntityPlayerMP) player;
         double x = posX;
-        double y = posY + (isTu95() ? 3.6D : 2.4D);
+        double y = RemotePresenceChunkPolicy.concealedY(world, posX, posZ);
         double z = posZ;
+        player.noClip = true;
+        player.setInvisible(true);
+        player.capabilities.disableDamage = true;
+        player.capabilities.allowFlying = true;
+        player.capabilities.isFlying = true;
         player.motionX = player.motionY = player.motionZ = 0.0D;
         player.fallDistance = 0.0F;
         player.setPosition(x, y, z);
@@ -1735,12 +1816,15 @@ public class EntityWarTechAircraft extends EntityWarTechBase
             serverPlayer.connection.setPlayerLocation(x, y, z,
                     remoteAnchorYaw, remoteAnchorPitch);
         }
+        if (stateTicks % 20 == 0) {
+            RemoteControlNetwork.sendOperatorVisibility(serverPlayer, true);
+        }
     }
 
     private void teleportRemotePresence(EntityPlayerMP player) {
-        double yOffset = isTu95() ? 3.6D : 2.4D;
-        player.setPosition(posX, posY + yOffset, posZ);
-        player.connection.setPlayerLocation(posX, posY + yOffset, posZ,
+        double y = RemotePresenceChunkPolicy.concealedY(world, posX, posZ);
+        player.setPosition(posX, y, posZ);
+        player.connection.setPlayerLocation(posX, y, posZ,
                 remoteAnchorYaw, remoteAnchorPitch);
     }
 
@@ -1761,9 +1845,11 @@ public class EntityWarTechAircraft extends EntityWarTechBase
         player.capabilities.allowFlying = remoteAnchorAllowFlying;
         player.capabilities.isFlying = remoteAnchorFlying;
         serverPlayer.sendPlayerAbilities();
+        RemoteControlNetwork.sendOperatorVisibility(serverPlayer, false);
         player.motionX = player.motionY = player.motionZ = 0.0D;
         player.fallDistance = 0.0F;
         forceRestoreLocation(serverPlayer, true);
+        RemotePresenceChunkPolicy.end(serverPlayer);
     }
 
     private void tickRemoteRestore() {
@@ -2035,6 +2121,7 @@ public class EntityWarTechAircraft extends EntityWarTechBase
             return 0;
         }
         ItemStack stack = getStackInSlot(slot);
+        if(getLegacyPayloadCodeAt(slot)>=13) return world!=null && world.isRemote?1:isPayloadCompatible(stack)?stack.getCount():0;
         if (isTu95()) {
             int code = getLegacyPayloadCodeAt(slot);
             return code == 10 || code == 11 || code == 12
@@ -2054,6 +2141,7 @@ public class EntityWarTechAircraft extends EntityWarTechBase
     }
 
     private int findSelectedPayload() {
+        if(findCruiseHardpoint()>=0) { setLegacySelectedPayload(9);return 9; }
         int selected = getLegacySelectedPayload();
         if (findPayloadSlot(selected) >= 0) {
             return selected;
@@ -2065,10 +2153,12 @@ public class EntityWarTechAircraft extends EntityWarTechBase
                 return type;
             }
         }
+        if(findCruiseHardpoint()>=0) { setLegacySelectedPayload(9);return 9; }
         return -1;
     }
 
     private int findPayloadSlot(int payload) {
+        if(payload==9) return findCruiseHardpoint();
         if (!AviationOrdnance.isCompatible(payload, getCarrierClass())) {
             return -1;
         }
@@ -2112,8 +2202,9 @@ public class EntityWarTechAircraft extends EntityWarTechBase
     }
 
     private int nextCompatiblePayload(int current) {
-        for (int offset = 1; offset <= 9; ++offset) {
-            int type = (current + offset) % 9;
+        for (int offset = 1; offset <= 10; ++offset) {
+            int type = (current + offset) % 10;
+            if(type==9 && findCruiseHardpoint()>=0) return 9;
             if (AviationOrdnance.isCompatible(type, getCarrierClass())) {
                 return type;
             }
@@ -2126,7 +2217,7 @@ public class EntityWarTechAircraft extends EntityWarTechBase
         for (int slot = 0; slot < 6; ++slot) {
             int code = getLegacyPayloadCodeAt(slot);
             if (slot % divisor == target
-                    && (code == 10 || code == 11 || code == 12)) {
+                    && (code == 10 || code == 11 || code == 12 || code>=13)) {
                 return slot;
             }
         }
@@ -2142,7 +2233,7 @@ public class EntityWarTechAircraft extends EntityWarTechBase
         int count = 0;
         for (int slot = 0; slot < 6; ++slot) {
             int code = getLegacyPayloadCodeAt(slot);
-            if (code == 10 || code == 11 || code == 12) {
+            if (code == 10 || code == 11 || code == 12 || code>=13) {
                 ++count;
             }
         }
@@ -2189,6 +2280,7 @@ public class EntityWarTechAircraft extends EntityWarTechBase
 
     public String getSelectedHardpointName() {
         int code = getLegacyPayloadCodeAt(getLegacySelectedHardpoint());
+        if(code>=13) return "CUSTOM CRUISE";
         if (isTu95()) {
             return code == 10 ? "KH-555"
                     : code == 11 ? "FAB-5000"
@@ -2300,16 +2392,198 @@ public class EntityWarTechAircraft extends EntityWarTechBase
     }
 
     private double getWeaponReleaseYOffset(int slot) {
+        double scale=VehicleDimensions.scale(getProfile());
+        double top=VehicleDimensions.weaponTop(getPayloadAt(slot));
         if (getProfile() == WarTechEntityProfile.SU_27) {
             double[] values = {1.42D, 1.37D, 1.29D,
                     1.29D, 1.37D, 1.42D};
-            return (slot >= 0 && slot < values.length ? values[slot] : 1.42D)
-                    - 0.16D;
+            return ((slot >= 0 && slot < values.length ? values[slot] : 1.42D)+.08-.008)*scale-top;
         }
         if (getProfile() == WarTechEntityProfile.F_16C) {
-            return 0.92D - 0.16D;
+            return (0.92D+.08-.008)*scale-top;
         }
-        return 0.68D;
+        return 0.68D*scale;
+    }
+    private int findCruiseHardpoint() {
+        for(int i=0;i<getHardpointCount();i++) if(getLegacyPayloadCodeAt(i)>=13 && getPayloadCountAt(i)>0) return i;
+        return -1;
+    }
+    public com.wartec.wartecmod.port.cruise.CruiseBuild getCruiseStoreBuild(int slot) {
+        return world!=null && world.isRemote?com.wartec.wartecmod.port.cruise.CruiseBuild.read(dataManager.get(CRUISE_STORES).getCompoundTag("S"+slot))
+            :com.wartec.wartecmod.port.cruise.CruiseBuild.fromStack(getStackInSlot(slot));
+    }
+    public int getCustomCruiseCount() {
+        int count=0;for(int i=0;i<getHardpointCount();i++) if(getLegacyPayloadCodeAt(i)>=13) count++;
+        return count;
+    }
+    public String getCruiseLoadError(int slot,ItemStack stack) {
+        com.wartec.wartecmod.port.cruise.CruisePartDefinition[] stores=new com.wartec.wartecmod.port.cruise.CruisePartDefinition[6];
+        boolean conventional=false;
+        for(int i=0;i<getHardpointCount();i++) if(i!=slot) {
+            int code=getLegacyPayloadCodeAt(i);
+            if(code>=13) stores[i]=getCruiseStoreBuild(i).getAirframe();
+            else if(code>0) conventional=true;
+        }
+        return com.wartec.wartecmod.port.cruise.CruiseAircraftLoadout.error(getProfile(),
+            com.wartec.wartecmod.port.cruise.CruiseBuild.fromStack(stack),slot,stores,conventional);
+    }
+    @Override public boolean isItemValidForSlot(int slot,ItemStack stack) {
+        if(slot>=0 && slot<6) {
+            if(stack.getItem()==WarTechContent.ASSEMBLED_CRUISE) return getCruiseLoadError(slot,stack)==null;
+            if(!isTu95() && getCustomCruiseCount()>0) return false;
+        }
+        return super.isItemValidForSlot(slot,stack);
+    }
+    private ItemStack preparedAircraftCruise(int slot) {
+        return com.wartec.wartecmod.port.cruise.CruiseAircraftLoadout.prepare(getStackInSlot(slot),
+            hasGuidanceTarget()?new Vec3d(getTargetX()+.5,getTargetY()+.5,getTargetZ()+.5):null,
+            world==null?0:world.provider.getDimension());
+    }
+    /** Rebuild automatic orders when stores change, never mutate an active sortie or manual queue. */
+    public boolean importCruiseTargets(boolean replaceManual) {
+        if(loadingCruiseTargets || !isReady() || world!=null && world.isRemote || !replaceManual && cruiseTargetImportManual) return false;
+        java.util.List<Vec3d> goals=new java.util.ArrayList<>();
+        for(int slot=0;slot<getHardpointCount();slot++) {
+            ItemStack store=getStackInSlot(slot);
+            Vec3d goal=com.wartec.wartecmod.port.cruise.CruiseAircraftLoadout.programmedTarget(store,world==null?0:world.provider.getDimension());
+            if(goal!=null && isPayloadCompatible(store) && goals.size()<getMaximumTargets()) goals.add(goal);
+        }
+        if(replaceManual && goals.isEmpty()) return false;
+        resetTargetQueue();cruiseTargetImportManual=false;
+        for(Vec3d goal:goals) {
+            missionTargetX[targetCount]=floor(goal.x);missionTargetY[targetCount]=floor(goal.y);missionTargetZ[targetCount]=floor(goal.z);++targetCount;
+        }
+        syncActiveTarget();return !goals.isEmpty();
+    }
+    private boolean validateCruiseStores(EntityPlayer player) {
+        for(int slot=0;slot<getHardpointCount();slot++) if(getLegacyPayloadCodeAt(slot)>=13) {
+            ItemStack stack=preparedAircraftCruise(slot);
+            com.wartec.wartecmod.port.cruise.CruiseBuild build=com.wartec.wartecmod.port.cruise.CruiseBuild.fromStack(stack);
+            com.wartec.wartecmod.port.cruise.CruiseMission mission=com.wartec.wartecmod.port.cruise.CruiseMission.fromStack(stack);
+            String error=getCruiseLoadError(slot,stack);
+            if(error==null && !mission.isValidFor(build,world.provider.getDimension())) error="cruise.error.invalid_program";
+            if(error==null && com.wartec.wartecmod.port.cruise.CruiseCarrierRelease.maximum(build,mission,getCruiseAimingRange())
+                <com.wartec.wartecmod.port.cruise.CruiseCarrierRelease.minimum(build)+60) error="cruise.error.range";
+            if(error!=null) {
+                if(player!=null) player.sendMessage(new net.minecraft.util.text.TextComponentTranslation(error));
+                return false;
+            }
+        }
+        return true;
+    }
+    @Override public void markDirty() {
+        super.markDirty();
+        importCruiseTargets(false);
+        if(getCustomCruiseCount()>0 && (world==null || !world.isRemote)) {
+            setLegacyFlags(getLegacyFlags() & ~8);setLegacySelectedPayload(9);
+            for(int i=0;i<getHardpointCount();i++) if(getLegacyPayloadCodeAt(i)>=13) { setLegacySelectedHardpoint(i);break; }
+        }
+        if(world==null || world.isRemote) return;
+        NBTTagCompound stores=new NBTTagCompound();
+        for(int i=0;i<6;i++) if(getStackInSlot(i).getItem()==WarTechContent.ASSEMBLED_CRUISE)
+            stores.setTag("S"+i,com.wartec.wartecmod.port.cruise.CruiseBuild.fromStack(getStackInSlot(i)).write());
+        dataManager.set(CRUISE_STORES,stores);
+    }
+    private boolean releaseCustomCruise(int slot,EntityPlayer pilot) {
+        if(world.isRemote || !isPayloadCompatible(getStackInSlot(slot))) return false;
+        if(posY<8 || getLegacyPower()<12000 || (!isRemoteControlled() && !isFlying())) {
+            if(pilot!=null) com.wartec.wartecmod.port.cruise.CruiseText.tell(pilot,"error.air_release");return false;
+        }
+        ItemStack prepared=preparedAircraftCruise(slot);
+        EntityCustomCruise missile=new EntityCustomCruise(world);
+        missile.configure(prepared,null);missile.setOwnerIdentity(getOwnerUuid(),getOwnerTeam());
+        Vec3d local=com.wartec.wartecmod.port.cruise.CruiseAircraftLoadout.mount(getProfile(),getCruiseStoreBuild(slot),slot);
+        float releasePitch=com.wartec.wartecmod.port.cruise.CruiseAircraftLoadout.mountPitch(getProfile(),rotationPitch,getLegacyState());
+        Vec3d release=getPositionVector().add(AircraftStores.worldOffset(getProfile(),local,rotationYaw,releasePitch));
+        missile.setLocationAndAngles(release.x,release.y,release.z,rotationYaw,releasePitch);
+        String error=getCruiseLoadError(slot,prepared);
+        if(error==null) error=EntityCustomCruise.launchError(world,prepared,missile.getPositionVector());
+        if(error==null) error=com.wartec.wartecmod.port.cruise.CruiseCarrierRelease.error(
+            com.wartec.wartecmod.port.cruise.CruiseBuild.fromStack(prepared),
+            com.wartec.wartecmod.port.cruise.CruiseMission.fromStack(prepared),missile.getPositionVector(),getCruiseAimingRange());
+        if(error==null && (!world.isBlockLoaded(new BlockPos(release.addVector(0,-1.2,0)))
+            || world.rayTraceBlocks(release,release.addVector(0,-1.2,0),false,true,false)!=null)) error="cruise.error.air_clearance";
+        if(error==null && !com.wartec.wartecmod.port.cruise.CruiseAirLaunch.safe(
+            com.wartec.wartecmod.port.cruise.CruiseBuild.fromStack(prepared),
+            com.wartec.wartecmod.port.cruise.CruiseMission.fromStack(prepared),release,
+            new Vec3d(motionX,motionY,motionZ),rotationYaw,releasePitch,
+            com.wartec.wartecmod.port.cruise.CruiseAirLaunch.environment(world))) error="cruise.error.air_obstacle";
+        if(error!=null) { if(pilot!=null) pilot.sendMessage(new net.minecraft.util.text.TextComponentTranslation(error));return false; }
+        missile.setLaunchCarrier(this);
+        if(!MissileChunkLoader.prepare(missile)) {
+            if(pilot!=null) pilot.sendMessage(new net.minecraft.util.text.TextComponentTranslation("flight.error.chunks"));return false;
+        }
+        if(!com.wartec.wartecmod.port.integration.MissileChunkLoader.spawnFlight(missile)) { MissileChunkLoader.untrack(missile);return false; }
+        consumeHardpoint(slot);setLegacyPower(getLegacyPower()-12000);cruiseEgress.reset();cruiseDeparture.reset();return true;
+    }
+    public double getCruiseAimingRange() {
+        return isTu95()?4000:getProfile()==WarTechEntityProfile.SU_27?2200
+            :getProfile()==WarTechEntityProfile.F_16C?1800:1000;
+    }
+    private void tickCustomCruiseIngress(int slot,boolean strategic) {
+        if(slot<0) { setLegacyState(strategic?5:4);return; }
+        ItemStack prepared=preparedAircraftCruise(slot);
+        com.wartec.wartecmod.port.cruise.CruiseBuild build=com.wartec.wartecmod.port.cruise.CruiseBuild.fromStack(prepared);
+        com.wartec.wartecmod.port.cruise.CruiseMission mission=com.wartec.wartecmod.port.cruise.CruiseMission.fromStack(prepared);
+        double minimum=com.wartec.wartecmod.port.cruise.CruiseCarrierRelease.minimum(build);
+        double maximum=com.wartec.wartecmod.port.cruise.CruiseCarrierRelease.maximum(build,mission,getCruiseAimingRange());
+        if(!mission.isValidFor(build,world.provider.getDimension()) || maximum<minimum+60) { setLegacyState(strategic?5:4);return; }
+        Vec3d goal=mission.getTargets().get(0);double distance=Math.hypot(goal.x-posX,goal.z-posZ);
+        if(cruiseDeparture.active() && repositionCruise(goal,minimum,maximum,false,strategic)) return;
+        double yaw=Math.toRadians(rotationYaw);
+        double forward=(-Math.sin(yaw)*(goal.x-posX)+Math.cos(yaw)*(goal.z-posZ))/Math.max(1,distance);
+        if(distance>=minimum && getPositionVector().distanceTo(goal)<=maximum && (forward>.85 || cruiseEgress.active())) {
+            Vec3d local=com.wartec.wartecmod.port.cruise.CruiseAircraftLoadout.mount(getProfile(),build,slot);
+            float releasePitch=com.wartec.wartecmod.port.cruise.CruiseAircraftLoadout.mountPitch(getProfile(),rotationPitch,getLegacyState());
+            Vec3d release=getPositionVector().add(AircraftStores.worldOffset(getProfile(),local,rotationYaw,releasePitch));
+            com.wartec.wartecmod.port.cruise.CruiseAirLaunch.Decision check=cruiseEgress.check(ticksExisted,build,mission,
+                release,new Vec3d(motionX,motionY,motionZ),rotationYaw,releasePitch,
+                com.wartec.wartecmod.port.cruise.CruiseAirLaunch.environment(world));
+            if(check.abort) { cruiseEgress.reset();repositionCruise(goal,minimum,maximum,true,strategic);return; }
+            if(!check.launch && check.waypoint!=null) {
+                Vec3d next=check.waypoint.subtract(release.subtract(getPositionVector()));
+                guideTo(next.x,next.y,next.z,getCruiseSpeed(getProfile()),.075,.22,.045);return;
+            }
+            if(!check.launch) return;
+        }
+        if(distance>=minimum && getPositionVector().distanceTo(goal)<=maximum && forward>.85 && releaseCustomCruise(slot,null)) {
+            weaponReleased=true;
+            if(findCruiseHardpoint()>=0) {
+                if(targetIndex+1<targetCount) { ++targetIndex;syncActiveTarget(); }
+                weaponReleased=false;setLegacyState(strategic?3:2);
+            } else setLegacyState(strategic?5:4);
+            return;
+        }
+        double x=goal.x,z=goal.z;
+        cruiseWithdrawing=false;
+        if(distance<minimum+com.wartec.wartecmod.port.cruise.CruiseCarrierApproach.margin(getCruiseSpeed(getProfile()))) {
+            cruiseEgress.reset();repositionCruise(goal,minimum,maximum,true,strategic);return;
+        }
+        double altitude=Math.max(homeY+getCruiseHeight(getProfile()),Math.max(goal.y+32,terrainHeight(x,z)+getTerrainClearance(getProfile())));
+        guideTo(x,altitude,z,getCruiseSpeed(getProfile()),.075,.22,.045);
+    }
+    private boolean repositionCruise(Vec3d goal,double minimum,double maximum,boolean begin,boolean strategic) {
+        if(begin) {
+            double altitude=Math.min(220,Math.max(homeY+32,Math.max(posY,goal.y+32)));
+            double turn=isTu95()?1.35:getProfile()==WarTechEntityProfile.MQ_9_REAPER?2.4:3.2;
+            if(!cruiseDeparture.start(getPositionVector(),goal,new Vec3d(motionX,motionY,motionZ),rotationYaw,
+                    minimum,maximum,getCruiseSpeed(getProfile()),turn,altitude,(getEntityId()&1)==0?1:-1)) {
+                reportCruiseFailure("cruise.error.carrier_approach_failed");setLegacyState(strategic?5:4);return true;
+            }
+        }
+        Vec3d waypoint=cruiseDeparture.waypoint(getPositionVector(),goal);
+        if(waypoint!=null) {
+            double y=Math.max(waypoint.y,terrainHeight(waypoint.x,waypoint.z)+getTerrainClearance(getProfile()));
+            guideTo(waypoint.x,y,waypoint.z,getCruiseSpeed(getProfile()),.075,.22,.045);return true;
+        }
+        if(cruiseDeparture.timedOut()) {
+            reportCruiseFailure("cruise.error.carrier_approach_failed");setLegacyState(strategic?5:4);return true;
+        }
+        return false;
+    }
+    private void reportCruiseFailure(String key) {
+        EntityPlayer owner=getOwnerUuid()==null?null:world.getPlayerEntityByUUID(getOwnerUuid());
+        if(owner!=null) owner.sendMessage(new net.minecraft.util.text.TextComponentTranslation(key));
     }
 
     private int crashedState() {
@@ -2567,28 +2841,10 @@ public class EntityWarTechAircraft extends EntityWarTechBase
     private void guideTo(double x, double y, double z, double speed,
             double horizontalResponse, double maximumVertical,
             double altitudeGain) {
-        double deltaX = x - posX;
-        double deltaY = y - posY;
-        double deltaZ = z - posZ;
-        double horizontal = Math.sqrt(deltaX * deltaX + deltaZ * deltaZ);
-        horizontal = Math.max(horizontal, 0.001D);
-        double desiredY = clamp(deltaY * altitudeGain,
-                -maximumVertical, maximumVertical);
-        double horizontalSpeed = Math.sqrt(Math.max(0.04D,
-                speed * speed - desiredY * desiredY));
-        motionX = blend(motionX,
-                deltaX / horizontal * horizontalSpeed, horizontalResponse);
-        motionY = blend(motionY, desiredY, horizontalResponse);
-        motionZ = blend(motionZ,
-                deltaZ / horizontal * horizontalSpeed, horizontalResponse);
-        double current = Math.sqrt(motionX * motionX + motionY * motionY
-                + motionZ * motionZ);
-        if (current > 0.001D) {
-            double scale = speed / current;
-            motionX *= scale;
-            motionY *= scale;
-            motionZ *= scale;
-        }
+        double turn=isTu95()?1.35:getProfile()==WarTechEntityProfile.MQ_9_REAPER?2.4:3.2;
+        Vec3d next=FixedWingFlight.steer(new Vec3d(motionX,motionY,motionZ),rotationYaw,
+            new Vec3d(x-posX,y-posY,z-posZ),speed,turn,horizontalResponse,maximumVertical,altitudeGain);
+        motionX=next.x;motionY=next.y;motionZ=next.z;
     }
 
     private void updateTu95Rotation() {
@@ -2600,7 +2856,8 @@ public class EntityWarTechAircraft extends EntityWarTechBase
     }
 
     private int terrainHeight(double x, double z) {
-        return world.getHeight(new BlockPos(floor(x), 0, floor(z))).getY();
+        BlockPos column=new BlockPos(floor(x),0,floor(z));
+        return world.isBlockLoaded(column)?world.getHeight(column).getY():(int)homeY;
     }
 
     private void playWeaponRelease(int payload) {
@@ -2660,6 +2917,7 @@ public class EntityWarTechAircraft extends EntityWarTechBase
         compound.setDouble("WarTechLaunchZ", launchZ);
         compound.setInteger("WarTechTargetCount", targetCount);
         compound.setInteger("WarTechTargetIndex", targetIndex);
+        compound.setBoolean("WarTechCruiseTargetManual",cruiseTargetImportManual);
         for (int index = 0; index < 6; ++index) {
             compound.setInteger("WarTechTargetX" + index, missionTargetX[index]);
             compound.setInteger("WarTechTargetY" + index, missionTargetY[index]);
@@ -2669,6 +2927,8 @@ public class EntityWarTechAircraft extends EntityWarTechBase
         compound.setInteger("WarTechLandingPhase", landingPhase);
         compound.setInteger("WarTechLaunchCooldown", launchCooldown);
         compound.setBoolean("WarTechWeaponReleased", weaponReleased);
+        compound.setBoolean("WarTechCruiseWithdrawing",cruiseWithdrawing);
+        compound.setTag("WarTechCruiseDeparture",cruiseDeparture.write());
         compound.setBoolean("WarTechReleaseCompleted", releaseCompleted);
         compound.setInteger("WarTechFlareCooldown", flareCooldown);
         compound.setInteger("WarTechFlareActive", flareActiveTicks);
@@ -2706,7 +2966,11 @@ public class EntityWarTechAircraft extends EntityWarTechBase
 
     @Override
     protected void readEntityFromNBT(NBTTagCompound compound) {
+        loadingCruiseTargets=true;
         super.readEntityFromNBT(compound);
+        cruiseWithdrawing=compound.getBoolean("WarTechCruiseWithdrawing");
+        cruiseDeparture.read(compound.getCompoundTag("WarTechCruiseDeparture"));
+        markDirty();
         homeX = legacyDouble(compound, "WarTechHomeX", "HomeX");
         homeY = legacyDouble(compound, "WarTechHomeY", "HomeY");
         homeZ = legacyDouble(compound, "WarTechHomeZ", "HomeZ");
@@ -2748,8 +3012,10 @@ public class EntityWarTechAircraft extends EntityWarTechBase
         if (targetCount > 0) {
             syncActiveTarget();
         } else {
-            clearTargetQueue();
+            resetTargetQueue();
         }
+        cruiseTargetImportManual=compound.hasKey("WarTechCruiseTargetManual")
+            ?compound.getBoolean("WarTechCruiseTargetManual"):targetCount>0;
         stateTicks = Math.max(0, legacyInteger(compound,
                 "WarTechStateTicks", "StateTicks"));
         landingPhase = Math.max(0, legacyInteger(compound,
@@ -2804,6 +3070,8 @@ public class EntityWarTechAircraft extends EntityWarTechBase
         remoteRestoreTicks =
                 compound.getInteger("WarTechRemoteRestoreTicks");
         updateRemoteStatus();
+        loadingCruiseTargets=false;
+        markDirty();
     }
 
     private static int legacyInteger(NBTTagCompound compound,

@@ -84,6 +84,8 @@ public final class ArtilleryAmmoItem extends VariantItem {
 
     private static void strength(List<String> tooltip, int strength,
             int damageModifier, boolean breaksBlocks) {
+        strength=(int)com.wartec.wartecmod.port.integration.WeaponBalance.artilleryStrength(strength,damageModifier);
+        damageModifier=1;
         tooltip.add(TextFormatting.YELLOW + "Strength: " + strength);
         tooltip.add(TextFormatting.YELLOW + "Damage modifier: "
                 + damageModifier + "x");

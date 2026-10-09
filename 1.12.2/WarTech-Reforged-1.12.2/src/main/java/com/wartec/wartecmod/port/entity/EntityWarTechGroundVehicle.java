@@ -10,6 +10,7 @@ import com.wartec.wartecmod.port.content.WarTechContent;
 import com.wartec.wartecmod.port.integration.AircraftCountermeasureCompat;
 import com.wartec.wartecmod.port.integration.DesignatorCompat;
 import com.wartec.wartecmod.port.integration.HbmExplosionCompat;
+import com.wartec.wartecmod.port.integration.MissileChunkLoader;
 import com.wartec.wartecmod.port.integration.NetworkTeamHelper;
 import com.wartec.wartecmod.port.gui.WarTechGuiHandler;
 import com.wartec.wartecmod.port.network.MissileTrackingService;
@@ -188,7 +189,10 @@ public class EntityWarTechGroundVehicle extends EntityWarTechBase {
         }
         boolean drivable = profile == WarTechEntityProfile.COMMAND_TRUCK
                 || profile == WarTechEntityProfile.MOBILE_AIR_DEFENSE
-                || profile == WarTechEntityProfile.MOBILE_ARTILLERY;
+                || profile == WarTechEntityProfile.MOBILE_ARTILLERY
+                || profile == WarTechEntityProfile.STRATEGIC_TOPOL_M
+                || profile == WarTechEntityProfile.STRATEGIC_YARS
+                || profile == WarTechEntityProfile.STRATEGIC_ORESHNIK;
         if (!drivable) {
             driveSpeed = 0.0D;
             steeringState = 0.0D;
@@ -220,10 +224,15 @@ public class EntityWarTechGroundVehicle extends EntityWarTechBase {
                 forwardInput = 0.0F;
                 strafeInput = 0.0F;
             }
-            double forward = profile == WarTechEntityProfile.MOBILE_AIR_DEFENSE
+            boolean strategic = profile == WarTechEntityProfile.STRATEGIC_TOPOL_M
+                    || profile == WarTechEntityProfile.STRATEGIC_YARS
+                    || profile == WarTechEntityProfile.STRATEGIC_ORESHNIK;
+            double forward = strategic ? 0.27D
+                    : profile == WarTechEntityProfile.MOBILE_AIR_DEFENSE
                     ? (isTor() ? 0.42D : 0.46D)
                     : profile == WarTechEntityProfile.MOBILE_ARTILLERY ? 0.38D : 0.36D;
-            double reverse = profile == WarTechEntityProfile.MOBILE_AIR_DEFENSE
+            double reverse = strategic ? 0.12D
+                    : profile == WarTechEntityProfile.MOBILE_AIR_DEFENSE
                     ? (isTor() ? 0.20D : 0.22D)
                     : profile == WarTechEntityProfile.MOBILE_ARTILLERY ? 0.18D : 0.17D;
             HeavyVehicleDynamics.Motion result = HeavyVehicleDynamics.step(
@@ -613,12 +622,14 @@ public class EntityWarTechGroundVehicle extends EntityWarTechBase {
             return;
         }
 
-        double turretY = posY + (getVisualVariant() == 1 ? 2.25D : 2.2D);
+        double turretY = posY + (getVisualVariant() == 1 ? 2.25D : 2.2D)*VehicleDimensions.scale(getProfile());
         double dx = getTargetX() - posX;
         double dy = getTargetY() - turretY;
         double dz = getTargetZ() - posZ;
         double horizontal = Math.max(0.001D,
                 Math.sqrt(dx * dx + dz * dz));
+        double allowedRange=com.wartec.wartecmod.port.integration.WeaponBalance.artilleryRange(getVisualVariant(),getLegacyFireMode()==1);
+        if(horizontal>allowedRange || manual && horizontal<250) return;
         float targetYaw = (float) Math.toDegrees(Math.atan2(-dx, dz));
         float targetPitch;
         if (getVisualVariant() == 1) {
@@ -707,8 +718,7 @@ public class EntityWarTechGroundVehicle extends EntityWarTechBase {
         }
         artillerySearchTimer = getVisualVariant() == 1
                 && getLegacyFireMode() == 1 ? 20 : 200;
-        double range = getVisualVariant() == 2 ? 5000.0D
-                : getLegacyFireMode() == 1 ? 250.0D : 3000.0D;
+        double range = com.wartec.wartecmod.port.integration.WeaponBalance.artilleryRange(getVisualVariant(),getLegacyFireMode()==1);
         double bestDistance = range * range;
         Entity best = null;
         for (Entity entity : world.loadedEntityList) {
@@ -731,8 +741,7 @@ public class EntityWarTechGroundVehicle extends EntityWarTechBase {
                 || entity instanceof EntityWarTechArtilleryProjectile) {
             return false;
         }
-        double range = getVisualVariant() == 2 ? 5000.0D
-                : getLegacyFireMode() == 1 ? 250.0D : 3000.0D;
+        double range = com.wartec.wartecmod.port.integration.WeaponBalance.artilleryRange(getVisualVariant(),getLegacyFireMode()==1);
         double grace = getVisualVariant() == 1
                 && getLegacyFireMode() == 1 ? 32.0D : 250.0D;
         double distanceSq = getDistanceSq(entity);
@@ -789,7 +798,8 @@ public class EntityWarTechGroundVehicle extends EntityWarTechBase {
                         EntityWarTechArtilleryProjectile.KIND_GREG,
                         ammunition, 2.15D, yaw, pitch, speed);
         projectile.setWhistle(getLegacyFireMode() != 1);
-        if (world.spawnEntity(projectile)) {
+        if (!MissileChunkLoader.prepare(projectile)) return false;
+        if (com.wartec.wartecmod.port.integration.MissileChunkLoader.spawnFlight(projectile)) {
             decrStackSize(slot, 1);
             MissileTrackingService.assignProjectileTeam(
                     projectile, getOwnerTeam());
@@ -798,6 +808,7 @@ public class EntityWarTechGroundVehicle extends EntityWarTechBase {
             dataManager.set(ARTILLERY_RECOIL, 1.0F);
             return true;
         }
+        MissileChunkLoader.untrack(projectile);
         return false;
     }
 
@@ -815,7 +826,8 @@ public class EntityWarTechGroundVehicle extends EntityWarTechBase {
                 createArtilleryProjectile(
                         EntityWarTechArtilleryProjectile.KIND_HENRY,
                         ammunition, 1.45D, yaw, pitch, 25.0D);
-        if (world.spawnEntity(projectile)) {
+        if (!MissileChunkLoader.prepare(projectile)) return false;
+        if (com.wartec.wartecmod.port.integration.MissileChunkLoader.spawnFlight(projectile)) {
             dataManager.set(ARTILLERY_AMMO_COUNT, rounds - 1);
             if (rounds - 1 <= 0) {
                 dataManager.set(ARTILLERY_AMMO_TYPE, -1);
@@ -826,6 +838,7 @@ public class EntityWarTechGroundVehicle extends EntityWarTechBase {
             spawnArtilleryMuzzleSmoke(1.45D, yaw);
             return true;
         }
+        MissileChunkLoader.untrack(projectile);
         return false;
     }
 
@@ -837,15 +850,16 @@ public class EntityWarTechGroundVehicle extends EntityWarTechBase {
         double horizontal = Math.cos(pitchRadians);
         double forwardX = -Math.sin(yawRadians);
         double forwardZ = Math.cos(yawRadians);
+        double modelScale=VehicleDimensions.scale(getProfile());
         EntityWarTechArtilleryProjectile projectile =
                 new EntityWarTechArtilleryProjectile(world);
         projectile.configure(kind, ammunition,
                 getTargetX(), getTargetY(), getTargetZ());
         projectile.setPosition(
-                posX + forwardX * muzzleDistance,
+                posX + forwardX * muzzleDistance*modelScale,
                 posY + (kind == EntityWarTechArtilleryProjectile.KIND_GREG
-                        ? 2.25D : 2.2D),
-                posZ + forwardZ * muzzleDistance);
+                        ? 2.25D : 2.2D)*modelScale,
+                posZ + forwardZ * muzzleDistance*modelScale);
         projectile.setOwnerIdentity(getOwnerUuid(), getOwnerTeam());
         projectile.motionX = forwardX * horizontal * speed;
         projectile.motionY = Math.sin(pitchRadians) * speed;
@@ -868,9 +882,10 @@ public class EntityWarTechGroundVehicle extends EntityWarTechBase {
             return;
         }
         double radians = Math.toRadians(yaw);
+        distance*=VehicleDimensions.scale(getProfile());
         double x = posX - Math.sin(radians) * distance;
         double z = posZ + Math.cos(radians) * distance;
-        double y = posY + (getVisualVariant() == 1 ? 2.25D : 2.2D);
+        double y = posY + (getVisualVariant() == 1 ? 2.25D : 2.2D)*VehicleDimensions.scale(getProfile());
         HbmExplosionCompat.spawnLegacyLargeExplosion(
                 world, x, y, z, 5);
     }
@@ -960,7 +975,7 @@ public class EntityWarTechGroundVehicle extends EntityWarTechBase {
                 ? null : world.getEntityByID(gunTargetId);
         if (!isGunTargetValid(target)) {
             target = MissileTrackingService.findCloseThreat(world,
-                    posX, posY + 3.1D, posZ, 1, GUN_RANGE,
+                    posX, posY + 3.1D*VehicleDimensions.scale(getProfile()), posZ, 1, GUN_RANGE,
                     getLauncherKey(), getOwnerTeam());
             int targetId = target == null ? -1 : target.getEntityId();
             if (targetId != gunTargetId) {
@@ -978,7 +993,7 @@ public class EntityWarTechGroundVehicle extends EntityWarTechBase {
         }
 
         double dx = target.posX - posX;
-        double dy = target.posY + 0.45D - (posY + 3.15D);
+        double dy = target.posY + 0.45D - (posY + 3.15D*VehicleDimensions.scale(getProfile()));
         double dz = target.posZ - posZ;
         double distance = Math.sqrt(dx * dx + dy * dy + dz * dz);
         double leadTime = Math.max(0.35D, Math.min(4.0D, distance / 14.0D));
@@ -986,7 +1001,7 @@ public class EntityWarTechGroundVehicle extends EntityWarTechBase {
         double leadY = target.posY + 0.45D + target.motionY * leadTime;
         double leadZ = target.posZ + target.motionZ * leadTime;
         dx = leadX - posX;
-        dy = leadY - (posY + 3.15D);
+        dy = leadY - (posY + 3.15D*VehicleDimensions.scale(getProfile()));
         dz = leadZ - posZ;
         double horizontal = Math.max(0.001D, Math.sqrt(dx * dx + dz * dz));
         float targetYaw = wrapDegrees((float) Math.toDegrees(
@@ -1014,7 +1029,10 @@ public class EntityWarTechGroundVehicle extends EntityWarTechBase {
                 || MissileTrackingService.getThreatTier(target) == 0) {
             return false;
         }
-        return target.getDistanceSq(this) <= GUN_RANGE * GUN_RANGE;
+        return !com.wartec.wartecmod.port.integration.NetworkTeamHelper.isFriendly(getOwnerTeam(),target)
+            && target.getDistanceSq(this) <= GUN_RANGE * GUN_RANGE
+            && com.wartec.wartecmod.port.integration.AirDefenseVisibility.visible(world,
+                getPositionVector().addVector(0,3.22*VehicleDimensions.scale(getProfile()),0),target);
     }
 
     private void fireGunBurst(Entity target, double leadX, double leadY,
@@ -1084,9 +1102,10 @@ public class EntityWarTechGroundVehicle extends EntityWarTechBase {
         double targetY = leadY + (world.rand.nextDouble() - 0.5D) * spread;
         double targetZ = leadZ + (world.rand.nextDouble() - 0.5D) * spread;
         for (int side = -1; side <= 1; side += 2) {
-            double muzzleX = posX + forwardX * 1.45D + sideX * side * 1.05D;
-            double muzzleY = posY + 3.22D;
-            double muzzleZ = posZ + forwardZ * 1.45D + sideZ * side * 1.05D;
+            double scale=VehicleDimensions.scale(getProfile());
+            double muzzleX = posX + (forwardX * 1.45D + sideX * side * 1.05D)*scale;
+            double muzzleY = posY + 3.22D*scale;
+            double muzzleZ = posZ + (forwardZ * 1.45D + sideZ * side * 1.05D)*scale;
             server.spawnParticle(EnumParticleTypes.SMOKE_LARGE,
                     muzzleX, muzzleY, muzzleZ, 2,
                     0.08D, 0.08D, 0.08D, 0.01D);
@@ -1202,9 +1221,10 @@ public class EntityWarTechGroundVehicle extends EntityWarTechBase {
         double sideX = Math.cos(yaw);
         double sideZ = Math.sin(yaw);
         for (int side = -1; side <= 1; side += 2) {
-            double muzzleX = posX + forwardX * 1.45D + sideX * side * 1.05D;
-            double muzzleY = posY + 3.22D;
-            double muzzleZ = posZ + forwardZ * 1.45D + sideZ * side * 1.05D;
+            double scale=VehicleDimensions.scale(getProfile());
+            double muzzleX = posX + (forwardX * 1.45D + sideX * side * 1.05D)*scale;
+            double muzzleY = posY + 3.22D*scale;
+            double muzzleZ = posZ + (forwardZ * 1.45D + sideZ * side * 1.05D)*scale;
             world.spawnParticle(EnumParticleTypes.SMOKE_LARGE,
                     muzzleX, muzzleY, muzzleZ,
                     forwardX * 0.03D, 0.025D, forwardZ * 0.03D);
@@ -1281,8 +1301,8 @@ public class EntityWarTechGroundVehicle extends EntityWarTechBase {
         if (DesignatorCompat.isDesignator(held)) {
             BlockPos target = DesignatorCompat.getTarget(world, player, held);
             if (target == null) {
-                player.sendMessage(new TextComponentString(
-                        "Designator has no target coordinates."));
+                boolean queued=DesignatorCompat.resolveForEntity(this,player,hand,point->acceptArtilleryDesignatorTarget(player,point));
+                player.sendMessage(new net.minecraft.util.text.TextComponentTranslation(queued?"uav.message.resolving_y":"uav.message.configure_target"));
             } else {
                 acceptArtilleryDesignatorTarget(player, target);
             }
@@ -1342,6 +1362,11 @@ public class EntityWarTechGroundVehicle extends EntityWarTechBase {
             return false;
         }
         setLegacyFireMode(getVisualVariant() == 1 ? 2 : 1);
+        double maximum=com.wartec.wartecmod.port.integration.WeaponBalance.artilleryRange(getVisualVariant(),false);
+        double distance=Math.hypot(target.getX()+.5-posX,target.getZ()+.5-posZ);
+        if(distance<250 || distance>maximum) {
+            player.sendMessage(new net.minecraft.util.text.TextComponentTranslation("flight.error.artillery_range",250,(int)maximum));return false;
+        }
         artilleryTargetId = -1;
         artillerySearchTimer = 0;
         boolean wasEmpty = artilleryTargetQueue.isEmpty()
@@ -1455,18 +1480,19 @@ public class EntityWarTechGroundVehicle extends EntityWarTechBase {
                 : getProfile() == WarTechEntityProfile.MOBILE_AIR_DEFENSE
                         ? (isTor() ? 0.42D : 0.48D) : 0.48D;
         double direction = getProfile() == WarTechEntityProfile.COMMAND_TRUCK ? -1.0D : 1.0D;
+        double scale=VehicleDimensions.scale(getProfile());forward*=scale;side*=scale;
         double x = posX + direction * (-Math.sin(yaw) * forward)
                 - Math.cos(yaw) * side;
         double z = posZ + direction * (Math.cos(yaw) * forward)
                 - Math.sin(yaw) * side;
-        passenger.setPosition(x, posY + (artillery ? 1.08D : 0.98D)
+        passenger.setPosition(x, posY + (artillery ? 1.08D : 0.98D)*scale
                 + passenger.getYOffset(), z);
     }
 
     @Override
     public double getMountedYOffset() {
-        return getProfile() == WarTechEntityProfile.MOBILE_ARTILLERY
-                ? 1.45D : 1.3D;
+        return (getProfile() == WarTechEntityProfile.MOBILE_ARTILLERY
+                ? 1.45D : 1.3D)*VehicleDimensions.scale(getProfile());
     }
 
     @Override
@@ -1507,7 +1533,7 @@ public class EntityWarTechGroundVehicle extends EntityWarTechBase {
         boolean creative = attacker instanceof EntityPlayer
                 && ((EntityPlayer) attacker).capabilities.isCreativeMode;
         WarTechEntityProfile profile = getProfile();
-        if (creative) {
+        if (creative && source.getImmediateSource()==attacker && !source.isExplosion() && !source.isProjectile()) {
             destroyGroundVehicle(profile != WarTechEntityProfile.MOBILE_AIR_DEFENSE);
             return true;
         }
@@ -1520,7 +1546,7 @@ public class EntityWarTechGroundVehicle extends EntityWarTechBase {
         if ((profile == WarTechEntityProfile.COMMAND_TRUCK
                 || profile == WarTechEntityProfile.S400_RADAR)
                 && source != null && source.isExplosion()) {
-            applied *= 0.2F;
+            applied *= 0.65F;
         } else if (profile == WarTechEntityProfile.ELECTRONIC_WARFARE) {
             applied = Math.min(70.0F, applied);
         } else if (profile == WarTechEntityProfile.MOBILE_ARTILLERY) {
@@ -1532,7 +1558,7 @@ public class EntityWarTechGroundVehicle extends EntityWarTechBase {
         } else if (profile == WarTechEntityProfile.RADAR_TRUCK) {
             playArtillerySound("minecraft:block.anvil.land", 0.35F, 1.5F);
         } else if (profile == WarTechEntityProfile.MOBILE_AIR_DEFENSE
-                && getHealthValue() < 125.0F) {
+                && getHealthValue() < getHealthCapacity()*.25F) {
             playArtillerySound("minecraft:block.anvil.land", 0.5F, 0.72F);
         } else if (profile == WarTechEntityProfile.MOBILE_ARTILLERY) {
             playArtillerySound("minecraft:block.anvil.land", 0.35F, 1.45F);

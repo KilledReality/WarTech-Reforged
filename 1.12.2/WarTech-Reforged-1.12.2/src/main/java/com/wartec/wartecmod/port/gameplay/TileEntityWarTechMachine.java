@@ -21,6 +21,7 @@ import com.wartec.wartecmod.port.integration.HbmRadarScanner.RadarContact;
 import com.wartec.wartecmod.port.integration.PoweredAirDefenseTileEntity;
 import com.wartec.wartecmod.port.integration.MissileChunkLoader;
 import com.wartec.wartecmod.port.integration.VlsInterceptorGuidance;
+import com.wartec.wartecmod.port.integration.ElectronicWarfareService;
 import com.wartec.wartecmod.port.network.FactionTerritoryData;
 import com.wartec.wartecmod.port.network.MissileTrackingService;
 import com.wartec.wartecmod.items.IMissileSpawningItem;
@@ -68,11 +69,23 @@ public class TileEntityWarTechMachine extends PoweredAirDefenseTileEntity implem
     private boolean alarmActive;
     private int clientRadarContacts;
     private final int[] radarBlips = new int[16];
+    private long manualGeranRequest;
+    private boolean manualGeranPending;
+
+    public boolean isRemoteDefenseNode() { return isRadarMachine() || isLauncher() || isCommunicationRelay(); }
+    @Override public void onLoad() {
+        super.onLoad();com.wartec.wartecmod.port.integration.OperationalChunks.register(this);
+    }
 
     @Override
     public void update() {
         if (world == null || world.isRemote) {
             return;
+        }
+        // Placement and multiblock formation may finish after onLoad. Reconcile
+        // the persistent index once the final block state is available.
+        if (world.getTotalWorldTime() % 40 == 0) {
+            com.wartec.wartecmod.port.integration.OperationalChunks.register(this);
         }
         if (isStrategicRadar()) {
             HbmTilePowerLink.subscribeNearby(this, this, 18, 24);
@@ -152,6 +165,7 @@ public class TileEntityWarTechMachine extends PoweredAirDefenseTileEntity implem
     protected int getRadarScanIntervalTicks() {
         return isStrategicRadar() ? 20 : super.getRadarScanIntervalTicks();
     }
+    @Override protected double getRadarSensorOffset() { return isStrategicRadar()?11.5:super.getRadarSensorOffset(); }
 
     @Override
     protected long getEngagementEnergyCost() {
@@ -171,7 +185,13 @@ public class TileEntityWarTechMachine extends PoweredAirDefenseTileEntity implem
         }
         int tier = loadedInterceptorTier();
         int slot = loadedInterceptorSlot(tier);
-        if (tier == 0 || slot < 0 || !consumePower(50_000L)) {
+        double range=com.wartec.wartecmod.port.integration.WeaponBalance.interceptorRange(tier);
+        if (tier == 0 || slot < 0 || !MissileTrackingService.canInterceptorEngage(target,tier,range)
+                || NetworkTeamHelper.isFriendly(getOwnerTeam(),target)
+                || (MissileTrackingService.isBallisticTarget(target)
+                    ?Math.pow(target.posX-pos.getX()-.5,2)+Math.pow(target.posZ-pos.getZ()-.5,2)
+                    :target.getDistanceSq(pos.getX()+.5,pos.getY()+.5,pos.getZ()+.5))>range*range
+                || !consumePower(50_000L)) {
             return false;
         }
         long launcherKey = launcherKey();
@@ -187,13 +207,13 @@ public class TileEntityWarTechMachine extends PoweredAirDefenseTileEntity implem
         EntityWarTechMissile interceptor =
             LegacyEntityFactory.missile(world, interceptorProfile);
         interceptor.setPosition(pos.getX() + 0.5D,
-                pos.getY() + (blockName().contains("s400") ? 6.8D : 6.5D),
+                pos.getY() + (blockName().contains("s400") ? 6.8D : 6.5D)*com.wartec.wartecmod.port.entity.VehicleDimensions.blockScale(blockName()),
                 pos.getZ() + 0.5D);
         interceptor.setOwnerIdentity(null, getOwnerTeam());
         interceptor.setVisual("missile/anti_air_tier_" + tier, 0);
         boolean malfunction = VlsInterceptorGuidance.configureStationaryLaunch(
                 interceptor, target, tier);
-        if (!world.spawnEntity(interceptor)) {
+        if (!com.wartec.wartecmod.port.integration.MissileChunkLoader.spawnFlight(interceptor)) {
             MissileTrackingService.releaseReservation(world,
                     target.getEntityId(), launcherKey);
             setPower(getPower() + 50_000L);
@@ -267,6 +287,14 @@ public class TileEntityWarTechMachine extends PoweredAirDefenseTileEntity implem
             } else if (!isRadarOperational()) {
                 MissileTrackingService.removeRadar(world, radarId);
             }
+        } else if(isRadarMachine()) {
+            // Ordinary block radars must publish contacts, not merely draw local blips.
+            if(!isRadarOperational()) MissileTrackingService.removeRadar(world,radarId());
+            else if(world.getTotalWorldTime()%getRadarScanIntervalTicks()==0)
+                MissileTrackingService.updateRadarSweep(world,radarId(),pos.getX()+.5,
+                    pos.getY()+.5+getRadarSensorOffset(),pos.getZ()+.5,getRadarHorizontalRange(),getRadarVerticalRange(),
+                    getRadarContactLimit(),getOwnerTeam(),blockName().contains("s400")?ElectronicWarfareService.BAND_L:
+                        blockName().contains("patriot")?ElectronicWarfareService.BAND_X:ElectronicWarfareService.BAND_S);
         }
         if (isLauncher()) {
             tickNetworkLauncher();
@@ -287,7 +315,7 @@ public class TileEntityWarTechMachine extends PoweredAirDefenseTileEntity implem
         if (world.getTotalWorldTime() % 10L == Math.abs(pos.toLong()) % 10L) {
             MissileTrackingService.updateLauncherPresence(world,
                     pos.getX() + 0.5D,
-                    pos.getY() + (blockName().contains("s400") ? 6.8D : 6.5D),
+                    pos.getY() + (blockName().contains("s400") ? 6.8D : 6.5D)*com.wartec.wartecmod.port.entity.VehicleDimensions.blockScale(blockName()),
                     pos.getZ() + 0.5D, networkTier, key, getOwnerTeam());
         }
         if (loadedTier == 0 || networkLaunchCooldown > 0 || getPower() < 50_000L) {
@@ -298,11 +326,10 @@ public class TileEntityWarTechMachine extends PoweredAirDefenseTileEntity implem
                 != Math.abs(pos.getX() * 31L + pos.getZ() * 17L) % period) {
             return;
         }
-        double range = loadedTier == 1 ? 100.0D
-                : loadedTier == 2 ? 250.0D : 400.0D;
+        double range = com.wartec.wartecmod.port.integration.WeaponBalance.interceptorRange(loadedTier);
         Entity target = MissileTrackingService.findThreat(world,
                 pos.getX() + 0.5D,
-                pos.getY() + (blockName().contains("s400") ? 6.8D : 6.5D),
+                pos.getY() + (blockName().contains("s400") ? 6.8D : 6.5D)*com.wartec.wartecmod.port.entity.VehicleDimensions.blockScale(blockName()),
                 pos.getZ() + 0.5D, loadedTier, range, key, getOwnerTeam());
         if (target != null) {
             pendingTargetEntityId = target.getEntityId();
@@ -584,13 +611,38 @@ public class TileEntityWarTechMachine extends PoweredAirDefenseTileEntity implem
         return launchLoadedMissile(player, null);
     }
 
+    /** NTM detonators also address old Geran/VLS pads: lease the site and resolve XZ-only targets. */
+    public boolean launchFromDetonator(EntityPlayer player) {
+        if(!(world instanceof WorldServer) || isInvalid()) return false;
+        final ItemStack ammo=inventory.get(0).copy(),designator=inventory.get(1).copy();
+        if(ammo.isEmpty()) return false;
+        java.util.function.BooleanSupplier valid=()->!isInvalid()
+            && ItemStack.areItemStacksEqual(ammo,inventory.get(0))
+            && ItemStack.areItemStacksEqual(designator,inventory.get(1));
+        final net.minecraft.util.math.Vec3d[] target={null};final boolean[] resolving={false};
+        return com.wartec.wartecmod.port.integration.OperationalChunks.requestUntil((WorldServer)world,pos,2,
+            "legacy-launch:"+pos.toLong(),valid,()->{
+                if(!valid.getAsBoolean()) return true;
+                if(target[0]==null && DesignatorCompat.getHorizontalTarget(designator)!=null) {
+                    if(!resolving[0]) {
+                        resolving[0]=true;
+                        DesignatorCompat.resolveSavedTarget((WorldServer)world,designator.copy(),Double.NaN,valid,p->target[0]=p);
+                    }
+                    if(target[0]==null) return false;
+                }
+                // A detonator requests autonomous launch, not remote camera/pilot mode.
+                launchLoadedMissile(null,target[0]==null?null:new BlockPos(target[0]));return true;
+            });
+    }
+
     public boolean launchAtCoordinates(int targetX, int targetZ,
             EntityPlayer player) {
         if (world == null) {
             return false;
         }
-        int targetY = world.getHeight(new BlockPos(
-                targetX, 0, targetZ)).getY();
+        BlockPos column=new BlockPos(targetX,0,targetZ);
+        if(!world.isBlockLoaded(column)) return false;
+        int targetY = world.getHeight(column).getY();
         return launchLoadedMissile(player,
                 new BlockPos(targetX, targetY, targetZ));
     }
@@ -599,7 +651,7 @@ public class TileEntityWarTechMachine extends PoweredAirDefenseTileEntity implem
             BlockPos explicitTarget) {
         if (world == null || world.isRemote) return false;
         if (isGeranLauncher()) {
-            return launchGeranRemote(player);
+            return launchGeranRemote(player,explicitTarget);
         }
         ItemStack stack = inventory.get(0);
         if (stack.isEmpty()) {
@@ -614,7 +666,7 @@ public class TileEntityWarTechMachine extends PoweredAirDefenseTileEntity implem
             missile.setPosition(pos.getX() + 0.5D,
                     pos.getY() + (isBallisticLauncher() ? 0.5D : 11.0D),
                     pos.getZ() + 0.5D);
-            if (!world.spawnEntity(missile)) {
+            if (!com.wartec.wartecmod.port.integration.MissileChunkLoader.spawnFlight(missile)) {
                 return false;
             }
             consumePower(75_000L);
@@ -660,6 +712,11 @@ public class TileEntityWarTechMachine extends PoweredAirDefenseTileEntity implem
         }
         EntityWarTechMissile missile =
                 LegacyEntityFactory.missile(world, profile);
+        double maximum=com.wartec.wartecmod.port.integration.WeaponBalance.missileRange(profile);
+        if(maximum>0 && Math.hypot(target.getX()-pos.getX(),target.getZ()-pos.getZ())*1.12+80>maximum) {
+            if(player!=null) player.sendMessage(new net.minecraft.util.text.TextComponentTranslation("flight.error.range",(int)maximum));
+            return false;
+        }
         TileEntityWarTechMachine exhaust = findConnectedVlsExhaust();
         double launchY = pos.getY()
                 + (isBallisticLauncher() ? 2.0D : 11.0D);
@@ -683,8 +740,11 @@ public class TileEntityWarTechMachine extends PoweredAirDefenseTileEntity implem
                 != MissileProfile.FlightClass.GLIDE) {
             missile.motionY = 0.28D;
         }
-        if (!world.spawnEntity(missile)) {
-            return false;
+        if (!MissileChunkLoader.prepare(missile)) {
+            if(player!=null) player.sendMessage(new net.minecraft.util.text.TextComponentTranslation("flight.error.chunks"));return false;
+        }
+        if (!com.wartec.wartecmod.port.integration.MissileChunkLoader.spawnFlight(missile)) {
+            MissileChunkLoader.untrack(missile);return false;
         }
         consumePower(consumedPower);
         inventory.set(0, ItemStack.EMPTY);
@@ -725,7 +785,7 @@ public class TileEntityWarTechMachine extends PoweredAirDefenseTileEntity implem
                 ((EntityWarTechMissile) missile).configureVlsExhaust(
                         exhaust == null ? null : exhaust.getPos());
             }
-            if (!world.spawnEntity(missile)) {
+            if (!com.wartec.wartecmod.port.integration.MissileChunkLoader.spawnFlight(missile)) {
                 return false;
             }
             consumePower(50_000L);
@@ -928,39 +988,102 @@ public class TileEntityWarTechMachine extends PoweredAirDefenseTileEntity implem
     }
 
     public boolean launchGeranRemote(EntityPlayer player) {
+        String error = manualGeranError(player);
+        if (error != null) return tellGeranFailure(player, error);
+        if (manualGeranPending) return true;
+        BlockPos target = DesignatorCompat.getTarget(world, player, inventory.get(1));
+        if (target != null) return launchGeranRemote(player, target);
+        net.minecraft.util.math.Vec3d horizontal = DesignatorCompat.getHorizontalTarget(inventory.get(1));
+        if (horizontal == null) return tellGeranFailure(player, "target");
+        if (!geranTargetInRange(new BlockPos(horizontal))) return tellGeranFailure(player, "range");
+        final ItemStack ammo = inventory.get(0).copy(), designator = inventory.get(1).copy();
+        final long request = ++manualGeranRequest, deadline = world.getTotalWorldTime() + 400;
+        manualGeranPending = true;
+        java.util.function.BooleanSupplier valid = () -> {
+            if (!manualGeranPending || manualGeranRequest != request) return false;
+            String invalid = manualGeranError(player);
+            if (invalid == null && (!ItemStack.areItemStacksEqual(ammo, inventory.get(0))
+                    || !ItemStack.areItemStacksEqual(designator, inventory.get(1)))) invalid = "changed";
+            if (invalid == null && world.getTotalWorldTime() > deadline) invalid = "busy";
+            if (invalid == null) return true;
+            manualGeranPending = false;
+            tellGeranFailure(player, invalid);
+            return false;
+        };
+        boolean accepted = DesignatorCompat.resolveSavedTarget((WorldServer) world, designator.copy(),
+                Double.NaN, valid, point -> {
+                    manualGeranPending = false;
+                    launchGeranRemote(player, new BlockPos(point));
+                });
+        if (!accepted) {
+            manualGeranPending = false;
+            return tellGeranFailure(player, "busy");
+        }
+        if (manualGeranPending) player.sendMessage(new net.minecraft.util.text.TextComponentTranslation("geran.launch.resolving"));
+        return true;
+    }
+
+    private String manualGeranError(EntityPlayer player) {
+        if (!(world instanceof WorldServer) || isInvalid() || !isGeranLauncher()
+                || world.getTileEntity(pos) != this) return "launcher";
+        if (player == null || player.isDead || player.world != world
+                || player.getDistanceSq(pos) > 144) return "operator";
+        if (!getOwnerTeam().isEmpty() && !NetworkTeamHelper.areFriendly(getOwnerTeam(),
+                NetworkTeamHelper.getPlayerTeam(player))) return "iff";
+        if (!isGeranAmmo(inventory.get(0))) return "ammo";
+        if (!DesignatorCompat.isDesignator(inventory.get(1))) return "designator";
+        return getPower() < 25_000L ? "power" : null;
+    }
+
+    private boolean geranTargetInRange(BlockPos target) {
+        double distance = Math.hypot(target.getX() - (pos.getX() + .5D),
+                target.getZ() - (pos.getZ() + .5D));
+        return distance >= 20 && distance <= 1000;
+    }
+
+    private static boolean isGeranAmmo(ItemStack stack) {
+        return !stack.isEmpty() && (stack.getItem()==WarTechContent.GERAN_DRONE
+                || stack.getItem()==WarTechContent.GERAN_5_DRONE);
+    }
+
+    private boolean launchGeranRemote(EntityPlayer player,BlockPos explicitTarget) {
+        if (player != null) {
+            String error = manualGeranError(player);
+            if (error != null) return tellGeranFailure(player, error);
+        }
         if (world == null || world.isRemote || !isGeranLauncher()
                 || inventory.get(0).isEmpty()
-                || inventory.get(0).getItem() != WarTechContent.GERAN_DRONE
+                || !isGeranAmmo(inventory.get(0))
                 || inventory.get(1).isEmpty()
                 || getPower() < 25_000L) {
-            tellGeranFailure(player);
-            return false;
+            return tellGeranFailure(player, "ammo");
         }
-        BlockPos target = DesignatorCompat.getTarget(
+        BlockPos target = explicitTarget!=null?explicitTarget:DesignatorCompat.getTarget(
                 world, player, inventory.get(1));
         if (target == null) {
-            tellGeranFailure(player);
-            return false;
+            return tellGeranFailure(player, "target");
         }
-        double deltaX = target.getX() - (pos.getX() + 0.5D);
-        double deltaZ = target.getZ() - (pos.getZ() + 0.5D);
-        double distance = Math.sqrt(deltaX * deltaX + deltaZ * deltaZ);
-        if (distance < 20.0D || distance > 1000.0D) {
-            tellGeranFailure(player);
-            return false;
-        }
-        EntityWarTechMissile geran =
-                LegacyEntityFactory.missile(world, MissileProfile.GERAN_2);
+        if (!geranTargetInRange(target)) return tellGeranFailure(player, "range");
+        MissileProfile geranProfile=((com.wartec.wartecmod.port.content.MissileItem)inventory.get(0).getItem()).getProfile();
+        EntityWarTechMissile geran = LegacyEntityFactory.missile(world, geranProfile);
         geran.setPosition(pos.getX() + 0.5D,
-                pos.getY() + 1.35D, pos.getZ() + 0.5D);
+                pos.getY() + (geranProfile==MissileProfile.GERAN_5?1.368D:
+                    1.35D*com.wartec.wartecmod.port.entity.VehicleDimensions.blockScale(blockName())),
+                pos.getZ() + (geranProfile==MissileProfile.GERAN_5?.68D:.5D));
+        if(geranProfile==MissileProfile.GERAN_5) geran.rotationPitch=-12;
         geran.setOwnerIdentity(
                 player == null ? null : player.getUniqueID(), getOwnerTeam());
-        geran.setVisual("missile/geran_2", 0);
+        geran.setVisual("missile/"+geranProfile.getIntentPath(), 0);
         geran.setGuidanceTarget(
                 target.getX(), target.getY(), target.getZ());
-        if (!world.spawnEntity(geran)) {
-            tellGeranFailure(player);
-            return false;
+        if (!MissileChunkLoader.spawnFlight(geran)) {
+            return tellGeranFailure(player, "busy");
+        }
+        // A rejected pilot handoff is not an autonomous launch. Preserve ammo and energy.
+        if (player != null && !geran.beginRemoteControl(player)) {
+            geran.setDead();
+            MissileChunkLoader.untrack(geran);
+            return tellGeranFailure(player, "control");
         }
         MissileChunkLoader.track(geran);
         MissileTrackingService.registerLaunch(geran,
@@ -988,18 +1111,14 @@ public class TileEntityWarTechMachine extends PoweredAirDefenseTileEntity implem
                     pos.getZ() + 0.5D,
                     8, 0.6D, 0.15D, 0.6D, 0.025D);
         }
-        if (player != null) {
-            geran.beginRemoteControl(player);
-        }
         return true;
     }
 
-    private static void tellGeranFailure(EntityPlayer player) {
+    private static boolean tellGeranFailure(EntityPlayer player, String reason) {
         if (player != null) {
-            player.sendMessage(new TextComponentString(
-                    "Geran-2 remote launch failed: check drone, "
-                    + "designator, power and 20-1000 block target range."));
+            player.sendMessage(new net.minecraft.util.text.TextComponentTranslation("geran.launch.error." + reason));
         }
+        return false;
     }
 
     private void chargeFromBattery() {
@@ -1054,7 +1173,7 @@ public class TileEntityWarTechMachine extends PoweredAirDefenseTileEntity implem
     }
 
     private String blockName() {
-        if (world == null || pos == null) {
+        if (world == null || pos == null || !world.isBlockLoaded(pos)) {
             return "";
         }
         Block block = world.getBlockState(pos).getBlock();
@@ -1065,6 +1184,9 @@ public class TileEntityWarTechMachine extends PoweredAirDefenseTileEntity implem
 
     @Override
     public void invalidate() {
+        // Forge can invalidate a tile while unloading/replacing its chunk.
+        // Keep the persisted node; a later wake validates and prunes destroyed
+        // structures without accidentally forgetting an unloaded battery.
         disconnectNetworkServices();
         super.invalidate();
     }
@@ -1079,15 +1201,11 @@ public class TileEntityWarTechMachine extends PoweredAirDefenseTileEntity implem
         if (world == null || world.isRemote) {
             return;
         }
-        if (isCommunicationRelay()) {
-            MissileChunkLoader.untrackCommunicationNode(this);
-            MissileTrackingService.removeCommunicationRelay(world,
-                    MissileTrackingService.communicationRelayKey(
-                            pos.getX(), pos.getY(), pos.getZ()));
-        }
-        if (isStrategicRadar()) {
-            MissileTrackingService.removeRadar(world, radarId());
-        }
+        MissileChunkLoader.untrackCommunicationNode(this);
+        MissileTrackingService.removeCommunicationRelay(world,
+                MissileTrackingService.communicationRelayKey(
+                        pos.getX(), pos.getY(), pos.getZ()));
+        MissileTrackingService.removeRadar(world, radarId());
     }
 
     @Override
@@ -1232,8 +1350,7 @@ public class TileEntityWarTechMachine extends PoweredAirDefenseTileEntity implem
     @Override public boolean isItemValidForSlot(int index, ItemStack stack) {
         if (isGeranLauncher()) {
             if (index == 0) {
-                return !stack.isEmpty()
-                        && stack.getItem() == WarTechContent.GERAN_DRONE;
+                return isGeranAmmo(stack);
             }
             if (index == 1) {
                 return DesignatorCompat.isDesignator(stack);

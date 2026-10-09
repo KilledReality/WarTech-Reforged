@@ -32,6 +32,37 @@ public final class HbmExplosionCompat {
     private HbmExplosionCompat() {
     }
 
+    /** One bounded pulse. Unlike the NTM 100-block EMP entity this never generates a sphere of chunks. */
+    public static void empPulse(World world,double x,double y,double z,double radius) {
+        if(world==null || world.isRemote) return;
+        radius=Math.max(1,Math.min(48,radius));final double reach=radius*radius;
+        java.util.List<net.minecraft.tileentity.TileEntity> tiles=new java.util.ArrayList<>();
+        int scanned=0;
+        for(net.minecraft.tileentity.TileEntity tile:world.loadedTileEntityList) {
+            if(++scanned>4096) break;
+            if(!tile.isInvalid() && tile.getPos().distanceSq(x,y,z)<=reach) tiles.add(tile);
+        }
+        tiles.sort(java.util.Comparator.comparingDouble(tile->tile.getPos().distanceSq(x,y,z)));
+        for(int i=0;i<Math.min(64,tiles.size());i++) {
+            net.minecraft.tileentity.TileEntity tile=tiles.get(i);
+            if(tile instanceof api.hbm.energy.IEnergyUser) ((api.hbm.energy.IEnergyUser)tile).setPower(0);
+            else for(net.minecraft.util.EnumFacing side:net.minecraft.util.EnumFacing.values()) {
+                net.minecraftforge.energy.IEnergyStorage energy=tile.getCapability(net.minecraftforge.energy.CapabilityEnergy.ENERGY,side);
+                if(energy!=null) energy.extractEnergy(energy.getEnergyStored(),false);
+            }
+            tile.markDirty();
+        }
+        java.util.List<Entity> vehicles=world.getEntitiesWithinAABBExcludingEntity(null,new AxisAlignedBB(x-radius,y-radius,z-radius,x+radius,y+radius,z+radius));
+        vehicles.sort(java.util.Comparator.comparingDouble(entity->entity.getDistanceSq(x,y,z)));
+        for(int i=0;i<Math.min(64,vehicles.size());i++) {
+            Entity entity=vehicles.get(i);
+            if(StrikeBlastSafety.protectsFromActiveStrike(entity)) continue;
+            if(entity.getDistanceSq(x,y,z)<=reach && entity instanceof com.wartec.wartecmod.port.entity.EntityWarTechBase)
+                ((com.wartec.wartecmod.port.entity.EntityWarTechBase)entity).setLegacyPower(0);
+        }
+        if(world instanceof WorldServer) ((WorldServer)world).spawnParticle(net.minecraft.util.EnumParticleTypes.REDSTONE,x,y,z,48,radius*.25,1,radius*.25,.01);
+    }
+
     public static void advancedExplosion(World world, double x, double y, double z,
             float size, float rangeModifier, boolean breaksBlocks) {
         if (world == null || world.isRemote) {
@@ -47,9 +78,11 @@ public final class HbmExplosionCompat {
         world.playSound(null, x, y, z, detonation,
                 net.minecraft.util.SoundCategory.PLAYERS, 50.0F,
                 0.9F + world.rand.nextFloat() * 0.2F);
-        ExplosionLarge.spawnParticles(world, x, y, z, cloudFunction((int) size));
-        ExplosionLarge.spawnRubble(world, x, y, z, cloudFunction((int) size));
-        ExplosionLarge.spawnShrapnels(world, x, y, z, cloudFunction((int) size));
+        int effectSize = Math.max(0, (int) size);
+        ExplosionLarge.spawnParticles(world, x, y, z, cloudFunction(effectSize));
+        ExplosionLarge.spawnRubble(world, x, y, z, rubbleFunction(effectSize));
+        ExplosionLarge.spawnShrapnels(world, x, y, z,
+                shrapnelFunction(effectSize));
         LegacyVntExplosion.explode(
                 world, x, y, z, size, rangeModifier, breaksBlocks, true);
     }
@@ -79,6 +112,9 @@ public final class HbmExplosionCompat {
         if (world == null || world.isRemote) {
             return;
         }
+        boolean thermal = rangeModifier >= 10;
+        size = WeaponBalance.artilleryStrength(size, rangeModifier);
+        rangeModifier = WeaponBalance.entityArea(thermal);
         IBlockState debris = breaksBlocks && ModBlocks.block_slag != null
                 ? ModBlocks.block_slag.getStateFromMeta(slagMetadata) : null;
         LegacyVntExplosion.explode(world, x, y, z, size,
@@ -269,6 +305,14 @@ public final class HbmExplosionCompat {
         return (int) (850.0D * (1.0D - Math.pow(Math.E, -size / 15.0D)) + 15.0D);
     }
 
+    public static int rubbleFunction(int size) {
+        return Math.max(0, size / 10);
+    }
+
+    public static int shrapnelFunction(int size) {
+        return Math.max(0, size / 3);
+    }
+
     public static void spawnChlorine(World world, double x, double y, double z,
             int amount, double spread, int metadata) {
         if (world != null && !world.isRemote) {
@@ -318,9 +362,25 @@ public final class HbmExplosionCompat {
     }
 
     public static void cluster(World world, int x, int y, int z, int amount, int strength) {
-        if (world != null && !world.isRemote) {
-            ExplosionChaos.cluster(world, x, y, z, amount, (double) strength);
+        if(world==null || world.isRemote) return;
+        amount=WeaponBalance.clusterCount(amount);strength=WeaponBalance.clusterStrength(strength);
+        if(amount==0) return;
+        // CE ExplosionChaos.cluster ignores its strength argument. Own shells use
+        // actual strength, bounded sweeps, persistent ENTITY tickets and saved payload.
+        if(MissileChunkLoader.availableFlightSlots(world)<amount) {
+            advancedExplosion(world,x,y,z,amount>12?14:8,1,true);return;
         }
+        int spawned=0;
+        for(int i=0;i<amount;i++) {
+            com.wartec.wartecmod.port.entity.EntityWarTechArtilleryProjectile child=
+                    new com.wartec.wartecmod.port.entity.EntityWarTechArtilleryProjectile(world);
+            child.setPosition(x+.5,y+.35,z+.5);child.configureCruiseSubmunition(strength);
+            double angle=world.rand.nextDouble()*Math.PI*2,speed=.25+world.rand.nextDouble()*.85;
+            child.motionX=Math.cos(angle)*speed;child.motionZ=Math.sin(angle)*speed;
+            child.motionY=.3+world.rand.nextDouble()*.65;
+            if(MissileChunkLoader.spawnFlight(child)) spawned++;
+        }
+        if(spawned==0) advancedExplosion(world,x,y,z,amount>12?14:8,1,true);
     }
 
     public static void nuclear(World world, int strength, double x, double y, double z,
@@ -332,6 +392,48 @@ public final class HbmExplosionCompat {
         EntityCloudTom cloud = new EntityCloudTom(world, 1000);
         cloud.setPosition(x, y, z);
         world.spawnEntity(cloud);
+    }
+
+    /** NTM's deferred crater plus its large, scalable flash/shock-cloud. */
+    public static void strategicNuclear(World world, double x, double y,
+            double z, int radius) {
+        if (!com.wartec.wartecmod.port.content.StrategicFeature.isEnabled()) return;
+        if (world == null || world.isRemote) return;
+        int bounded = Math.max(32, Math.min(420, radius));
+        world.spawnEntity(EntityNukeExplosionMK5.statFac(
+                world, bounded, x, y, z));
+        EntityNukeTorex.statFac(world, x, y, z, bounded);
+        nuclearAreaDamage(world, x, y, z,
+                Math.min(520.0D, bounded * 1.7D),
+                Math.min(2400.0F, bounded * 7.0F));
+        net.minecraft.util.SoundEvent sound =
+                net.minecraft.util.SoundEvent.REGISTRY.getObject(
+                        new net.minecraft.util.ResourceLocation(
+                                "hbm", "weapon.nuclearExplosion"));
+        world.playSound(null, x, y, z,
+                sound == null ? net.minecraft.init.SoundEvents.ENTITY_GENERIC_EXPLODE
+                        : sound,
+                net.minecraft.util.SoundCategory.PLAYERS, 1000.0F, 0.72F);
+    }
+
+    /** Conventional Oreshnik re-entry impact: deep VNT crater and hot plume. */
+    public static void strategicKinetic(World world, double x, double y,
+            double z, int radius) {
+        if (!com.wartec.wartecmod.port.content.StrategicFeature.isEnabled()) return;
+        if (world == null || world.isRemote) return;
+        int bounded = Math.max(18, Math.min(72, radius));
+        ExplosionLarge.spawnParticles(world, x, y, z,
+                Math.min(220, bounded * 3));
+        ExplosionLarge.spawnRubble(world, x, y, z,
+                Math.min(420, bounded * 5));
+        standardMush(world, x, y, z, bounded * 1.75F);
+        LegacyVntExplosion.explode(world, x, y, z,
+                bounded, 1.35F, true, true);
+        nuclearAreaDamage(world, x, y, z,
+                bounded * 2.1D, bounded * 9.0F);
+        world.playSound(null, x, y, z,
+                net.minecraft.init.SoundEvents.ENTITY_GENERIC_EXPLODE,
+                net.minecraft.util.SoundCategory.PLAYERS, 220.0F, 0.58F);
     }
 
     private static void contaminateNeutron(Entity entity, float amount) {

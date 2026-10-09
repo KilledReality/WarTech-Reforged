@@ -1,0 +1,20 @@
+{
+  "variants": {
+    "facing=north": {
+      "model": "wartecmod:cruisedronerail",
+      "y": 0
+    },
+    "facing=east": {
+      "model": "wartecmod:cruisedronerail",
+      "y": 90
+    },
+    "facing=south": {
+      "model": "wartecmod:cruisedronerail",
+      "y": 180
+    },
+    "facing=west": {
+      "model": "wartecmod:cruisedronerail",
+      "y": 270
+    }
+  }
+}

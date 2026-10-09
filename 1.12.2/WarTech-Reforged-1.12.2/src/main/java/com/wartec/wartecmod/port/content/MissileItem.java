@@ -44,7 +44,13 @@ public final class MissileItem extends PortIntentItem
     @Override
     public void addInformation(ItemStack stack, @Nullable World world,
             List<String> tooltip, ITooltipFlag flag) {
+        double range=com.wartec.wartecmod.port.integration.WeaponBalance.missileRange(profile);
+        if(range>0) tooltip.add(net.minecraft.client.resources.I18n.format("flight.tooltip.range",(int)range));
         switch (profile) {
+            case GERAN_5:
+                for(String key:new String[]{"speed","warhead","launch","defense","control"})
+                    tooltip.add(net.minecraft.client.resources.I18n.format("geran5.tooltip."+key));
+                return;
             case ANTI_AIR_TIER_1:
                 tooltip.add(TextFormatting.GOLD + "Can be used against:");
                 tooltip.add(TextFormatting.YELLOW + " Cruise Missiles");
@@ -60,7 +66,7 @@ public final class MissileItem extends PortIntentItem
                 return;
             case KH555:
                 tooltip.add("Tier 2 long-range cruise missile | HE warhead");
-                tooltip.add("Range: 250-2,000 blocks | strategic-aircraft compatible");
+                tooltip.add("Air release: 250-2,000 blocks | strategic-aircraft compatible");
                 tooltip.add("Compatible with the standard WarTech launch tube");
                 return;
             case ANTI_RADIATION:
@@ -69,19 +75,19 @@ public final class MissileItem extends PortIntentItem
                 tooltip.add("Remembers the last emitter position after radar shutdown");
                 return;
             case TOMAHAWK:
-                namedCruise(tooltip, "25.0", "6.25m");
+                namedCruise(tooltip, "10.0", "6.25m");
                 return;
             case KALIBR:
-                namedCruise(tooltip, "25.0", "7.20m");
+                namedCruise(tooltip, "10.0", "7.20m");
                 return;
             case CJ10:
-                namedCruise(tooltip, "25.0", "7.30m");
+                namedCruise(tooltip, "10.0", "7.30m");
                 return;
             case ISKANDER:
                 tooltip.add(TextFormatting.BOLD + "Warhead: "
                         + TextFormatting.YELLOW + "HE");
                 tooltip.add(TextFormatting.BOLD + "Strength: "
-                        + TextFormatting.GRAY + "40.0");
+                        + TextFormatting.GRAY + "14.0");
                 tooltip.add(TextFormatting.BOLD + "Size: "
                         + TextFormatting.GRAY + "7.30m");
                 return;

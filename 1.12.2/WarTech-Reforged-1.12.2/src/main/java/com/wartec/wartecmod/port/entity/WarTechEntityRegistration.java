@@ -92,7 +92,17 @@ public final class WarTechEntityRegistration {
                 EntityWarTechArtilleryProjectile.class, 512, 1), modInstance);
         register(migration(106, "satellite_missile_nuclear",
                 LegacyEntityTypes.GenericSatelliteMissile.class, 1000, 1), modInstance);
-        return 107;
+        register(migration(107, "custom_uav", EntityCustomUav.class,
+                4096, 1), modInstance);
+        register(migration(108, "strategic_tel", EntityStrategicTel.class,
+                2048, 1), modInstance);
+        register(migration(109, "strategic_missile",
+                EntityStrategicMissile.class, 16384, 1), modInstance);
+        register(migration(110, "custom_cruise", EntityCustomCruise.class,
+                512, 1), modInstance);
+        register(migration(111, "geran_5", LegacyEntityTypes.Geran5Missile.class,
+                1000, 1), modInstance);
+        return 112;
     }
 
     public static List<RegistrationSpec> getLegacyRegistrations() {

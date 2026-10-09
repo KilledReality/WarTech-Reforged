@@ -34,7 +34,9 @@ public enum MissileProfile {
     ANTI_RADIATION("anti_radiation", FlightClass.ANTI_RADIATION, PayloadClass.HIGH_EXPLOSIVE),
     KH555("kh555", FlightClass.SUBSONIC, PayloadClass.STRATEGIC),
     FRAGMENTATION("cruise_he", FlightClass.SUBSONIC, PayloadClass.HIGH_EXPLOSIVE),
-    INVALID("invalid", FlightClass.INVALID, PayloadClass.INVALID);
+    INVALID("invalid", FlightClass.INVALID, PayloadClass.INVALID),
+    // Append: existing saved ordinals must never move.
+    GERAN_5("geran_5", FlightClass.LOITERING, PayloadClass.HIGH_EXPLOSIVE);
 
     private final String intentPath;
     private final FlightClass flightClass;

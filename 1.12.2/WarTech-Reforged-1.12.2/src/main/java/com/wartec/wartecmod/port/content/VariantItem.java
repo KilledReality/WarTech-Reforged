@@ -51,7 +51,7 @@ public class VariantItem extends PortItem {
 
     @Override
     public void getSubItems(CreativeTabs tab, NonNullList<ItemStack> items) {
-        if (!isInCreativeTab(tab)) {
+        if (StrategicFeature.isDisabledItem(this) || !isInCreativeTab(tab)) {
             return;
         }
         for (int metadata = 0; metadata < variantNames.length; metadata++) {

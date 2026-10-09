@@ -100,14 +100,14 @@ public class EntityWarTechOrdnance extends EntityWarTechBase {
         int spread = AviationOrdnance.getMaximumDispersion(type);
         setGuidanceTarget(targetX + triangularOffset(spread), targetY,
                 targetZ + triangularOffset(spread));
-        setSize(0.45F, 0.45F);
+        setSize(0.45F*1.15F, 0.45F*1.15F);
     }
 
     public void configureStrategicBomb(int type) {
         dataManager.set(ORDNANCE_FAMILY, FAMILY_STRATEGIC);
         dataManager.set(ORDNANCE_TYPE, type == 1 ? 1 : 0);
         ordnanceHealth = 18;
-        setSize(0.85F, 0.85F);
+        setSize(0.85F*1.15F, 0.85F*1.15F);
     }
 
     public void configureStrategicBomb(int type, int targetX, int targetY,
@@ -124,7 +124,7 @@ public class EntityWarTechOrdnance extends EntityWarTechBase {
         dataManager.set(AIR_TARGET, target == null ? -1 : target.getEntityId());
         reservationOwner = ownerKey;
         ordnanceHealth = 6;
-        setSize(0.34F, 0.34F);
+        setSize(0.34F*1.15F, 0.34F*1.15F);
     }
 
     public void configureKineticRod(int targetX, int targetY,
@@ -173,6 +173,16 @@ public class EntityWarTechOrdnance extends EntityWarTechBase {
 
     public int getOrdnanceFamily() {
         return dataManager.get(ORDNANCE_FAMILY);
+    }
+    @Override public void notifyDataManagerChange(DataParameter<?> key) {
+        super.notifyDataManagerChange(key);
+        if(ORDNANCE_FAMILY.equals(key) || ORDNANCE_TYPE.equals(key)) refreshDimensions();
+    }
+    private void refreshDimensions() {
+        int family=getOrdnanceFamily();
+        if(family==FAMILY_AVIATION) setSize(.45F*1.15F,.45F*1.15F);
+        else if(family==FAMILY_STRATEGIC) setSize(.85F*1.15F,.85F*1.15F);
+        else if(family==FAMILY_AIR_TO_AIR) setSize(.34F*1.15F,.34F*1.15F);
     }
 
     public int getOrdnanceType() {
@@ -376,7 +386,7 @@ public class EntityWarTechOrdnance extends EntityWarTechBase {
     private void tickAirToAir() {
         Entity target = getAirTargetId() <= 0
                 ? null : world.getEntityByID(getAirTargetId());
-        if (target == null || target.isDead || isFriendlyOrOwner(target)) {
+        if (target == null || target.isDead || isFriendlyOrOwner(target) || MissileTrackingService.getThreatTier(target)==0) {
             tickMissedIntercept();
             return;
         }
@@ -398,7 +408,7 @@ public class EntityWarTechOrdnance extends EntityWarTechBase {
                 return;
             }
         }
-        if (distance <= 5.0D) {
+        if (distance <= 5.0D && com.wartec.wartecmod.port.integration.AirDefenseVisibility.visible(world,getPositionVector(),target)) {
             hitAirTarget(target);
             return;
         }
@@ -414,7 +424,15 @@ public class EntityWarTechOrdnance extends EntityWarTechBase {
                 + target.motionY * leadTicks;
         double aimZ = target.posZ + target.motionZ * leadTicks;
         guideAirToAir(aimX - posX, aimY - posY, aimZ - posZ, speed);
-        setPosition(posX + motionX, posY + motionY, posZ + motionZ);
+        net.minecraft.util.math.Vec3d from=getPositionVector(),next=from.addVector(motionX,motionY,motionZ);
+        if(!com.wartec.wartecmod.port.integration.AirDefenseVisibility.clear(world,from,next)) { missDetonate();return; }
+        if(target instanceof EntityCustomCruise) {
+            net.minecraft.util.math.Vec3d relative=from.subtract(target.getPositionVector());
+            net.minecraft.util.math.Vec3d relativeNext=next.subtract(target.getPositionVector().addVector(target.motionX,target.motionY,target.motionZ));
+            if(com.wartec.wartecmod.port.cruise.CruiseFlightMath.passed(relative,relativeNext,net.minecraft.util.math.Vec3d.ZERO,3.5+target.width*.5)
+                    && com.wartec.wartecmod.port.integration.AirDefenseVisibility.visible(world,from,target)) { hitAirTarget(target);return; }
+        }
+        setPosition(next.x,next.y,next.z);
         updateRotationFromMotion();
     }
 
@@ -441,6 +459,10 @@ public class EntityWarTechOrdnance extends EntityWarTechBase {
     }
 
     private void hitAirTarget(Entity target) {
+        if(target instanceof EntityCustomCruise && world.rand.nextDouble()>=
+                com.wartec.wartecmod.port.cruise.CruiseCombatProfile.interceptChance(2,MissileTrackingService.getThreatTier(target))) {
+            MissileTrackingService.deferTarget(world,target.getEntityId());missDetonate();return;
+        }
         MissileTrackingService.releaseReservation(world, getAirTargetId(),
                 getEntityId());
         if (!AircraftCountermeasureCompat.beginCrash(target)) {
@@ -504,6 +526,10 @@ public class EntityWarTechOrdnance extends EntityWarTechBase {
     }
 
     private void kineticImpact() {
+        try (com.wartec.wartecmod.port.integration.StrikeBlastSafety.Scope ignored =
+                com.wartec.wartecmod.port.integration.StrikeBlastSafety.enter(this)) { kineticImpactScoped(); }
+    }
+    private void kineticImpactScoped() {
         if (isDead) {
             return;
         }
@@ -514,7 +540,7 @@ public class EntityWarTechOrdnance extends EntityWarTechBase {
         MissileChunkLoader.untrack(this);
         HbmExplosionCompat.advancedExplosion(world,
                 targetX + 0.5D, targetY + 0.5D, targetZ + 0.5D,
-                24.0F, 4.8F, true);
+                18.0F, 1.0F, true);
         if (world.rand.nextFloat() >= 0.55F) {
             return;
         }
@@ -551,8 +577,8 @@ public class EntityWarTechOrdnance extends EntityWarTechBase {
     }
 
     private int terrainHeight(double x, double z) {
-        return world.getHeight(new BlockPos(
-                (int) Math.floor(x), 0, (int) Math.floor(z))).getY();
+        BlockPos column=new BlockPos((int)Math.floor(x),0,(int)Math.floor(z));
+        return world.isBlockLoaded(column)?world.getHeight(column).getY():MathHelper.clamp((int)getTargetY(),1,248);
     }
 
     private void normalizeMotion(double speed) {
@@ -568,6 +594,10 @@ public class EntityWarTechOrdnance extends EntityWarTechBase {
     }
 
     private void detonateAviation(float radius, boolean causesFire) {
+        try (com.wartec.wartecmod.port.integration.StrikeBlastSafety.Scope ignored =
+                com.wartec.wartecmod.port.integration.StrikeBlastSafety.enter(this)) { detonateAviationScoped(radius,causesFire); }
+    }
+    private void detonateAviationScoped(float radius, boolean causesFire) {
         if (isDead) {
             return;
         }
@@ -579,6 +609,10 @@ public class EntityWarTechOrdnance extends EntityWarTechBase {
     }
 
     private void detonateStrategic() {
+        try (com.wartec.wartecmod.port.integration.StrikeBlastSafety.Scope ignored =
+                com.wartec.wartecmod.port.integration.StrikeBlastSafety.enter(this)) { detonateStrategicScoped(); }
+    }
+    private void detonateStrategicScoped() {
         if (isDead) {
             return;
         }
@@ -586,15 +620,15 @@ public class EntityWarTechOrdnance extends EntityWarTechBase {
         setDead();
         MissileChunkLoader.untrack(this);
         if (type == 0) {
-            damageNearby(28.0D, 560.0F, "wartec.fab5000");
+            damageNearby(34.0D, 760.0F, "wartec.fab5000");
             world.newExplosion(this, posX, posY, posZ,
-                    20.0F, true, true);
-            emitStrategicImpact(180, 10.0F, 0.54F);
+                    24.0F, true, true);
+            emitStrategicImpact(210, 12.0F, 0.50F);
         } else {
-            damageNearby(36.0D, 340.0F, "wartec.kab3000");
+            damageNearby(23.0D, 410.0F, "wartec.kab3000");
             world.newExplosion(this, posX, posY, posZ,
-                    18.0F, true, true);
-            emitStrategicImpact(145, 8.0F, 0.66F);
+                    14.0F, true, true);
+            emitStrategicImpact(115, 7.0F, 0.68F);
         }
     }
 
@@ -752,6 +786,7 @@ public class EntityWarTechOrdnance extends EntityWarTechBase {
         lostTicks = compound.hasKey("WarTechLostTicks", 99)
                 ? compound.getInteger("WarTechLostTicks")
                 : compound.getInteger("LostTicks");
+        refreshDimensions();
     }
 
     private int inferLegacyFamily(NBTTagCompound compound, int type) {

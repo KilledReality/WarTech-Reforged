@@ -5,8 +5,10 @@ import com.google.gson.JsonParser;
 import com.wartec.wartecmod.port.content.PortItem;
 import com.wartec.wartecmod.port.content.VariantItem;
 import com.wartec.wartecmod.port.content.WarTechContent;
+import com.wartec.wartecmod.port.content.UavPartItem;
 import java.io.IOException;
 import java.io.InputStream;
+import java.awt.image.BufferedImage;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -19,6 +21,7 @@ import java.util.Locale;
 import java.util.Set;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
+import javax.imageio.ImageIO;
 import net.minecraft.block.Block;
 import net.minecraft.init.Bootstrap;
 import net.minecraft.item.Item;
@@ -32,6 +35,15 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 public class PortResourceIntegrityTest {
+    @Test public void uavBlueprintUsesBlankAndSavedUserIcons() throws IOException {
+        JsonObject blank=new JsonParser().parse(new String(Files.readAllBytes(ASSET_ROOT.resolve("models/item/uavblueprint.json")),StandardCharsets.UTF_8)).getAsJsonObject();
+        assertEquals("wartecmod:items/cruise_parts/cruise_blueprint_blank",blank.getAsJsonObject("textures").get("layer0").getAsString());
+        JsonObject override=blank.getAsJsonArray("overrides").get(0).getAsJsonObject();
+        assertEquals(1,override.getAsJsonObject("predicate").get("wartecmod:saved").getAsInt());
+        assertEquals("wartecmod:item/uavblueprint_saved",override.get("model").getAsString());
+        JsonObject saved=new JsonParser().parse(new String(Files.readAllBytes(ASSET_ROOT.resolve("models/item/uavblueprint_saved.json")),StandardCharsets.UTF_8)).getAsJsonObject();
+        assertEquals("wartecmod:items/uav_parts/uav_blueprint_saved",saved.getAsJsonObject("textures").get("layer0").getAsString());
+    }
     private static final Path ASSET_ROOT = Paths.get(
         "src", "main", "resources", "assets", PortItem.MOD_ID
     );
@@ -53,7 +65,29 @@ public class PortResourceIntegrityTest {
             assertNotNull(item.getRegistryName());
             String registryPath = item.getRegistryName().getResourcePath();
 
-            if (item instanceof VariantItem
+            if (item instanceof UavPartItem) {
+                UavPartItem partItem = (UavPartItem) item;
+                for (int metadata = 0; metadata < partItem.getVariantCount();
+                        ++metadata) {
+                    String modelName = "uavmodule_" + PortItem.safePath(
+                            partItem.getVariantName(metadata));
+                    verifyItemModel(modelName);
+                    String model = new String(Files.readAllBytes(ASSET_ROOT
+                            .resolve("models/item/" + modelName + ".json")),
+                            StandardCharsets.UTF_8);
+                    assertFalse("Custom UAV parts must not reuse aircraft assets",
+                            model.contains("f16_tactical_aircraft")
+                                    || model.contains("su27_tactical_aircraft"));
+                    assertTrue("Custom UAV parts need dedicated component art",
+                            model.contains("wartecmod:items/uav_parts/")
+                                    || metadata==com.wartec.wartecmod.port.uav.UavPartDefinition.RACK_CRUISE.ordinal()
+                                        && model.contains("\"elements\"") && model.contains("clean_composite_skin"));
+                }
+                for (int metadata = 0;
+                        metadata < partItem.getVariantCount(); ++metadata) {
+                    verifyTranslation(item, metadata);
+                }
+            } else if (item instanceof VariantItem
                 && ((VariantItem) item).getVariantCount() > 1) {
                 VariantItem variantItem = (VariantItem) item;
                 for (int metadata = 0;
@@ -118,6 +152,64 @@ public class PortResourceIntegrityTest {
     }
 
     @Test
+    public void customUavPartIconsStayCenteredInsideInventorySlots()
+            throws IOException {
+        Path directory = ASSET_ROOT.resolve("textures/items/uav_parts");
+        int checked = 0;
+        try (java.nio.file.DirectoryStream<Path> icons =
+                Files.newDirectoryStream(directory, "*.png")) {
+            for (Path icon : icons) {
+                BufferedImage image = ImageIO.read(icon.toFile());
+                assertNotNull("Unreadable UAV icon " + icon, image);
+                int expectedSize = 256;
+                assertEquals("UAV icon width " + icon, expectedSize,
+                        image.getWidth());
+                assertEquals("UAV icon height " + icon, expectedSize,
+                        image.getHeight());
+                assertTrue("UAV icon must retain transparency " + icon,
+                        image.getColorModel().hasAlpha());
+                int minX = expectedSize;
+                int minY = expectedSize;
+                int maxX = -1;
+                int maxY = -1;
+                for (int y = 0; y < expectedSize; ++y) {
+                    for (int x = 0; x < expectedSize; ++x) {
+                        if ((image.getRGB(x, y) >>> 24) >= 20) {
+                            minX = Math.min(minX, x);
+                            minY = Math.min(minY, y);
+                            maxX = Math.max(maxX, x);
+                            maxY = Math.max(maxY, y);
+                        }
+                        if (x == 0 || y == 0 || x == expectedSize - 1
+                                || y == expectedSize - 1) {
+                            assertEquals("UAV canvas edge must be transparent "
+                                    + icon, 0, image.getRGB(x, y) >>> 24);
+                        }
+                    }
+                }
+                assertTrue("Empty UAV icon " + icon, maxX >= minX);
+                int margin = 8;
+                assertTrue("UAV icon touches horizontal slot edge " + icon,
+                        minX >= margin && maxX < expectedSize - margin);
+                assertTrue("UAV icon touches vertical slot edge " + icon,
+                        minY >= margin && maxY < expectedSize - margin);
+                assertTrue("UAV silhouette is too small inside its canvas "
+                        + icon, Math.max(maxX - minX, maxY - minY)
+                                >= expectedSize * 2 / 3);
+                int centerTolerance = 4;
+                assertTrue("UAV icon is not horizontally centered " + icon,
+                        Math.abs(minX + maxX - (expectedSize - 1))
+                                <= centerTolerance);
+                assertTrue("UAV icon is not vertically centered " + icon,
+                        Math.abs(minY + maxY - (expectedSize - 1))
+                                <= centerTolerance);
+                ++checked;
+            }
+        }
+        assertEquals("27 original components, ventral rack and saved UAV blueprint", 29, checked);
+    }
+
+    @Test
     public void exactLegacyObjAndTextureBindingsArePackaged() {
         for (String path : Arrays.asList(
             "models/geran/geran2.obj",
@@ -177,14 +269,35 @@ public class PortResourceIntegrityTest {
                 try (InputStream stream = original.getInputStream(entry)) {
                     expected = readAllBytes(stream);
                 }
-                assertTrue("Changed dev66 asset " + relative,
-                        Arrays.equals(expected,
-                                Files.readAllBytes(portAsset)));
+                byte[] actual=Files.readAllBytes(portAsset);
+                if(relative.equals("textures/models/storm_shadow/storm_shadow.png")) {
+                    verifyApprovedStormRetouch(expected,actual);
+                } else {
+                    assertTrue("Changed dev66 asset " + relative,Arrays.equals(expected,actual));
+                }
                 ++compared;
             }
         }
         assertEquals("Unexpected dev66 binary resource surface",
                 308, compared);
+    }
+    private static void verifyApprovedStormRetouch(byte[] original,byte[] edited) throws IOException {
+        BufferedImage before=ImageIO.read(new java.io.ByteArrayInputStream(original));
+        BufferedImage after=ImageIO.read(new java.io.ByteArrayInputStream(edited));
+        assertEquals(1024,before.getWidth());assertEquals(1024,before.getHeight());
+        assertEquals(before.getWidth(),after.getWidth());assertEquals(before.getHeight(),after.getHeight());
+        int[][] regions={{232,37,49,39},{23,707,50,30},{245,239,195,94},{466,270,52,53},
+            {546,232,92,115},{187,491,300,73},{516,465,101,117},{543,823,137,164}};
+        int changed=0;
+        for(int y=0;y<1024;y++) for(int x=0;x<1024;x++) {
+            int a=before.getRGB(x,y),b=after.getRGB(x,y);
+            assertEquals("Storm alpha changed",a>>>24,b>>>24);
+            if(a==b) continue;
+            boolean allowed=false;
+            for(int[] r:regions) if(x>=r[0] && x<r[0]+r[2] && y>=r[1] && y<r[1]+r[3]) allowed=true;
+            assertTrue("Storm pixel changed outside approved decal regions: "+x+","+y,allowed);changed++;
+        }
+        assertTrue("Approved national/political decal removal is missing",changed>0);
     }
 
     @Test
@@ -230,9 +343,21 @@ public class PortResourceIntegrityTest {
         String explosion = readSource("integration/LegacyVntExplosion.java");
         assertTrue("VNT allocator must retain dev66 resolution",
                 explosion.contains("BLOCK_RESOLUTION = 48"));
+        assertTrue("VNT allocation must not retain empty air positions",
+                explosion.contains("affected.add(sample.toImmutable())")
+                        && explosion.contains(
+                                "state.getMaterial() != Material.AIR"));
+        assertTrue("VNT debris must only replace blocks destroyed by the blast",
+                explosion.contains("for (BlockPos pos : destroyed)"));
         assertTrue("VNT entity damage must retain all seven cross nodes",
                 explosion.contains("Vec3d[] nodes")
                         && explosion.contains("NODE_DISTANCE = 7.5D"));
+
+        String hbmEffects = readSource("integration/HbmExplosionCompat.java");
+        assertTrue("Physical blast debris must use its bounded dev66 count",
+                hbmEffects.contains("rubbleFunction(effectSize)"));
+        assertTrue("Physical blast shrapnel must use its bounded dev66 count",
+                hbmEffects.contains("shrapnelFunction(effectSize)"));
 
         String satellite = readSource("satellite/SatelliteEmp.java");
         assertTrue("EMP satellite must retain the original EntityCloudTom cloud",
@@ -317,7 +442,7 @@ public class PortResourceIntegrityTest {
         assertTrue("Fragmentation must retain its non-destructive blast",
                 missile.contains("case FRAGMENTATION:")
                         && missile.contains(
-                                "world, posX, posY, posZ, 20.0F, 2.0F, false"));
+                                "world, posX, posY, posZ, 5.0F, 2.0F, false"));
         assertTrue("Invalid specifications must be removed, not flown",
                 missile.contains(
                         "getMissileSpecification() == LegacyMissileSpecification.INVALID")
@@ -434,10 +559,280 @@ public class PortResourceIntegrityTest {
         assertTrue("Decoration blocks must use metadata-facing behavior",
                 blocks.contains("new LegacyDecorationBlock"));
 
+        String customUav = readSource("entity/EntityCustomUav.java");
+        int detonationStart = customUav.indexOf("private void detonateWarhead()");
+        int detonationEnd = customUav.indexOf(
+                "public boolean processInitialInteract", detonationStart);
+        String detonation = customUav.substring(detonationStart, detonationEnd);
+        assertTrue("Custom UAV detonation needs a one-shot re-entry guard",
+                detonation.contains("isDead || detonationStarted"));
+        assertTrue("Custom UAV must be removed before its blast applies damage",
+                detonation.indexOf("setDead();")
+                        < detonation.indexOf("HbmExplosionCompat."));
+        assertTrue("One-way link loss must enter uncontrolled descent",
+                customUav.contains("setLegacyState(LOST_CONTROL)"));
+        assertTrue("Reusable UAV link loss must retain return-home behavior",
+                customUav.contains("remoteAirborne ? RETURN : READY"));
+        assertTrue("Kamikaze UAVs must detonate on block or entity contact",
+                customUav.contains("collidedVertically")
+                        && customUav.contains("findImpactEntity(0.35D)"));
+        assertTrue("Kamikaze mission must be selected by the installed warhead",
+                customUav.contains("private boolean isKamikaze()")
+                        && customUav.contains("payload.isWarhead()"));
+        assertTrue("Custom UAV network positions need client interpolation",
+                customUav.contains("setPositionAndRotationDirect")
+                        && customUav.contains("updateClientInterpolation()"));
+        assertTrue("Custom UAVs must expose an atomic chain launch entrypoint",
+                customUav.contains("boolean launchFromChain(EntityPlayer player)"));
+        assertTrue("Custom UAV missions must execute programmed waypoints",
+                customUav.contains("tickMissionOutbound()")
+                        && customUav.contains("advanceMission()"));
+
+        String modularRenderer = readSource("client/CustomUavRenderer.java");
+        assertFalse("Modular UAVs must not reuse Geran or MQ-9 geometry",
+                modularRenderer.contains("renderGeran")
+                        || modularRenderer.contains("renderMq9")
+                        || modularRenderer.contains("models/geran")
+                        || modularRenderer.contains("models/mq9"));
+        assertTrue("All three custom airframe families need distinct geometry",
+                modularRenderer.contains("renderOneWay()")
+                        && modularRenderer.contains("renderRecon()")
+                        && modularRenderer.contains("renderStrike()"));
+        assertTrue("Integrated propulsion and external stores must remain visible",
+                modularRenderer.contains("renderIntegratedPropulsion(build, frame")
+                        && modularRenderer.contains("renderExternalStores"));
+        assertTrue("Approved UAV families need their distinct world scales",
+                modularRenderer.contains("glScalef(0.70F, 0.74F, 0.72F)")
+                        && modularRenderer.contains(
+                                "glScalef(1.15F, 1.08F, 1.02F)")
+                        && modularRenderer.contains(
+                                "glScalef(1.40F, 1.24F, 1.32F)"));
+        assertTrue("Custom UAVs must use the clean seamless material",
+                modularRenderer.contains("CLEAN_COMPOSITE_SKIN")
+                        && modularRenderer.contains(
+                                "custom_uav/clean_composite_skin.png")
+                        && !modularRenderer.contains(
+                                "custom_uav/composite_skin.png"));
+        assertTrue("Each UAV family needs a legible fitted inventory scale",
+                modularRenderer.contains("? 0.19F")
+                        && modularRenderer.contains("? 0.15F : 0.125F"));
+        assertTrue("Avionics and internal warheads must not become cuboid furniture",
+                !modularRenderer.contains("renderModules(build, frame")
+                        && modularRenderer.contains(
+                                "frame != UavAirframe.STRIKE"));
+        assertTrue("Heavy strike stores must use the wide approved airframe",
+                modularRenderer.contains("VehicleDimensions.uavWingY(entity.getAirframeType(),slot)")
+                        && modularRenderer.contains("VehicleDimensions.uavStore(entity.getAirframeType(),type,slot)")
+                        && !modularRenderer.contains("payloadScale = 0.46F"));
+
+        assertTrue("Custom UAV collision bodies must match the new families",
+                customUav.contains("setSize(1.35F*scale, 0.55F*scale)")
+                        && customUav.contains("setSize(3.25F*scale, 1.30F*scale)")
+                        && customUav.contains("setSize(4.75F*scale, 1.65F*scale)"));
+
+        String remoteClient = readSource("client/RemoteControlClient.java");
+        assertTrue("Large UAV nose cameras must clear their airframes",
+                remoteClient.contains(
+                        "if (vehicleType == 6) return 3.20D")
+                        && remoteClient.contains(
+                                "if (vehicleType == 7) return 5.85D"));
+        assertTrue("Large UAV chase cameras must frame their full wingspans",
+                remoteClient.contains(
+                        "if (vehicleType == 6) return -17.0D")
+                        && remoteClient.contains(
+                                "if (vehicleType == 7) return -28.0D"));
+
+        String chain = readSource("integration/UavChainDetonator.java");
+        assertTrue("UAV chains must retain NTM block bindings",
+                chain.contains("ItemMultiDetonator.getLocations(stack)"));
+        int chainLaunchStart = chain.indexOf("private static void launchChain");
+        int chainLaunchEnd = chain.indexOf(
+                "private static NBTTagCompound getOrCreateTag",
+                chainLaunchStart);
+        String chainLaunch = chain.substring(chainLaunchStart, chainLaunchEnd);
+        assertTrue("Successful links must be removed, failed launches must remain retryable",
+                chainLaunch.contains("retained.appendTag(link.copy())")
+                    && chainLaunch.contains("setTag(LINKS_KEY,retained)")
+                    && !chainLaunch.contains("loadChunk("));
+
+        String guide = readSource("content/UavGuideBookItem.java");
+        assertFalse("Custom guide items cannot use vanilla's item-gated openBook",
+                guide.contains("player.openBook"));
+        String clientProxy = readSource("proxy/ClientProxy.java");
+        assertTrue("Custom guide must open the real 1.12 book GUI",
+                clientProxy.contains("new net.minecraft.client.gui.GuiScreenBook"));
+
+        String assembledUav = readSource("content/AssembledUavItem.java");
+        assertTrue("Assembled UAVs must require a raised launch point",
+                assembledUav.contains("UAV_LAUNCH_POINT"));
+        assertTrue("Deployment must reject routes incompatible with the full build",
+                assembledUav.contains("mission.isValidFor(build)"));
+
+        String missionStation = readSource(
+                "gameplay/TileEntityUavMissionStation.java");
+        assertTrue("Mission station must persist routes on assembled UAV items",
+                missionStation.contains("mission.writeToStack(stack)"));
+        String missionPacket = readSource("network/UavMissionEditMessage.java");
+        assertTrue("Mission editing must be applied on the server thread",
+                missionPacket.contains("getServerWorld().addScheduledTask"));
+
         String sounds = new String(Files.readAllBytes(
                 ASSET_ROOT.resolve("sounds.json")), StandardCharsets.UTF_8);
         assertFalse("Do not invent an asset for dev66's unresolved rocket_launch",
                 sounds.contains("rocket_launch"));
+    }
+
+    @Test
+    public void customUavObserveBuildsBoundedPersistentReconIntel()
+            throws IOException {
+        String uav = readSource("entity/EntityCustomUav.java");
+        assertTrue("OBSERVE must survey terrain and detect contacts",
+                uav.contains("performReconObservation")
+                        && uav.contains("surveyTerrain")
+                        && uav.contains("scanReconContacts"));
+        assertTrue("Recon survey must never force unloaded chunks",
+                uav.contains("world.isBlockLoaded(samplePos)"));
+        assertTrue("Recovered UAV items must retain their recon report",
+                uav.contains("reconReport.writeToStack(recovery)"));
+
+        String report = readSource("uav/UavReconReport.java");
+        assertTrue("Terrain coverage must remain bounded",
+                report.contains("MAX_CELLS = 768")
+                        && report.contains("trimOldest(cells, MAX_CELLS)"));
+        assertTrue("Stored contacts must remain bounded",
+                report.contains("MAX_CONTACTS = 96")
+                        && report.contains(
+                                "trimOldest(contacts, MAX_CONTACTS)"));
+
+        String station = readSource("client/GuiUavMissionStation.java");
+        assertTrue("Mission Station must expose its recon map",
+                station.contains("RECON MAP")
+                        && station.contains("drawReconMap()"));
+        assertTrue("Recon contacts must feed strike planning",
+                station.contains("loadContactAt")
+                        && station.contains("UavWaypointMode.STRIKE"));
+
+        String reportViewer = readSource("client/GuiUavReconReport.java");
+        assertTrue("Downloaded recon data needs a dedicated readable viewer",
+                reportViewer.contains("SURVEY ")
+                        && reportViewer.contains("HOSTILE ")
+                        && reportViewer.contains("drawContactList()"));
+        String reportItem = readSource("content/UavReconReportItem.java");
+        assertTrue("Downloaded recon data must persist in a portable item",
+                reportItem.contains("UavReconReport.fromStack(stack)")
+                        && reportItem.contains("writeToStack(stack)")
+                        && reportItem.contains("openUavReconReport"));
+        assertTrue("The UAV must give the downloaded report to the player",
+                uav.contains("UAV_RECON_REPORT.createReport(")
+                        && uav.contains("addItemStackToInventory(report)"));
+        assertTrue("Recon downloads must not fall back to chat spam",
+                uav.contains("new UavReconReportMessage(")
+                        && !uav.contains("Recon report: "));
+
+        String tracking = readSource("network/MissileTrackingService.java");
+        assertTrue("Live recon contacts must enter the command network",
+                tracking.contains("reportReconContact")
+                        && tracking.contains("reconSeen"));
+    }
+
+    @Test
+    public void customUavVisualsUseDedicatedHighResolutionMaterials()
+            throws IOException {
+        Path skin = ASSET_ROOT.resolve(
+                "textures/models/custom_uav/clean_composite_skin.png");
+        BufferedImage skinImage = ImageIO.read(skin.toFile());
+        assertNotNull("Unreadable custom UAV composite skin", skinImage);
+        assertTrue("Custom UAV skin must retain useful surface detail",
+                skinImage.getWidth() >= 256 && skinImage.getHeight() >= 256);
+        Path tb2Skin = ASSET_ROOT.resolve(
+                "textures/models/custom_uav/tb2_albedo.png");
+        BufferedImage tb2SkinImage = ImageIO.read(tb2Skin.toFile());
+        assertNotNull("Unreadable TB2 albedo", tb2SkinImage);
+        assertTrue("TB2 albedo must retain the supplied UV detail",
+                tb2SkinImage.getWidth() >= 2048
+                        && tb2SkinImage.getHeight() >= 2048);
+
+        for (String path : Arrays.asList(
+                "textures/blocks/uav_fabricator_front.png",
+                "textures/blocks/uav_mission_programmer_front.png",
+                "textures/blocks/uav_launch_pad_top.png")) {
+            BufferedImage image = ImageIO.read(
+                    ASSET_ROOT.resolve(path).toFile());
+            assertNotNull("Unreadable UAV infrastructure texture " + path,
+                    image);
+            assertTrue("UAV infrastructure texture is too small " + path,
+                    image.getWidth() >= 128 && image.getHeight() >= 128);
+        }
+
+        String renderer = readSource("client/CustomUavRenderer.java");
+        assertTrue("Custom UAV entities must bind their composite material",
+                renderer.contains("CLEAN_COMPOSITE_SKIN")
+                        && renderer.contains("bindTexture"));
+        assertTrue("Custom UAV inventory previews must use measurable OBJ geometry",
+                renderer.contains("new LegacyObjModel(\"models/custom_uav/one_way.obj\")")
+                        && renderer.contains("new LegacyObjModel(\"models/custom_uav/recon.obj\")")
+                        && renderer.contains("new LegacyObjModel(\"models/custom_uav/tb2.obj\")")
+                        && renderer.contains("TB2_ALBEDO"));
+        for (String model : Arrays.asList("one_way.obj", "recon.obj",
+                "tb2.obj")) {
+            Path path = ASSET_ROOT.resolve("models/custom_uav/" + model);
+            assertTrue("Missing detailed custom UAV model " + model,
+                    Files.isRegularFile(path));
+            long vertices;
+            long faces;
+            try (java.util.stream.Stream<String> lines = Files.lines(path)) {
+                vertices = lines.filter(line -> line.startsWith("v ")).count();
+            }
+            try (java.util.stream.Stream<String> lines = Files.lines(path)) {
+                faces = lines.filter(line -> line.startsWith("f ")).count();
+            }
+            long minimumVertices = model.equals("tb2.obj") ? 3800 : 6000;
+            long minimumFaces = model.equals("tb2.obj") ? 7000 : 12000;
+            assertTrue("Custom UAV model is still visibly low polygon: " + model,
+                    vertices >= minimumVertices && faces >= minimumFaces);
+        }
+
+        for (String icon : Arrays.asList("engine_economy.png",
+                "engine_balanced.png", "engine_heavy.png")) {
+            BufferedImage image = ImageIO.read(ASSET_ROOT.resolve(
+                    "textures/items/uav_parts/" + icon).toFile());
+            assertNotNull("Unreadable UAV engine icon " + icon, image);
+            assertEquals(256, image.getWidth());
+            assertEquals(256, image.getHeight());
+            assertTrue("UAV engine icon must retain transparency " + icon,
+                    image.getColorModel().hasAlpha());
+        }
+    }
+
+    @Test
+    public void customUavWorkstationsAndServicePanelKeepTypedContracts()
+            throws IOException {
+        String fabricator = readSource("gui/ContainerUavFabricator.java");
+        assertTrue("Fabricator shift-click must target the matching part slot",
+                fabricator.contains("moveOneToExactSlot")
+                        && fabricator.contains("getSlot() == expected"));
+
+        String station = readSource("gameplay/TileEntityUavMissionStation.java");
+        assertTrue("Mission station must expose a dedicated designator slot",
+                station.contains("DESIGNATOR_SLOT = 1")
+                        && station.contains("DesignatorCompat.getTarget")
+                        && station.contains("action == 3"));
+
+        String stationGui = readSource("client/GuiUavMissionStation.java");
+        assertTrue("Mission station must draw the actual container grid",
+                stationGui.contains("for (Slot slot : inventorySlots.inventorySlots)"));
+        assertTrue("Mission station needs an explicit designator confirmation",
+                stationGui.contains("PROGRAM / OK"));
+
+        String entity = readSource("entity/EntityCustomUav.java");
+        assertTrue("Custom UAV must open the aircraft service GUI",
+                entity.contains("WarTechGuiHandler.GUI_MQ9"));
+        assertTrue("Recon data must be downloadable without dismantling",
+                entity.contains("sendReconSummary")
+                        && entity.contains("action == 6"));
+        assertTrue("Loaded LTC must feed custom UAV countermeasures",
+                entity.contains("consumeLoadedFlare")
+                        && entity.contains("DEFENSE_FLARES"));
     }
 
     private static void verifyItemModel(String modelName) throws IOException {
@@ -445,6 +840,25 @@ public class PortResourceIntegrityTest {
         assertTrue("Missing item model " + modelPath, Files.isRegularFile(modelPath));
 
         JsonObject model = parseObject(modelPath);
+        if(model.has("elements")) {
+            assertEquals("Only dedicated ventral rack uses native item geometry","uavmodule_rack_cruise",modelName);
+            assertEquals(4,model.getAsJsonArray("elements").size());
+            String metal=model.getAsJsonObject("textures").get("metal").getAsString();
+            assertTrue(Files.isRegularFile(resolveTexture(metal)));
+            for(com.google.gson.JsonElement element:model.getAsJsonArray("elements")) {
+                JsonObject e=element.getAsJsonObject();
+                assertEquals(3,e.getAsJsonArray("from").size());assertEquals(3,e.getAsJsonArray("to").size());
+                for(int axis=0;axis<3;axis++) {
+                    assertTrue(e.getAsJsonArray("from").get(axis).getAsDouble()>=0);
+                    assertTrue(e.getAsJsonArray("to").get(axis).getAsDouble()<=16);
+                    assertTrue(e.getAsJsonArray("to").get(axis).getAsDouble()>e.getAsJsonArray("from").get(axis).getAsDouble());
+                }
+                assertEquals(6,e.getAsJsonObject("faces").entrySet().size());
+                for(java.util.Map.Entry<String,com.google.gson.JsonElement> face:e.getAsJsonObject("faces").entrySet())
+                    assertEquals("#metal",face.getValue().getAsJsonObject().get("texture").getAsString());
+            }
+            return;
+        }
         String parent = model.get("parent").getAsString();
         if ("builtin/entity".equals(parent)) {
             return;
@@ -453,6 +867,9 @@ public class PortResourceIntegrityTest {
             String texture = model.getAsJsonObject("textures")
                 .get("layer0")
                 .getAsString();
+            if (texture.startsWith("minecraft:")) {
+                return;
+            }
             assertTrue(
                 "Missing item texture " + texture,
                 Files.isRegularFile(resolveTexture(texture))

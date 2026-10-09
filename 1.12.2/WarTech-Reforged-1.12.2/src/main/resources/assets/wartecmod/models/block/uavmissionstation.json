@@ -1,0 +1,36 @@
+{
+  "parent": "block/block",
+  "textures": {
+    "body": "wartecmod:blocks/blockarmorsteel",
+    "front": "wartecmod:blocks/uav_mission_programmer_front",
+    "base": "wartecmod:blocks/uav_console_dark",
+    "particle": "wartecmod:blocks/blockarmorsteel"
+  },
+  "elements": [
+    {
+      "from": [0, 0, 0], "to": [16, 2, 16],
+      "faces": {
+        "down": {"texture": "#base"}, "up": {"texture": "#base"},
+        "north": {"texture": "#base"}, "south": {"texture": "#base"},
+        "west": {"texture": "#base"}, "east": {"texture": "#base"}
+      }
+    },
+    {
+      "from": [1, 2, 5], "to": [15, 15, 16],
+      "faces": {
+        "down": {"texture": "#body"}, "up": {"texture": "#body"},
+        "north": {"texture": "#front", "uv": [0, 0, 16, 16]},
+        "south": {"texture": "#body"}, "west": {"texture": "#body"},
+        "east": {"texture": "#body"}
+      }
+    },
+    {
+      "from": [0, 15, 4.5], "to": [16, 16, 16],
+      "faces": {
+        "down": {"texture": "#base"}, "up": {"texture": "#base"},
+        "north": {"texture": "#base"}, "south": {"texture": "#base"},
+        "west": {"texture": "#base"}, "east": {"texture": "#base"}
+      }
+    }
+  ]
+}

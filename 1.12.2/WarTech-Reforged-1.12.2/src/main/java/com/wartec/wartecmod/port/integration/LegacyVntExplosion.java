@@ -66,6 +66,7 @@ final class LegacyVntExplosion {
     private static Set<BlockPos> allocateBlocks(World world,
             Explosion explosion, double x, double y, double z, float size) {
         Set<BlockPos> affected = new HashSet<BlockPos>();
+        BlockPos.MutableBlockPos sample = new BlockPos.MutableBlockPos();
         for (int ix = 0; ix < BLOCK_RESOLUTION; ++ix) {
             for (int iy = 0; iy < BLOCK_RESOLUTION; ++iy) {
                 for (int iz = 0; iz < BLOCK_RESOLUTION; ++iz) {
@@ -95,17 +96,21 @@ final class LegacyVntExplosion {
                     double rayY = y;
                     double rayZ = z;
                     while (remaining > 0.0F) {
-                        BlockPos pos = new BlockPos(rayX, rayY, rayZ);
-                        IBlockState state = world.getBlockState(pos);
+                        sample.setPos(net.minecraft.util.math.MathHelper.floor(rayX),
+                                net.minecraft.util.math.MathHelper.floor(rayY),
+                                net.minecraft.util.math.MathHelper.floor(rayZ));
+                        if(sample.getY()<0 || sample.getY()>255 || !world.isBlockLoaded(sample)
+                                || !world.getWorldBorder().contains(sample)) break;
+                        IBlockState state = world.getBlockState(sample);
                         if (state.getMaterial() != Material.AIR) {
                             float resistance = state.getBlock()
                                     .getExplosionResistance(
-                                            world, pos, null, explosion);
+                                            world, sample, null, explosion);
                             remaining -=
                                     (resistance + 0.3F) * STEP_SIZE;
-                        }
-                        if (remaining > 0.0F) {
-                            affected.add(pos);
+                            if (remaining > 0.0F) {
+                                affected.add(sample.toImmutable());
+                            }
                         }
                         rayX += dirX * STEP_SIZE;
                         rayY += dirY * STEP_SIZE;
@@ -169,10 +174,15 @@ final class LegacyVntExplosion {
 
             double density = 0.0D;
             for (Vec3d node : nodes) {
+                if(!com.wartec.wartecmod.port.cruise.CruiseNavigation.loadedRay(node,
+                        new Vec3d(entity.posX,entity.posY+entity.height*.5,entity.posZ),
+                        (cx,cz)->world.isBlockLoaded(new BlockPos(cx*16,64,cz*16)))) continue;
                 density = Math.max(
                         density, world.getBlockDensity(node, bounds));
             }
             double knockback = (1.0D - distanceScaled) * density;
+            // Full cover means no blast damage, not the formula's old +1 chip.
+            if(knockback<=0) continue;
             float amount = (float) ((int) ((knockback * knockback + knockback)
                     * 0.5D * 8.0D * size + 1.0D));
             Float previous = damage.get(entity);
@@ -216,16 +226,22 @@ final class LegacyVntExplosion {
 
     private static void processBlocks(World world, Explosion explosion,
             Set<BlockPos> affected, IBlockState debris) {
-        for (BlockPos pos : affected) {
+        List<BlockPos> destroyed = new ArrayList<BlockPos>(affected.size());
+        java.util.Iterator<BlockPos> iterator = affected.iterator();
+        while (iterator.hasNext()) {
+            BlockPos pos = iterator.next();
             IBlockState state = world.getBlockState(pos);
-            if (state.getMaterial() != Material.AIR) {
-                state.getBlock().onBlockExploded(world, pos, explosion);
+            if (state.getMaterial() == Material.AIR) {
+                iterator.remove();
+                continue;
             }
+            destroyed.add(pos);
+            state.getBlock().onBlockExploded(world, pos, explosion);
         }
         if (debris == null) {
             return;
         }
-        for (BlockPos pos : affected) {
+        for (BlockPos pos : destroyed) {
             if (!world.isAirBlock(pos)) {
                 continue;
             }

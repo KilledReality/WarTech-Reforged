@@ -7,7 +7,7 @@ buildscript {
         classpath 'net.minecraftforge.gradle:ForgeGradle:3.+'
     }
 }
-        
+
 apply plugin: 'net.minecraftforge.gradle'
 // Only edit below this line, the above code adds and enables the necessary things for Forge to be setup.
 apply plugin: 'eclipse'
@@ -15,9 +15,17 @@ apply plugin: 'maven-publish'
 
 version = '1.6.0-experimental'
 group = 'com.wartec'
-archivesBaseName = 'WarTech-Reforged-1.12.2-NTM-Extended'
+archivesBaseName = project.findProperty('archiveBaseName')
+        ?: 'WarTech-Reforged-1.12.2-NTM-Extended'
+
+sourceSets.main.java.srcDirs = [project.findProperty('sourceRoot')
+        ?: 'src/main/java']
 
 sourceCompatibility = targetCompatibility = compileJava.sourceCompatibility = compileJava.targetCompatibility = '1.8' // Need this here so eclipse task generates correctly.
+
+tasks.withType(JavaCompile) {
+    options.encoding = 'UTF-8'
+}
 
 minecraft {
     // The mappings can be changed at any time, and must be in the following format.
@@ -60,7 +68,13 @@ dependencies {
     // that the dep is a ForgeGradle 'patcher' dependency. And it's patches will be applied.
     // The userdev artifact is a special name and will get all sorts of transformations applied to it.
     minecraft 'net.minecraftforge:forge:1.12.2-14.23.5.2860'
-    compile files('../_NTM-Extended-1.12.2-3.0.3.jar')
+    def ntmJar = project.findProperty('ntmJar')
+            ?: '../_NTM-Extended-1.12.2-3.0.3.jar'
+    compile files(ntmJar)
+    def mixinBooterJar = project.findProperty('mixinBooterJar')
+    if (mixinBooterJar) {
+        compileOnly files(mixinBooterJar)
+    }
     testCompile 'junit:junit:4.13.2'
 
     // You may put jars on which you depend on in ./libs or you may define them like so..
@@ -84,12 +98,16 @@ dependencies {
 }
 
 processResources {
+    // Full-resolution user artwork is kept locally, not shipped in the mod.
+    exclude 'assets/wartecmod/textures/items/uav_parts2/**'
     inputs.property 'version', project.version
     inputs.property 'mcversion', '1.12.2'
+    inputs.property 'ntmEdition', project.findProperty('ntmEdition') ?: 'Extended'
 
     from(sourceSets.main.resources.srcDirs) {
         include 'mcmod.info'
-        expand version: project.version, mcversion: '1.12.2'
+        expand version: project.version, mcversion: '1.12.2',
+                ntmEdition: project.findProperty('ntmEdition') ?: 'Extended'
     }
     from(sourceSets.main.resources.srcDirs) {
         exclude 'mcmod.info'
@@ -98,14 +116,11 @@ processResources {
 
 // Example for how to get properties into the manifest for reading by the runtime..
 jar {
-    from(file('../README_PORT.md')) {
+    from(file('../../docs/modular-warfare')) {
+        into 'docs/modular-warfare'
+    }
+    from(file(project.findProperty('ntmEdition') ? '../README_CE.md' : '../README_PORT.md')) {
         rename { 'README.md' }
-    }
-    from(file('../../docs/RELEASE_NOTES_1.6.0_EXPERIMENTAL_1.12.2.md')) {
-        into 'docs'
-    }
-    from(file('../../docs/CONTROLS.md')) {
-        into 'docs'
     }
     from(file('../../THIRD_PARTY_NOTICES.md'))
 
@@ -124,7 +139,7 @@ jar {
 
 // Example configuration to allow publishing using the maven-publish task
 // This is the preferred method to reobfuscate your jar file
-jar.finalizedBy('reobfJar') 
+jar.finalizedBy('reobfJar')
 // However if you are in a multi-project build, dev time needs unobfed jar files, so you can delay the obfuscation until publishing by doing
 //publish.dependsOn('reobfJar')
 
@@ -139,4 +154,21 @@ publishing {
             url "file:///${project.projectDir}/mcmodsrepo"
         }
     }
+}
+
+// Isolated opt-in test mod. Never part of the production source set/JAR.
+if (project.hasProperty('flightQa')) {
+    sourceSets {
+        flightQa {
+            java.srcDirs = ['tools/flightqa/java']
+            compileClasspath = sourceSets.main.output + sourceSets.main.compileClasspath
+            runtimeClasspath = output + compileClasspath
+        }
+    }
+    task flightQaJar(type: Jar) {
+        from sourceSets.flightQa.output
+        archiveName = 'WarTech-FlightQA-dev65.jar'
+    }
+    reobf { flightQaJar { classpath = sourceSets.flightQa.compileClasspath } }
+    flightQaJar.finalizedBy('reobfFlightQaJar')
 }

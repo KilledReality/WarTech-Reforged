@@ -7,6 +7,7 @@ import com.wartec.wartecmod.port.gameplay.LegacyTileTypes;
 import com.wartec.wartecmod.port.gameplay.CommandWarTechTeam;
 import com.wartec.wartecmod.port.gui.WarTechGuiHandler;
 import com.wartec.wartecmod.port.integration.MissileChunkLoader;
+import com.wartec.wartecmod.port.integration.HbmCeWorldMigration;
 import com.wartec.wartecmod.port.integration.LegacyNbtDataFixer;
 import com.wartec.wartecmod.port.integration.NtmCompatibilityVerifier;
 import com.wartec.wartecmod.port.integration.WarTechRecipeRegistration;
@@ -53,6 +54,7 @@ public final class WarTechReforged {
         NtmCompatibilityVerifier.verifyRequiredApis();
         LegacyNbtDataFixer.register();
         WarTechNetwork.register();
+        HbmCeWorldMigration.register();
         MissileChunkLoader.register();
         WarTechEntityRegistration.registerAll(this, 1);
         LegacyTileTypes.registerAll();
@@ -77,5 +79,6 @@ public final class WarTechReforged {
     @EventHandler
     public void serverStarting(FMLServerStartingEvent event) {
         event.registerServerCommand(new CommandWarTechTeam());
+        event.registerServerCommand(new com.wartec.wartecmod.port.gameplay.CommandWarTechFlight());
     }
 }

@@ -1,0 +1,8 @@
+{
+  "variants": {
+    "facing=north": { "model": "wartecmod:uavfabricator" },
+    "facing=east": { "model": "wartecmod:uavfabricator", "y": 90 },
+    "facing=south": { "model": "wartecmod:uavfabricator", "y": 180 },
+    "facing=west": { "model": "wartecmod:uavfabricator", "y": 270 }
+  }
+}

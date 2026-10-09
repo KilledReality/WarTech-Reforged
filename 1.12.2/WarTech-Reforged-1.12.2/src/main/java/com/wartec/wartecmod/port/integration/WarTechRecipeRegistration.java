@@ -14,6 +14,7 @@ import com.hbm.items.machine.ItemFluidTank;
 import com.hbm.items.special.ItemCell;
 import com.wartec.wartecmod.WarTechReforged;
 import com.wartec.wartecmod.port.content.WarTechContent;
+import com.wartec.wartecmod.port.content.StrategicFeature;
 import net.minecraft.init.Blocks;
 import net.minecraft.init.Items;
 import net.minecraft.item.ItemStack;
@@ -32,7 +33,7 @@ import net.minecraftforge.registries.IForgeRegistry;
  */
 @Mod.EventBusSubscriber(modid = WarTechReforged.MODID)
 public final class WarTechRecipeRegistration {
-    public static final int CRAFTING_RECIPE_COUNT = 37;
+    public static final int CRAFTING_RECIPE_COUNT = 43;
     public static final int ASSEMBLER_RECIPE_COUNT = 24;
 
     private static boolean runtimeRegistered;
@@ -147,6 +148,128 @@ public final class WarTechRecipeRegistration {
         shapeless(registry, "iskander_from_su",
             new ItemStack(WarTechContent.ITEM_ISKANDER_MISSILE),
             ModItems.missile_burst, WarTechContent.DECO_BLOCK_FLAG_SU);
+
+        shaped(registry, "strategic_missile_topol_m",
+            new ItemStack(WarTechContent.STRATEGIC_MISSILE, 1, 0),
+            "THT", "GSG", "TBT",
+            'T', ModItems.plate_titanium,
+            'H', WarTechContent.ITEM_H_WARHEAD,
+            'G', WarTechContent.ITEM_GUIDANCE_SYSTEM_TIER_6,
+            'S', WarTechContent.ITEM_MISSILE_SLBM,
+            'B', ModItems.thruster_large);
+        shaped(registry, "strategic_missile_yars",
+            new ItemStack(WarTechContent.STRATEGIC_MISSILE, 1, 1),
+            "HNH", "GSG", "TBT",
+            'H', WarTechContent.ITEM_H_WARHEAD,
+            'N', WarTechContent.ITEM_WARHEAD_NUCLEAR_CM,
+            'G', WarTechContent.ITEM_GUIDANCE_SYSTEM_TIER_6,
+            'S', WarTechContent.ITEM_MISSILE_SLBM,
+            'T', ModItems.plate_titanium,
+            'B', ModItems.thruster_large);
+        shaped(registry, "strategic_missile_oreshnik",
+            new ItemStack(WarTechContent.STRATEGIC_MISSILE, 1, 2),
+            "KHK", "GIG", "TBT",
+            'K', WarTechContent.ITEM_KKV,
+            'H', WarTechContent.ITEM_WARHEAD_HE_CM,
+            'G', WarTechContent.ITEM_GUIDANCE_SYSTEM_TIER_6,
+            'I', WarTechContent.ITEM_ISKANDER_MISSILE,
+            'T', ModItems.plate_titanium,
+            'B', ModItems.thruster_large);
+        shaped(registry, "topol_m_tel",
+            new ItemStack(WarTechContent.TOPOL_M_TEL),
+            "PMP", "ICI", "WWW",
+            'P', ModItems.plate_steel,
+            'M', new ItemStack(WarTechContent.STRATEGIC_MISSILE, 1, 0),
+            'I', Blocks.IRON_BLOCK,
+            'C', WarTechContent.AIR_DEFENSE_COMMAND_TRUCK,
+            'W', Blocks.IRON_BARS);
+        shaped(registry, "yars_tel",
+            new ItemStack(WarTechContent.YARS_TEL),
+            "PMP", "ICI", "WWW",
+            'P', ModItems.plate_titanium,
+            'M', new ItemStack(WarTechContent.STRATEGIC_MISSILE, 1, 1),
+            'I', Blocks.IRON_BLOCK,
+            'C', WarTechContent.AIR_DEFENSE_COMMAND_TRUCK,
+            'W', Blocks.IRON_BARS);
+        shaped(registry, "oreshnik_tel",
+            new ItemStack(WarTechContent.ORESHNIK_TEL),
+            "PMP", "ICI", "WWW",
+            'P', ModItems.plate_steel,
+            'M', new ItemStack(WarTechContent.STRATEGIC_MISSILE, 1, 2),
+            'I', Blocks.IRON_BLOCK,
+            'C', WarTechContent.MOBILE_ARTILLERY,
+            'W', Blocks.IRON_BARS);
+
+        shaped(registry, "uav_fabricator",
+            new ItemStack(WarTechContent.UAV_FABRICATOR),
+            "ICI", "RCR", "III",
+            'I', Blocks.IRON_BLOCK, 'C', ModItems.circuit,
+            'R', Items.REDSTONE);
+        shaped(registry, "uav_blueprint",
+            new ItemStack(WarTechContent.UAV_BLUEPRINT),
+            "PRP", "RCR", "PRP",
+            'P', Items.PAPER, 'R', Items.REDSTONE,
+            'C', WarTechContent.ITEM_GUIDANCE_SYSTEM_TIER_1);
+        shaped(registry, "uav_launch_point",
+            new ItemStack(WarTechContent.UAV_LAUNCH_POINT),
+            "IRI", "IPI", "III",
+            'I', Blocks.IRON_BLOCK, 'R', Items.REDSTONE,
+            'P', Blocks.PISTON);
+        shaped(registry, "uav_mission_station",
+            new ItemStack(WarTechContent.UAV_MISSION_STATION),
+            "ICI", "RMR", "III",
+            'I', Blocks.IRON_BLOCK, 'C', Items.COMPARATOR,
+            'R', Items.REDSTONE, 'M', Items.MAP);
+        shapeless(registry, "uav_guide_en",
+            new ItemStack(WarTechContent.UAV_GUIDE_BOOK, 1, 0),
+            Items.BOOK, WarTechContent.UAV_BLUEPRINT,
+            new ItemStack(Items.DYE, 1, 4));
+        shapeless(registry, "uav_guide_ru",
+            new ItemStack(WarTechContent.UAV_GUIDE_BOOK, 1, 1),
+            Items.BOOK, WarTechContent.UAV_BLUEPRINT,
+            new ItemStack(Items.DYE, 1, 1));
+        registerUavModuleRecipes(registry);
+        registerCruiseRecipes(registry);
+    }
+    private static void registerCruiseRecipes(IForgeRegistry<IRecipe> registry) {
+        shaped(registry,"cruise_fabricator",new ItemStack(WarTechContent.CRUISE_FABRICATOR),
+            "ICI","RMR","III",'I',Blocks.IRON_BLOCK,'C',ModItems.circuit,'R',Items.REDSTONE,'M',WarTechContent.ITEM_TURBOFAN_ENGINE_TIER_1);
+        shapeless(registry,"cruise_blueprint",new ItemStack(WarTechContent.CRUISE_BLUEPRINT),Items.PAPER,Items.PAPER,Items.REDSTONE);
+        shaped(registry,"cruise_launch_point",new ItemStack(WarTechContent.CRUISE_LAUNCH_POINT),
+            "IPI","IRI","III",'I',Items.IRON_INGOT,'P',Blocks.PISTON,'R',Items.REDSTONE);
+        shaped(registry,"cruise_drone_rail",new ItemStack(WarTechContent.CRUISE_DRONE_RAIL),
+            "I I","IRI","IPI",'I',Items.IRON_INGOT,'P',Blocks.PISTON,'R',Items.REDSTONE);
+        for(com.wartec.wartecmod.port.cruise.CruisePartDefinition part:com.wartec.wartecmod.port.cruise.CruisePartDefinition.values()) {
+            Object core;
+            switch(part.getSlot()) {
+                case BODY: core=WarTechContent.ITEM_CRUISE_MISSILE_NO_WARHEAD_TIER_1;break;
+                case ENGINE: core=WarTechContent.ITEM_TURBOFAN_ENGINE_TIER_1;break;
+                case FUEL: core=ModItems.fuel_tank_small;break;
+                case WINGS: core=WarTechContent.ITEM_CRUISE_WINGS;break;
+                case WARHEAD:
+                    switch(part) {
+                        case WARHEAD_HEAVY_THERMOBARIC: case WARHEAD_THERMOBARIC:core=WarTechContent.ITEM_WARHEAD_TB;break;
+                        case WARHEAD_HEAVY_CLUSTER: case WARHEAD_CLUSTER:core=WarTechContent.ITEM_WARHEAD_CLUSTER;break;
+                        case WARHEAD_HEAVY_PENETRATOR: case WARHEAD_PENETRATOR:core=WarTechContent.ITEM_WARHEAD_BUSTER;break;
+                        case WARHEAD_EMP:core=WarTechContent.ITEM_WARHEAD_EMP;break;
+                        default:core=WarTechContent.ITEM_WARHEAD_HE_CM;
+                    }break;
+                case LAUNCH:core=part==com.wartec.wartecmod.port.cruise.CruisePartDefinition.LAUNCH_BOOSTER?WarTechContent.ITEM_SOLID_BOOSTER:Items.IRON_INGOT;break;
+                default:core=WarTechContent.ITEM_GUIDANCE_SYSTEM_TIER_1;
+            }
+            // Stable distinct recipes for variants sharing the same core.
+            int baseCount=3+part.ordinal()%3;
+            Object[] ingredients=new Object[baseCount+(part.ordinal()>=32?2:0)];
+            ingredients[0]=core;ingredients[1]=ModItems.plate_steel;
+            for(int i=2;i<baseCount;i++) ingredients[i]=Items.REDSTONE;
+            ingredients[baseCount-1]=new ItemStack(Items.DYE,1,part.ordinal()%16);
+            if(part.ordinal()>=32) {
+                ingredients[baseCount]=ModItems.plate_steel;
+                ingredients[baseCount+1]=part.getSlot()==com.wartec.wartecmod.port.cruise.CruiseSlot.WARHEAD
+                    && part.name().startsWith("WARHEAD_HEAVY_")?core:ModItems.plate_steel;
+            }
+            shapeless(registry,"cruise_module_"+part.getId(),new ItemStack(WarTechContent.CRUISE_MODULE,1,part.ordinal()),ingredients);
+        }
     }
 
     public static void registerRuntimeIntegration() {
@@ -313,7 +436,11 @@ public final class WarTechRecipeRegistration {
             item(ModItems.plate_steel, 5),
             block(Blocks.TNT, 4),
             item(ModItems.ingot_pu239, 1),
-            item(ModItems.custom_dirty, 5));
+            item(ModItems.custom_dirty, 1),
+            item(ModItems.custom_dirty, 1),
+            item(ModItems.custom_dirty, 1),
+            item(ModItems.custom_dirty, 1),
+            item(ModItems.custom_dirty, 1));
         assembler(WarTechContent.ITEM_PLATE_U238, 2, 30,
             item(ModItems.ingot_u238, 3));
 
@@ -334,12 +461,56 @@ public final class WarTechRecipeRegistration {
         shapeless(registry, name + "_from_display", new ItemStack(missile), display);
     }
 
+    private static void registerUavModuleRecipes(IForgeRegistry<IRecipe> registry) {
+        Object[][] ingredients = {
+            {WarTechContent.ITEM_CRUISE_WINGS, ModItems.plate_steel},
+            {WarTechContent.MQ9_REAPER_DRONE, ModItems.plate_steel},
+            {WarTechContent.MQ9_REAPER_DRONE, ModItems.plate_titanium},
+            {WarTechContent.ITEM_TURBOFAN_ENGINE_TIER_1, ModItems.motor},
+            {WarTechContent.ITEM_TURBOFAN_ENGINE_TIER_1, ModItems.circuit},
+            {WarTechContent.ITEM_TURBOFAN_ENGINE_TIER_1, ModItems.turbine_titanium},
+            {ModItems.fuel_tank_small, ModItems.plate_steel},
+            {ModItems.fuel_tank_large, ModItems.plate_steel},
+            {ModItems.fuel_tank_large, ModItems.battery_potatos},
+            {WarTechContent.ITEM_GUIDANCE_SYSTEM_TIER_1, ModItems.circuit},
+            {WarTechContent.ITEM_GUIDANCE_SYSTEM_TIER_3, ModItems.circuit},
+            {WarTechContent.ITEM_GUIDANCE_SYSTEM_TIER_5, ModItems.circuit},
+            {Items.REDSTONE, ModItems.circuit},
+            {WarTechContent.ITEM_GUIDANCE_SYSTEM_TIER_3, ModItems.powder_quartz},
+            {WarTechContent.ITEM_GUIDANCE_SYSTEM_TIER_5, ModItems.powder_diamond},
+            {Items.COMPASS, ModItems.circuit},
+            {Items.ENDER_EYE, ModItems.circuit},
+            {ModItems.powder_quartz, ModItems.circuit},
+            {WarTechContent.ITEM_WARHEAD_HE_CM, ModItems.plate_steel},
+            {WarTechContent.ITEM_WARHEAD_TB, ModItems.plate_steel},
+            {WarTechContent.ITEM_CRUISE_WINGS, ModItems.plate_steel},
+            {WarTechContent.ITEM_CRUISE_WINGS, ModItems.plate_titanium},
+            {WarTechContent.MQ9_FLARES, ModItems.plate_steel},
+            {WarTechContent.ITEM_GUIDANCE_SYSTEM_TIER_4, ModItems.magnetron},
+            {WarTechContent.ITEM_WARHEAD_BUSTER, ModItems.plate_titanium},
+            {WarTechContent.ITEM_WARHEAD_HE_CM, ModItems.plate_titanium},
+            {WarTechContent.ITEM_WARHEAD_TB, ModItems.plate_titanium},
+            {WarTechContent.ITEM_CRUISE_WINGS, ModItems.motor, ModItems.plate_titanium}
+        };
+        com.wartec.wartecmod.port.uav.UavPartDefinition[] definitions =
+                com.wartec.wartecmod.port.uav.UavPartDefinition.values();
+        if (ingredients.length != definitions.length) {
+            throw new IllegalStateException("Every UAV module must have a recipe");
+        }
+        for (int metadata = 0; metadata < definitions.length; ++metadata) {
+            shapeless(registry, "uav_module_" + definitions[metadata].getId(),
+                    new ItemStack(WarTechContent.UAV_MODULE, 1, metadata),
+                    ingredients[metadata]);
+        }
+    }
+
     private static void shaped(
         IForgeRegistry<IRecipe> registry,
         String name,
         ItemStack output,
         Object... recipe
     ) {
+        if (StrategicFeature.isDisabledItem(output.getItem())) return;
         register(registry, name, new ShapedOreRecipe(null, output, recipe));
     }
 
@@ -349,6 +520,7 @@ public final class WarTechRecipeRegistration {
         ItemStack output,
         Object... ingredients
     ) {
+        if (StrategicFeature.isDisabledItem(output.getItem())) return;
         register(registry, name, new ShapelessOreRecipe(null, output, ingredients));
     }
 

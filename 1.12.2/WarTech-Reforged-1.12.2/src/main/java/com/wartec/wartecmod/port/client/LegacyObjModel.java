@@ -23,6 +23,8 @@ import org.lwjgl.opengl.GL11;
 final class LegacyObjModel {
     private static final String DEFAULT_GROUP = "__default__";
     private static Bounds measurement;
+    private static final java.util.Set<LegacyObjModel> INSTANCES = java.util.Collections.newSetFromMap(
+            new java.util.WeakHashMap<LegacyObjModel, Boolean>());
 
     private final ResourceLocation location;
     private Mesh mesh;
@@ -30,7 +32,21 @@ final class LegacyObjModel {
     private final Map<String, Integer> partDisplayLists = new LinkedHashMap<>();
 
     LegacyObjModel(String path) {
-        this.location = new ResourceLocation(WarTechReforged.MODID, path.toLowerCase(java.util.Locale.ROOT));
+        INSTANCES.add(this);
+        String normalized = path.toLowerCase(java.util.Locale.ROOT);
+        this.location = normalized.indexOf(':') >= 0
+                ? new ResourceLocation(normalized)
+                : new ResourceLocation(WarTechReforged.MODID, normalized);
+    }
+
+    static void reloadAll() {
+        for (LegacyObjModel model : INSTANCES) {
+            if (model.allDisplayList != 0) GL11.glDeleteLists(model.allDisplayList, 1);
+            for (int list : model.partDisplayLists.values()) if (list != 0) GL11.glDeleteLists(list, 1);
+            model.allDisplayList = 0;
+            model.partDisplayLists.clear();
+            model.mesh = null;
+        }
     }
 
     void renderAll() {
@@ -69,6 +85,35 @@ final class LegacyObjModel {
         } else {
             GL11.glCallList(displayList);
         }
+    }
+
+    /** Runtime fold meshes preserve face/corner topology and UVs. Only used during deployment. */
+    void renderPartInterpolated(String part,LegacyObjModel target,float amount) {
+        if(amount<=0) { renderPart(part);return; }
+        if(amount>=1) { target.renderPart(part);return; }
+        ensureLoaded();target.ensureLoaded();
+        List<Face> a=mesh.groups.get(part),b=target.mesh.groups.get(part);
+        if(a==null || b==null || a.size()!=b.size() || measurement!=null) { renderPart(part);return; }
+        for(int i=0;i<a.size();i++) if(a.get(i).vertices.length!=b.get(i).vertices.length) { renderPart(part);return; }
+        GL11.glBegin(GL11.GL_TRIANGLES);
+        for(int i=0;i<a.size();i++) {
+            Face from=a.get(i),to=b.get(i);
+            for(int corner=1;corner+1<from.vertices.length;corner++) {
+                emitInterpolated(from,to,0,target,amount);
+                emitInterpolated(from,to,corner,target,amount);
+                emitInterpolated(from,to,corner+1,target,amount);
+            }
+        }
+        GL11.glEnd();
+    }
+
+    private void emitInterpolated(Face a,Face b,int corner,LegacyObjModel target,float t) {
+        float[] n=a.normals[corner]<0?a.faceNormal:mesh.normals.get(a.normals[corner]);
+        float[] m=b.normals[corner]<0?b.faceNormal:target.mesh.normals.get(b.normals[corner]);
+        GL11.glNormal3f(n[0]+(m[0]-n[0])*t,n[1]+(m[1]-n[1])*t,n[2]+(m[2]-n[2])*t);
+        if(a.textures[corner]>=0) { float[] uv=mesh.textures.get(a.textures[corner]);GL11.glTexCoord2f(uv[0],1-uv[1]); }
+        float[] v=mesh.vertices.get(a.vertices[corner]),w=target.mesh.vertices.get(b.vertices[corner]);
+        GL11.glVertex3f(v[0]+(w[0]-v[0])*t,v[1]+(w[1]-v[1])*t,v[2]+(w[2]-v[2])*t);
     }
 
     private int compile(List<Face> faces) {
@@ -161,26 +206,27 @@ final class LegacyObjModel {
     }
 
     private static float[] parseVector(String line, int size) {
-        String[] values = line.substring(line.indexOf(' ') + 1).trim().split("\\s+");
+        java.util.StringTokenizer values = new java.util.StringTokenizer(line.substring(line.indexOf(' ') + 1));
         float[] result = new float[size];
         for (int index = 0; index < size; index++) {
-            result[index] = index < values.length ? Float.parseFloat(values[index]) : 0.0F;
+            result[index] = values.hasMoreTokens() ? Float.parseFloat(values.nextToken()) : 0.0F;
         }
         return result;
     }
 
     private static Face parseFace(String value, Mesh mesh) {
-        String[] corners = value.split("\\s+");
-        int[] vertices = new int[corners.length];
-        int[] textures = new int[corners.length];
-        int[] normals = new int[corners.length];
-        for (int index = 0; index < corners.length; index++) {
-            String[] parts = corners[index].split("/", -1);
-            vertices[index] = parseIndex(parts[0], mesh.vertices.size());
-            textures[index] = parts.length > 1 && !parts[1].isEmpty()
-                    ? parseIndex(parts[1], mesh.textures.size()) : -1;
-            normals[index] = parts.length > 2 && !parts[2].isEmpty()
-                    ? parseIndex(parts[2], mesh.normals.size()) : -1;
+        java.util.StringTokenizer corners = new java.util.StringTokenizer(value);
+        int count=corners.countTokens();
+        int[] vertices = new int[count];
+        int[] textures = new int[count];
+        int[] normals = new int[count];
+        for (int index = 0; index < count; index++) {
+            String corner=corners.nextToken();int slash=corner.indexOf('/'),second=slash<0?-1:corner.indexOf('/',slash+1);
+            vertices[index] = parseIndex(slash<0?corner:corner.substring(0,slash), mesh.vertices.size());
+            String uv=slash<0?"":corner.substring(slash+1,second<0?corner.length():second);
+            String normal=second<0?"":corner.substring(second+1);
+            textures[index] = uv.isEmpty()?-1:parseIndex(uv,mesh.textures.size());
+            normals[index] = normal.isEmpty()?-1:parseIndex(normal,mesh.normals.size());
         }
         return new Face(vertices, textures, normals, calculateNormal(vertices, mesh.vertices));
     }

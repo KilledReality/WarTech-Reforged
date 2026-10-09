@@ -120,6 +120,7 @@ public final class GuiLegacyMobileArtillery extends GuiContainer {
     protected void drawGuiContainerForegroundLayer(int mouseX, int mouseY) {
         String title = I18n.format(artillery.getVisualVariant() == 2
                 ? "container.turretHIMARS" : "container.turretArty");
+        title=GuiTheme.clip(fontRenderer,title,xSize-16);
         fontRenderer.drawString(title,
                 xSize / 2 - fontRenderer.getStringWidth(title) / 2,
                 6, 0x404040);
@@ -130,7 +131,7 @@ public final class GuiLegacyMobileArtillery extends GuiContainer {
             whitelistIndex = Math.min(whitelistIndex, names.size() - 1);
             GL11.glPushMatrix();
             GL11.glScalef(0.5F, 0.5F, 1.0F);
-            fontRenderer.drawString(names.get(whitelistIndex), 24, 102, 0x00FF00);
+            GuiTheme.text(fontRenderer,names.get(whitelistIndex),24,102,280,0x00FF00);
             GL11.glPopMatrix();
         }
     }

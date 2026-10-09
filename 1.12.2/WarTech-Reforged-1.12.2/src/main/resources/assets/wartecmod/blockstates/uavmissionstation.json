@@ -1,0 +1,8 @@
+{
+  "variants": {
+    "facing=north": { "model": "wartecmod:uavmissionstation" },
+    "facing=east": { "model": "wartecmod:uavmissionstation", "y": 90 },
+    "facing=south": { "model": "wartecmod:uavmissionstation", "y": 180 },
+    "facing=west": { "model": "wartecmod:uavmissionstation", "y": 270 }
+  }
+}

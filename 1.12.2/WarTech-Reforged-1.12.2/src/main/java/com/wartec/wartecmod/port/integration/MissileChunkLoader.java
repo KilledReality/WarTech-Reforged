@@ -1,7 +1,10 @@
 package com.wartec.wartecmod.port.integration;
 
 import com.wartec.wartecmod.WarTechReforged;
+import com.wartec.wartecmod.port.entity.EntityWarTechAircraft;
 import com.wartec.wartecmod.port.entity.EntityWarTechBase;
+import com.wartec.wartecmod.port.entity.EntityCustomUav;
+import com.wartec.wartecmod.port.entity.EntityWarTechMissile;
 import com.wartec.wartecmod.port.entity.WarTechEntityType;
 import com.wartec.wartecmod.port.gameplay.TileEntityWarTechMachine;
 import java.util.ArrayList;
@@ -19,6 +22,7 @@ import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.entity.EntityJoinWorldEvent;
 import net.minecraftforge.event.world.WorldEvent;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
+import net.minecraftforge.fml.common.eventhandler.EventPriority;
 import net.minecraftforge.fml.common.gameevent.TickEvent;
 
 /**
@@ -26,12 +30,24 @@ import net.minecraftforge.fml.common.gameevent.TickEvent;
  */
 public final class MissileChunkLoader implements ForgeChunkManager.LoadingCallback {
     private static final int CHUNK_RADIUS = 1;
+    private static final int MAX_ACTIVE_UAV_TICKETS = FlightChunkWindow.MAX_MODULAR_FLIGHTS;
     private static final MissileChunkLoader INSTANCE = new MissileChunkLoader();
     private static final Map<World, Map<Integer, ActiveTicket>> ACTIVE =
             new WeakHashMap<World, Map<Integer, ActiveTicket>>();
     private static final Map<World, Map<Long, StaticTicket>> STATIC =
             new WeakHashMap<World, Map<Long, StaticTicket>>();
     private static boolean registered;
+    private static final FlightChunkQueue<Object> LOAD_QUEUE = new FlightChunkQueue<>();
+    public interface ChunkWork {
+        World world(); boolean valid(); void loaded(ChunkPos chunk);
+    }
+    public static void enqueueWork(ChunkWork work,Set<ChunkPos> chunks) { LOAD_QUEUE.request(work,chunks); }
+    public static void removeWork(ChunkWork work) { LOAD_QUEUE.remove(work); }
+    private static FlightChunkQueue.Result lastLoads = new FlightChunkQueue.Result();
+    private static long totalLoads, totalGenerated, totalLoadNanos, peakLoadNanos;
+    private static final FlightTickMetrics TICK_METRICS=new FlightTickMetrics();
+    private static long tickStart;
+    public static FlightTickMetrics tickMetrics() { return TICK_METRICS; }
 
     private MissileChunkLoader() {
     }
@@ -49,8 +65,65 @@ public final class MissileChunkLoader implements ForgeChunkManager.LoadingCallba
     public static void track(Entity entity) {
         if (entity != null && entity.world != null && !entity.world.isRemote
                 && isSupportedProjectile(entity)) {
-            attach(entity);
+            if (isRemotelyPiloted(entity)) {
+                untrack(entity);
+            } else {
+                attach(entity);
+            }
         }
+    }
+
+    /** Reserve before consuming a store or takeoff energy. Spawn failure must untrack. */
+    public static boolean prepare(Entity entity) {
+        if (entity == null || entity.isDead || entity.world == null || entity.world.isRemote) return false;
+        attach(entity);
+        synchronized (ACTIVE) {
+            Map<Integer, ActiveTicket> tickets = ACTIVE.get(entity.world);
+            ActiveTicket ticket = tickets == null ? null : tickets.get(entity.getEntityId());
+            return ticket != null && ticket.entity == entity && ticket.ticket.getChunkListDepth() >= FlightChunkWindow.DEPTH;
+        }
+    }
+
+    public static boolean spawnFlight(Entity entity) {
+        if(!isSupportedProjectile(entity)) return entity.world.spawnEntity(entity);
+        if(!prepare(entity)) return false;
+        boolean spawned=false;
+        try { spawned=entity.world.spawnEntity(entity);return spawned; }
+        finally { if(!spawned) untrack(entity); }
+    }
+
+    public static boolean hasCapacity(World world) {
+        synchronized (ACTIVE) {
+            Map<Integer, ActiveTicket> tickets = ACTIVE.get(world);
+            return tickets == null || tickets.size() < FlightChunkWindow.MAX_FLIGHTS
+                    && countCustomUavTickets(tickets) < MAX_ACTIVE_UAV_TICKETS;
+        }
+    }
+    public static int availableFlightSlots(World world) {
+        synchronized(ACTIVE) {
+            Map<Integer,ActiveTicket> tickets=ACTIVE.get(world);
+            return Math.max(0,FlightChunkWindow.MAX_FLIGHTS-(tickets==null?0:tickets.size()));
+        }
+    }
+
+    /** Only enqueue missing chunks. Actual I/O runs fairly at server tick END. */
+    public static boolean flightReady(Entity entity) {
+        return flightReady(entity,entity.motionX,entity.motionZ);
+    }
+
+    /** Also used for legacy accelerated substeps, not just the tick's raw motion. */
+    public static boolean flightReady(Entity entity,double stepX,double stepZ) {
+        if (entity.world.isRemote || isRemotelyPiloted(entity)) return true;
+        if (!prepare(entity)) return false;
+        World world = entity.world;
+        synchronized(ACTIVE) {
+            Map<Integer, ActiveTicket> tickets = ACTIVE.get(world);
+            ActiveTicket ticket=tickets==null?null:tickets.get(entity.getEntityId());
+            if(ticket==null || ticket.entity!=entity) return false;
+            updateChunks(ticket,floorChunk(entity.posX),floorChunk(entity.posZ),stepX,stepZ);
+            for(ChunkPos chunk:ticket.desired) if(!loaded(world,chunk)) return false;
+        }
+        return true;
     }
 
     public static void untrack(Entity entity) {
@@ -62,8 +135,9 @@ public final class MissileChunkLoader implements ForgeChunkManager.LoadingCallba
             if (tickets == null) {
                 return;
             }
-            ActiveTicket ticket = tickets.remove(entity.getEntityId());
+            ActiveTicket ticket = tickets.get(entity.getEntityId());
             if (ticket != null && ticket.entity == entity) {
+                tickets.remove(entity.getEntityId());
                 release(ticket, true);
             }
             if (tickets.isEmpty()) {
@@ -97,7 +171,7 @@ public final class MissileChunkLoader implements ForgeChunkManager.LoadingCallba
             ForgeChunkManager.Ticket forgeTicket = ForgeChunkManager.requestTicket(
                     WarTechReforged.instance, world, ForgeChunkManager.Type.NORMAL);
             if (forgeTicket == null) {
-                WarTechReforged.logger.warn(
+                if(world.getTotalWorldTime()%200L==0) WarTechReforged.logger.warn(
                         "No chunk-loading ticket available for communication mast at {}",
                         tile.getPos());
                 return;
@@ -132,11 +206,12 @@ public final class MissileChunkLoader implements ForgeChunkManager.LoadingCallba
 
     @SubscribeEvent
     public void onEntityJoin(EntityJoinWorldEvent event) {
+        OperationalChunks.register(event.getEntity());
         if (event.getWorld() == null || event.getWorld().isRemote
                 || !isSupportedProjectile(event.getEntity())) {
             return;
         }
-        if (!isCarrier(event.getEntity())) {
+        if (needsFlight(event.getEntity())) {
             track(event.getEntity());
         }
     }
@@ -148,6 +223,7 @@ public final class MissileChunkLoader implements ForgeChunkManager.LoadingCallba
             return;
         }
         recoverLoadedProjectiles(event.world);
+        OperationalChunks.tick(event.world);
         Map<Integer, ActiveTicket> tickets;
         synchronized (ACTIVE) {
             tickets = ACTIVE.get(event.world);
@@ -162,16 +238,22 @@ public final class MissileChunkLoader implements ForgeChunkManager.LoadingCallba
         while (iterator.hasNext()) {
             ActiveTicket ticket = iterator.next().getValue();
             Entity entity = ticket.entity;
-            if (entity == null || entity.isDead || entity.world != event.world) {
+            if (entity == null || entity.isDead || entity.world != event.world || !needsFlight(entity)) {
+                release(ticket, true);
+                iterator.remove();
+                continue;
+            }
+            // The remote operator is a real player positioned at the aircraft.
+            // PlayerChunkMap already owns that moving view; a second Forge ticket
+            // duplicates generation and is especially expensive with HBM terrain.
+            if (isRemotelyPiloted(entity)) {
                 release(ticket, true);
                 iterator.remove();
                 continue;
             }
             int chunkX = floorChunk(entity.posX);
             int chunkZ = floorChunk(entity.posZ);
-            if (chunkX != ticket.chunkX || chunkZ != ticket.chunkZ) {
-                move(ticket, chunkX, chunkZ);
-            }
+            if(ticket.lastRequestTick != event.world.getTotalWorldTime()) updateChunks(ticket, chunkX, chunkZ);
         }
         if (tickets.isEmpty()) {
             synchronized (ACTIVE) {
@@ -185,8 +267,10 @@ public final class MissileChunkLoader implements ForgeChunkManager.LoadingCallba
         if (world == null || world.isRemote) {
             return;
         }
+        if (world.getTotalWorldTime() % 20L != 0) return;
         for (Entity entity : new ArrayList<Entity>(world.loadedEntityList)) {
-            if (!isSupportedProjectile(entity) || entity.isDead || isCarrier(entity)) {
+            if (!isSupportedProjectile(entity) || entity.isDead
+                    || !needsFlight(entity) || isRemotelyPiloted(entity)) {
                 continue;
             }
             boolean tracked;
@@ -204,13 +288,18 @@ public final class MissileChunkLoader implements ForgeChunkManager.LoadingCallba
 
     @SubscribeEvent
     public void onWorldUnload(WorldEvent.Unload event) {
+        OperationalChunks.unload(event.getWorld());
+        if(!event.getWorld().isRemote && event.getWorld().provider.getDimension()==0) {
+            TICK_METRICS.clear();tickStart=0;
+        }
         Map<Integer, ActiveTicket> activeTickets;
         synchronized (ACTIVE) {
             activeTickets = ACTIVE.remove(event.getWorld());
         }
         if (activeTickets != null) {
             for (ActiveTicket ticket : activeTickets.values()) {
-                release(ticket, false);
+                LOAD_QUEUE.remove(ticket);
+                ticket.chunks.clear(); // Forge owns unload; preserve its saved ENTITY ticket.
             }
         }
         Map<Long, StaticTicket> staticTickets;
@@ -219,16 +308,99 @@ public final class MissileChunkLoader implements ForgeChunkManager.LoadingCallba
         }
         if (staticTickets != null) {
             for (StaticTicket ticket : staticTickets.values()) {
-                release(ticket, false);
+                ticket.chunks.clear();
             }
         }
+    }
+
+    @SubscribeEvent
+    public void onServerTick(TickEvent.ServerTickEvent event) {
+        if(event.phase!=TickEvent.Phase.END) return;
+        lastLoads=LOAD_QUEUE.drain(new FlightChunkQueue.Access<Object>() {
+            public boolean valid(Object owner) {
+                if(owner instanceof ChunkWork) return ((ChunkWork)owner).valid();
+                ActiveTicket ticket=(ActiveTicket)owner;
+                Entity entity=ticket.entity;
+                return entity!=null && !entity.isDead && needsFlight(entity) && !isRemotelyPiloted(entity);
+            }
+            private World world(Object owner) { return owner instanceof ChunkWork?((ChunkWork)owner).world():((ActiveTicket)owner).entity.world; }
+            public boolean loaded(Object owner,ChunkPos chunk) { return MissileChunkLoader.loaded(world(owner),chunk); }
+            public boolean generated(Object owner,ChunkPos chunk) { return world(owner).isChunkGeneratedAt(chunk.x,chunk.z); }
+            public void load(Object owner,ChunkPos chunk) {
+                if(owner instanceof ChunkWork) {
+                    World world=world(owner);world.getChunkFromChunkCoords(chunk.x,chunk.z);
+                    if(MissileChunkLoader.loaded(world,chunk)) ((ChunkWork)owner).loaded(chunk);return;
+                }
+                ActiveTicket ticket=(ActiveTicket)owner;
+                World world=ticket.entity.world;
+                world.getChunkFromChunkCoords(chunk.x,chunk.z);
+                if(MissileChunkLoader.loaded(world,chunk) && ticket.desired.contains(chunk)) forceChunk(ticket,chunk);
+            }
+        });
+        totalLoads+=lastLoads.loads;totalGenerated+=lastLoads.generated;
+        totalLoadNanos+=lastLoads.nanos;peakLoadNanos=Math.max(peakLoadNanos,lastLoads.nanos);
+    }
+
+    @SubscribeEvent(priority=EventPriority.HIGHEST)
+    public void onTickStart(TickEvent.ServerTickEvent event) {
+        if(event.phase==TickEvent.Phase.START) { tickStart=System.nanoTime(); }
+    }
+
+    @SubscribeEvent(priority=EventPriority.LOWEST)
+    public void onTickEnd(TickEvent.ServerTickEvent event) {
+        if(event.phase==TickEvent.Phase.END && tickStart!=0) TICK_METRICS.record(System.nanoTime()-tickStart);
+    }
+
+
+    private static boolean loaded(World world,ChunkPos chunk) {
+        return world.isBlockLoaded(new net.minecraft.util.math.BlockPos(chunk.x*16,64,chunk.z*16));
+    }
+
+    /** Read-only counters, not a scan of world entities/chunks. All access is on the server thread. */
+    public static String diagnostics(World world) {
+        Map<Integer,ActiveTicket> tickets=ACTIVE.get(world);
+        Set<ChunkPos> unique=new HashSet<>();int waiting=0,modular=0;
+        if(tickets!=null) for(ActiveTicket ticket:tickets.values()) {
+            unique.addAll(ticket.chunks);
+            if(isBoundedModularProjectile(ticket.entity)) modular++;
+            for(ChunkPos chunk:ticket.desired) if(!loaded(world,chunk)) { waiting++;break; }
+        }
+        return String.format(java.util.Locale.ROOT,
+            "dim=%d flights=%d/%d modular=%d/%d forced=%d waiting=%d | server queue=%d chunks/%d owners; last=%d loads/%d new %.2fms; total=%d loads/%d new %.2fms peak=%.2fms",
+            world.provider.getDimension(),tickets==null?0:tickets.size(),FlightChunkWindow.MAX_FLIGHTS,
+            modular,MAX_ACTIVE_UAV_TICKETS,unique.size(),waiting,LOAD_QUEUE.pending(),LOAD_QUEUE.owners(),
+            lastLoads.loads,lastLoads.generated,lastLoads.nanos/1e6,totalLoads,totalGenerated,totalLoadNanos/1e6,peakLoadNanos/1e6);
+    }
+
+    public static void resetDiagnostics() {
+        totalLoads=totalGenerated=totalLoadNanos=peakLoadNanos=0;
+        lastLoads=new FlightChunkQueue.Result();
     }
 
     @Override
     public void ticketsLoaded(List<ForgeChunkManager.Ticket> tickets, World world) {
         for (ForgeChunkManager.Ticket ticket
                 : new ArrayList<ForgeChunkManager.Ticket>(tickets)) {
-            ForgeChunkManager.releaseTicket(ticket);
+            if(ticket.getModData().getBoolean("WarTechOperational")) {
+                // Temporary jobs are not replayed after restart; persistent defense index is.
+                ForgeChunkManager.releaseTicket(ticket);continue;
+            }
+            Entity entity = ticket.getEntity();
+            if (entity == null || entity.isDead || !isSupportedProjectile(entity) || !needsFlight(entity)
+                    || isRemotelyPiloted(entity) || ticket.getMaxChunkListDepth() < FlightChunkWindow.DEPTH) {
+                ForgeChunkManager.releaseTicket(ticket); continue;
+            }
+            synchronized (ACTIVE) {
+                Map<Integer, ActiveTicket> active = ACTIVE.get(world);
+                if (active == null) { active = new HashMap<>(); ACTIVE.put(world, active); }
+                ActiveTicket previous = active.remove(entity.getEntityId());
+                if (previous != null) release(previous, true);
+                // Keep already airborne saved entities even if the launch quota was reduced.
+                ticket.setChunkListDepth(FlightChunkWindow.DEPTH);
+                ActiveTicket restored = new ActiveTicket(entity, ticket);
+                active.put(entity.getEntityId(), restored);
+                updateChunks(restored, floorChunk(entity.posX), floorChunk(entity.posZ));
+            }
         }
     }
 
@@ -243,54 +415,115 @@ public final class MissileChunkLoader implements ForgeChunkManager.LoadingCallba
             }
             ActiveTicket existing = tickets.get(entityId);
             if (existing != null && existing.entity == entity) {
-                existing.lastTrackTick = world.getTotalWorldTime();
                 return;
             }
             if (existing != null) {
                 release(existing, true);
+                tickets.remove(entityId);
+            }
+            if (tickets.size() >= FlightChunkWindow.MAX_FLIGHTS || isBoundedModularProjectile(entity)
+                    && countCustomUavTickets(tickets) >= MAX_ACTIVE_UAV_TICKETS) {
+                if (world.getTotalWorldTime() % 200L == 0L) {
+                    WarTechReforged.logger.warn(
+                            "Custom UAV chunk ticket limit ({}) reached in dimension {}",
+                            MAX_ACTIVE_UAV_TICKETS, world.provider.getDimension());
+                }
+                return;
             }
             ForgeChunkManager.Ticket forgeTicket = ForgeChunkManager.requestTicket(
-                    WarTechReforged.instance, world, ForgeChunkManager.Type.NORMAL);
+                    WarTechReforged.instance, world, ForgeChunkManager.Type.ENTITY);
             if (forgeTicket == null) {
-                WarTechReforged.logger.warn(
+                if(world.getTotalWorldTime()%200L==Math.floorMod(entity.getEntityId(),200)) WarTechReforged.logger.warn(
                         "No chunk-loading ticket available for {}",
                         entity.getClass().getName());
                 return;
             }
-            forgeTicket.setChunkListDepth(25);
+            if (forgeTicket.getMaxChunkListDepth() < FlightChunkWindow.DEPTH) {
+                ForgeChunkManager.releaseTicket(forgeTicket); return;
+            }
+            forgeTicket.bindEntity(entity);
+            forgeTicket.setChunkListDepth(FlightChunkWindow.DEPTH);
             ActiveTicket ticket = new ActiveTicket(entity, forgeTicket);
-            ticket.lastTrackTick = world.getTotalWorldTime();
             tickets.put(entityId, ticket);
-            move(ticket, floorChunk(entity.posX), floorChunk(entity.posZ));
+            int chunkX = floorChunk(entity.posX);
+            int chunkZ = floorChunk(entity.posZ);
+            updateChunks(ticket, chunkX, chunkZ);
         }
     }
 
-    private static void move(ActiveTicket ticket, int chunkX, int chunkZ) {
-        Set<ChunkPos> desired = new HashSet<ChunkPos>();
-        for (int x = -CHUNK_RADIUS; x <= CHUNK_RADIUS; ++x) {
-            for (int z = -CHUNK_RADIUS; z <= CHUNK_RADIUS; ++z) {
-                ChunkPos chunk = new ChunkPos(chunkX + x, chunkZ + z);
-                desired.add(chunk);
-                if (!ticket.chunks.contains(chunk)) {
-                    ForgeChunkManager.forceChunk(ticket.ticket, chunk);
-                }
-            }
-        }
+    private static void updateChunks(ActiveTicket ticket, int chunkX,
+            int chunkZ) {
+        updateChunks(ticket,chunkX,chunkZ,ticket.entity.motionX,ticket.entity.motionZ);
+    }
+
+    private static void updateChunks(ActiveTicket ticket,int chunkX,int chunkZ,double stepX,double stepZ) {
+        Entity entity=ticket.entity;
+        if(ticket.lastRequestTick==entity.world.getTotalWorldTime() && ticket.x==entity.posX
+                && ticket.z==entity.posZ && ticket.stepX==stepX && ticket.stepZ==stepZ) return;
+        Set<ChunkPos> desired = FlightChunkWindow.at(ticket.entity.posX, ticket.entity.posZ,
+                stepX, stepZ);
+        // Border chunks may straddle the edge; allow those, never request wholly outside it.
+        desired.removeIf(chunk -> !entity.world.getWorldBorder().contains(chunk));
+        ticket.desired=desired;
+        ticket.lastRequestTick=entity.world.getTotalWorldTime();
+        ticket.x=entity.posX;ticket.z=entity.posZ;ticket.stepX=stepX;ticket.stepZ=stepZ;
         for (ChunkPos chunk : new HashSet<ChunkPos>(ticket.chunks)) {
             if (!desired.contains(chunk)) {
                 ForgeChunkManager.unforceChunk(ticket.ticket, chunk);
+                ticket.chunks.remove(chunk);
             }
         }
-        ticket.chunks.clear();
-        ticket.chunks.addAll(desired);
-        ticket.chunkX = chunkX;
-        ticket.chunkZ = chunkZ;
+        Set<ChunkPos> missing=new java.util.LinkedHashSet<>();
+        for (ChunkPos chunk : desired) {
+            if(ticket.entity.world.isBlockLoaded(new net.minecraft.util.math.BlockPos(chunk.x*16,64,chunk.z*16))) forceChunk(ticket, chunk);
+            else missing.add(chunk);
+        }
+        LOAD_QUEUE.request(ticket,missing);
+    }
+
+    public static boolean needsFlight(Entity entity) {
+        if(entity instanceof com.wartec.wartecmod.port.entity.EntityWarTechArtilleryProjectile)
+            return ((com.wartec.wartecmod.port.entity.EntityWarTechArtilleryProjectile)entity).needsFlightChunkTicket();
+        if (entity instanceof EntityCustomUav) return ((EntityCustomUav)entity).needsFlightChunkTicket();
+        if (entity instanceof EntityWarTechAircraft) return !((EntityWarTechAircraft)entity).isReady()
+                && !((EntityWarTechAircraft)entity).isWrecked();
+        return isSupportedProjectile(entity);
+    }
+
+    private static int countCustomUavTickets(Map<Integer, ActiveTicket> tickets) {
+        int count = 0;
+        for (ActiveTicket ticket : tickets.values()) {
+            if (isBoundedModularProjectile(ticket.entity)) ++count;
+        }
+        return count;
+    }
+
+    private static void addChunkWindow(Set<ChunkPos> chunks,
+            int centerX, int centerZ) {
+        for (int radius = 0; radius <= CHUNK_RADIUS; ++radius) {
+            for (int x = -radius; x <= radius; ++x) {
+                for (int z = -radius; z <= radius; ++z) {
+                    if (Math.max(Math.abs(x), Math.abs(z)) != radius) {
+                        continue;
+                    }
+                    ChunkPos chunk = new ChunkPos(centerX + x, centerZ + z);
+                    chunks.add(chunk);
+                }
+            }
+        }
+    }
+
+    private static void forceChunk(ActiveTicket ticket, ChunkPos chunk) {
+        if (ticket.chunks.add(chunk)) {
+            ForgeChunkManager.forceChunk(ticket.ticket, chunk);
+        }
     }
 
     private static void release(ActiveTicket ticket, boolean unforce) {
         if (ticket == null || ticket.ticket == null) {
             return;
         }
+        LOAD_QUEUE.remove(ticket);
         try {
             if (unforce) {
                 for (ChunkPos chunk : ticket.chunks) {
@@ -362,19 +595,35 @@ public final class MissileChunkLoader implements ForgeChunkManager.LoadingCallba
         ticket.chunks.clear();
     }
 
+    private static boolean isBoundedModularProjectile(Entity entity) {
+        return entity instanceof EntityCustomUav || entity instanceof com.wartec.wartecmod.port.entity.EntityCustomCruise;
+    }
     private static boolean isSupportedProjectile(Entity entity) {
         if (!(entity instanceof EntityWarTechBase)) {
             return false;
         }
         WarTechEntityType type = ((EntityWarTechBase) entity).getEntityType();
         return type == WarTechEntityType.MISSILE
-                || type == WarTechEntityType.ORDNANCE;
+                || type == WarTechEntityType.ORDNANCE
+                || type == WarTechEntityType.AIRCRAFT;
     }
 
     private static boolean isCarrier(Entity entity) {
-        return entity instanceof EntityWarTechBase
+        return !(entity instanceof EntityCustomUav)
+                && entity instanceof EntityWarTechBase
                 && ((EntityWarTechBase) entity).getEntityType()
                         == WarTechEntityType.AIRCRAFT;
+    }
+
+    private static boolean isRemotelyPiloted(Entity entity) {
+        if (entity instanceof EntityCustomUav) {
+            return ((EntityCustomUav) entity).isRemoteControlled();
+        }
+        if (entity instanceof EntityWarTechAircraft) {
+            return ((EntityWarTechAircraft) entity).isRemoteControlled();
+        }
+        return entity instanceof EntityWarTechMissile
+                && ((EntityWarTechMissile) entity).isRemoteControlled();
     }
 
     private static int floorChunk(double coordinate) {
@@ -385,9 +634,9 @@ public final class MissileChunkLoader implements ForgeChunkManager.LoadingCallba
         private final Entity entity;
         private final ForgeChunkManager.Ticket ticket;
         private final Set<ChunkPos> chunks = new HashSet<ChunkPos>();
-        private int chunkX = Integer.MIN_VALUE;
-        private int chunkZ = Integer.MIN_VALUE;
-        private long lastTrackTick;
+        private Set<ChunkPos> desired = java.util.Collections.emptySet();
+        private long lastRequestTick = Long.MIN_VALUE;
+        private double x,z,stepX,stepZ;
 
         private ActiveTicket(Entity entity, ForgeChunkManager.Ticket ticket) {
             this.entity = entity;

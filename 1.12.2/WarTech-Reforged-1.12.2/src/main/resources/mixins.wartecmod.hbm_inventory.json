@@ -1,0 +1,11 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "com.wartec.wartecmod.port.mixin",
+  "compatibilityLevel": "JAVA_8",
+  "mixins": [
+    "HbmMachineInventoryMixin"
+  ],
+  "client": [],
+  "server": []
+}

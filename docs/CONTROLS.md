@@ -1,6 +1,17 @@
 # WarTech Reforged Controls Guide
 
-This guide applies to stable WarTech Reforged `1.6.0` for Minecraft 1.7.10 with HBM NTM `1.0.27 X5751` or HBM NTM Space `X5758 H261`. The same control layout is used by the experimental Minecraft 1.12.2 port for NTM Extended `3.0.3`, although that port may still contain compatibility bugs. The default Minecraft controls are assumed. If key bindings were changed, use the bound keys instead.
+> **Current 1.12.2 CE manual / Актуальное руководство 1.12.2 CE:**
+> [English](modular-warfare/GUIDE.en.md) · [Русский](modular-warfare/GUIDE.ru.md).
+>
+> The text below is a historical guide for older branches. It is not the current
+> CE operating manual: in particular, Geran redstone launch, UAV interactions,
+> ranges and constructor capabilities described below may differ.
+>
+> Текст ниже — историческое руководство старых веток. Для текущей CE-сборки
+> используйте новую редакцию: старые указания о redstone-пуске «Герани»,
+> взаимодействиях БПЛА, дальностях и конструкторах не являются актуальными.
+
+This guide applies to stable WarTech Reforged `1.6.0` and the Custom UAV backport test build for Minecraft 1.7.10 with HBM NTM `1.0.27 X5751` or HBM NTM Space `X5758 H261`. The same control layout is used by the experimental Minecraft 1.12.2 port for NTM Extended `3.0.3`, although that port may still contain compatibility bugs. The default Minecraft controls are assumed. If key bindings were changed, use the bound keys instead.
 
 ## English
 
@@ -81,6 +92,15 @@ The selector stores coordinates, not an entity. For AGM-88, select a point close
 - Flares deploy visibly during the final approach of an interceptor or shortly before a locked Pantsir gun burst. One pack starts a short countermeasure window; decoy probability is 25% against tier 1, 15% against tier 2, and 10% against tier 3. A failed decoy remains visible but does not prevent the hit.
 - A lethally damaged airborne MQ-9 enters a smoking descent, explodes and burns on impact, drops its surviving inventory, and leaves a persistent collidable wreck instead of disappearing.
 - Hold the reusable **WarTech Salvage Wrench** and use **Shift+RMB** on a landed MQ-9 wreck to dismantle and remove it without another explosion.
+
+### Modular Custom UAV
+
+- **RMB** on the UAV Constructor opens eight typed module slots plus plan and output slots. `BLUEPRINT` consumes a blank plan and records the installed design; `BUILD` assembles from installed parts; `BUILD FROM PLAN` pulls one exact matching component set from the player inventory.
+- **RMB** on the Mission Programmer and insert one assembled UAV. Add up to eight Transit, Observe, Strike, or Return tasks from typed coordinates or a compatible HBM/WarTech designator. One-way restrictions and payload/sensor requirements are enforced by the server.
+- Use `FLEET` for friendly loaded-UAV telemetry and recall/report actions. `DOWNLOAD DATA` on the UAV or `FLEET > GET REPORT` creates an independent reconnaissance-report item in the player's inventory; right-click that item at any time to reopen the complete stored map and contact list. `RECON MAP` still opens the survey stored in a recovered UAV.
+- Deploy only by using the assembled UAV on top of a **UAV Launch Point**. **RMB** opens servicing; **Shift+RMB** launches or recalls it. `REMOTE PILOT` uses the same flight, camera, weapon, flare, and exit keys as the MQ-9, limited by the installed data link.
+- With a targeted READY UAV, hold HBM's multi-detonator and use **Shift+RMB** on the UAV to bind it. Right-click in air to launch the group; **Shift+RMB in air** clears it. Mixed native HBM block links and UAV links are both retained and triggered.
+- Reusable UAVs retain health, energy, mission, and recon data after recovery. Use the **WarTech Salvage Wrench** with **Shift+RMB** on a landed or wrecked UAV to recover/dismantle it.
 
 ### F-16C and Su-27 tactical aviation
 
@@ -398,6 +418,15 @@ Tier-3 long-range tracking is intentionally not instantaneous: the contact must 
 - AGM-114 сбрасывается с 95 блоков, HJ-10 расширяет рубеж лёгких ракет до 145 блоков, GBU-12 сбрасывается с 90 блоков, а JDAM планирует с 245 блоков. Для неуправляемой Mk 82 точка сброса динамически рассчитывается в пределах 20-66 блоков по высоте и скорости.
 - ЛТЦ отстреливаются автоматически при приближении противоракеты или очереди Панциря. Одна кассета создаёт короткое окно помех; шанс отвода равен 25% для Т1, 15% для Т2 и 10% для Т3.
 
+### Модульный Custom UAV
+
+- **ПКМ** по Конструктору БПЛА открывает восемь типизированных слотов, слот чертежа и выход. `ЧЕРТЕЖ` расходует пустой бланк и записывает проект; `СБОРКА` собирает установленные детали; `BUILD FROM PLAN` берет из инвентаря игрока ровно один совпадающий комплект.
+- **ПКМ** по Программатору миссий и установите один собранный БПЛА. Можно добавить до восьми задач Transit, Observe, Strike или Return по координатам либо целеуказателю HBM/WarTech. Ограничения одноразовых планеров, сенсоров и нагрузки проверяет сервер.
+- `FLEET` показывает телеметрию загруженных дружественных БПЛА и дает команды возврата/получения отчета. `RECON MAP` открывает разведкарту с классом, именем, IFF и координатами контактов.
+- Размещайте собранный аппарат только на верхней стороне **Пусковой точки БПЛА**. **ПКМ** открывает обслуживание; **Shift+ПКМ** запускает или отзывает. `REMOTE PILOT` использует те же клавиши полета, камеры, оружия, ЛТЦ и выхода, что MQ-9, в пределах установленного канала связи.
+- Для READY-БПЛА с заданной целью возьмите мультидетонатор HBM и нажмите **Shift+ПКМ по БПЛА**, чтобы связать его. ПКМ в воздухе запускает группу, **Shift+ПКМ в воздухе** очищает ее. Смешанные привязки блоков HBM и БПЛА сохраняются и срабатывают вместе.
+- Многоразовый БПЛА сохраняет прочность, энергию, миссию и разведданные. **Shift+ПКМ демонтажным ключом WarTech** по севшему или разбитому аппарату возвращает/разбирает его.
+
 ### Тактическая авиация F-16C и Су-27
 
 - **ПКМ** по стоящему самолёту открывает унифицированный авиационный интерфейс. Установите аккумулятор HBM в `BAT`, ЛТЦ в `LTC` и боеприпасы в доступные узлы подвески.
@@ -588,6 +617,17 @@ Tier-3 long-range tracking is intentionally not instantaneous: the contact must 
 Команда сохраняется в `player.dat`, scoreboard и NBT каждой установки. При демонтаже ключом она также переносится в NBT выпавшего предмета, поэтому выход из мира, подбор и повторная установка не сбрасывают IFF. Чтобы сознательно передать трофей другой стороне, после установки перепривяжите его IFF-конфигуратором через Shift+ПКМ.
 
 Самолёты, БПЛА, «Герани», Х-555, снаряды HBM Greg, ракеты Henry, мобильные и стационарные пусковые, РЛС, командные машины и создаваемое ими управляемое оружие передают эту принадлежность по сети сопровождения. РЛС и пусковые игнорируют трассы с той же непустой командой; чужие цели и цели без владельца остаются допустимыми. В одиночной игре техника без команды продолжает взаимодействовать, но для надёжного сетевого «свой-чужой» scoreboard-команды обязательны.
+
+### Мобильные стратегические комплексы «Тополь-М», «Ярс» и «Орешник»
+
+- Установите предмет пусковой на ровную площадку. В походном положении **ПКМ** сажает на водительское место; управление — **W / S / A / D**, выход — левый Shift.
+- Настройте штатный целеуказатель WarTech/HBM и нажмите им **ПКМ по пусковой**. Машина подтвердит загруженные координаты. Предельная дальность: 48 000 блоков для «Тополя-М», 56 000 для «Ярса», 18 000 для «Орешника».
+- **Shift+ПКМ** начинает подъём или складывание транспортно-пускового контейнера. Дождитесь 100% подъёма; во время пусковой последовательности складывание заблокировано.
+- Обычный **ПКМ по развёрнутой машине** открывает панель. Кнопка `AUTHORIZE LAUNCH` доступна только при поднятом контейнере, загруженной ракете и принятых координатах.
+- После пуска видимая ракета выполняет холодный выброс и разгон. Дальний участок сохраняется в мире без генерации всех промежуточных чанков. Перед расчётным временем удара над целью появляются перехватываемые боевые блоки Tier 3.
+- «Тополь-М» несёт один тяжёлый ядерный блок. «Ярс» разводит три ядерных блока по району цели с задержкой между входами. «Орешник» формирует шесть разнесённых неядерных кинетических ударов.
+- Для перезарядки полностью сложите пустую пусковую и нажмите по ней **ПКМ подходящим ТПК** `Strategic Missile`. ТПК другого семейства не устанавливается.
+- Демонтаж ключом WarTech сохраняет IFF и состояние загрузки; пустую машину нельзя превратить в заряженную переустановкой.
 
 ### Быстрая диагностика
 

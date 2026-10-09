@@ -15,7 +15,7 @@ public class PortItem extends Item {
         String path = safePath(legacyRegistryName);
         setRegistryName(new ResourceLocation(MOD_ID, path));
         setUnlocalizedName(legacyRegistryName);
-        setCreativeTab(tab);
+        setCreativeTab(StrategicFeature.isDisabledItem(this) ? null : tab);
         setMaxStackSize(maxStackSize);
     }
 

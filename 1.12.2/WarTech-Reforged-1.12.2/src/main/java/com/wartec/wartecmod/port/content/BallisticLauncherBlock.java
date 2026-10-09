@@ -27,7 +27,7 @@ public final class BallisticLauncherBlock extends PortBlock
         }
         TileEntity tile = world.getTileEntity(pos);
         if (tile instanceof TileEntityWarTechMachine) {
-            ((TileEntityWarTechMachine) tile).launchLoadedMissile(null);
+            ((TileEntityWarTechMachine) tile).launchFromDetonator(null);
         }
     }
 }

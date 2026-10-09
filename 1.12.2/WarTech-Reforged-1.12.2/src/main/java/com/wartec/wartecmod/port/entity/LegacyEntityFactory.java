@@ -38,6 +38,7 @@ public final class LegacyEntityFactory {
             case ISKANDER: return new LegacyEntityTypes.IskanderMissile(world);
             case ASAT: return new LegacyEntityTypes.AsatMissile(world);
             case GERAN_2: return new LegacyEntityTypes.GeranMissile(world);
+            case GERAN_5: return new LegacyEntityTypes.Geran5Missile(world);
             case ANTI_RADIATION: return new LegacyEntityTypes.AntiRadiationMissile(world);
             case KH555: return new LegacyEntityTypes.Kh555Missile(world);
             case FRAGMENTATION:
@@ -67,6 +68,11 @@ public final class LegacyEntityFactory {
     public static EntityWarTechGroundVehicle groundVehicle(World world,
             WarTechEntityProfile profile) {
         switch (profile) {
+            case STRATEGIC_TOPOL_M:
+            case STRATEGIC_YARS:
+            case STRATEGIC_ORESHNIK:
+                return new EntityStrategicTel(world,
+                        StrategicSystemProfile.fromVehicleProfile(profile));
             case MOBILE_ARTILLERY: return new LegacyEntityTypes.MobileArtillery(world);
             case RADAR_TRUCK: return new LegacyEntityTypes.RadarTruck(world);
             case S400_RADAR: return new LegacyEntityTypes.S400Radar(world);

@@ -1,0 +1,20 @@
+{
+  "variants": {
+    "facing=north": {
+      "model": "wartecmod:cruiselaunchpoint",
+      "y": 0
+    },
+    "facing=east": {
+      "model": "wartecmod:cruiselaunchpoint",
+      "y": 90
+    },
+    "facing=south": {
+      "model": "wartecmod:cruiselaunchpoint",
+      "y": 180
+    },
+    "facing=west": {
+      "model": "wartecmod:cruiselaunchpoint",
+      "y": 270
+    }
+  }
+}

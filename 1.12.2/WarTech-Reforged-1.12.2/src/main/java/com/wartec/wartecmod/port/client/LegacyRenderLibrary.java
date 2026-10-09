@@ -2,10 +2,17 @@ package com.wartec.wartecmod.port.client;
 
 import com.wartec.wartecmod.WarTechReforged;
 import com.wartec.wartecmod.port.entity.EntityWarTechArtilleryProjectile;
+import com.wartec.wartecmod.port.entity.EntityWarTechAircraft;
 import com.wartec.wartecmod.port.entity.EntityWarTechBase;
 import com.wartec.wartecmod.port.entity.EntityWarTechGroundVehicle;
 import com.wartec.wartecmod.port.entity.EntityWarTechMissile;
+import com.wartec.wartecmod.port.entity.EntityStrategicTel;
+import com.wartec.wartecmod.port.entity.EntityStrategicMissile;
+import com.wartec.wartecmod.port.entity.StrategicSystemProfile;
 import com.wartec.wartecmod.port.entity.WarTechEntityProfile;
+import com.wartec.wartecmod.port.entity.EntityCustomUav;
+import com.wartec.wartecmod.port.uav.UavAirframe;
+import com.wartec.wartecmod.port.uav.UavBuild;
 import com.wartec.wartecmod.port.content.MissileItem;
 import com.wartec.wartecmod.port.content.MissileProfile;
 import com.wartec.wartecmod.port.gameplay.TileEntityWarTechMachine;
@@ -32,6 +39,40 @@ final class LegacyRenderLibrary {
     // Original dev66 renderers use 24833 and deliberately exclude GL_TEXTURE_BIT.
     private static final int LEGACY_ATTRIB_MASK = 24833;
     private static final Map<String, LegacyObjModel> MODELS = new HashMap<>();
+    private static final Map<String, LegacyObjModel.Bounds> GUI_BOUNDS =
+            new java.util.LinkedHashMap<String, LegacyObjModel.Bounds>(64, .75F, true) {
+                @Override protected boolean removeEldestEntry(Map.Entry<String, LegacyObjModel.Bounds> entry) {
+                    return size() > 256;
+                }
+            };
+    static void reloadPreviews() { GUI_BOUNDS.clear(); LegacyObjModel.reloadAll(); }
+    /** Prepare known inventory geometry during resource loading, never on opening a tab.
+     * Uses the same render path/cache as real items, with framebuffer writes suppressed.
+     * No world, entities, mission scans or new thumbnail textures are allocated. */
+    static void warmItemPreviews() {
+        int matrixMode=GL11.glGetInteger(GL11.GL_MATRIX_MODE);
+        // Never restore GL_TEXTURE_BIT behind Minecraft's texture-binding cache.
+        GL11.glPushAttrib(LEGACY_ATTRIB_MASK | GL11.GL_COLOR_BUFFER_BIT | GL11.GL_DEPTH_BUFFER_BIT);
+        GL11.glMatrixMode(GL11.GL_MODELVIEW);GL11.glPushMatrix();GL11.glLoadIdentity();
+        GL11.glColorMask(false,false,false,false);GL11.glDepthMask(false);
+        Set<String> prepared=new HashSet<>();
+        try {
+            for(net.minecraft.item.Item item:net.minecraftforge.fml.common.registry.ForgeRegistries.ITEMS.getValuesCollection()) {
+                ResourceLocation id=item.getRegistryName();
+                if(id==null || !WarTechReforged.MODID.equals(id.getResourceDomain())
+                        || !isCustomItem(id.getResourcePath())) continue;
+                net.minecraft.util.NonNullList<ItemStack> variants=net.minecraft.util.NonNullList.create();
+                item.getSubItems(net.minecraft.creativetab.CreativeTabs.SEARCH,variants);
+                for(ItemStack stack:variants) {
+                    String key=ItemPreviewKey.of(id.getResourcePath(),stack.getMetadata(),stack.getTagCompound());
+                    if(prepared.add(key)) renderItem(stack,ItemCameraTransforms.TransformType.GUI);
+                }
+            }
+        } finally {
+            GL11.glMatrixMode(GL11.GL_MODELVIEW);GL11.glPopMatrix();
+            GL11.glPopAttrib();GL11.glMatrixMode(matrixMode);
+        }
+    }
     private static final Set<String> REPORTED_UNKNOWN_VISUALS = new HashSet<>();
 
     private static final String[] MQ9_BODY = {"body", "propeller_rotator"};
@@ -115,21 +156,50 @@ final class LegacyRenderLibrary {
     private LegacyRenderLibrary() {
     }
 
-    static void renderEntity(EntityWarTechBase entity, double x, double y, double z,
-            float partialTicks) {
+    static void renderEntity(EntityWarTechBase entity, double x, double y,
+            double z, float partialTicks, float remoteYaw,
+            float remotePitch) {
+        if (com.wartec.wartecmod.port.content.StrategicFeature.isDisabledEntity(entity)) return;
         GL11.glPushMatrix();
         GL11.glPushAttrib(LEGACY_ATTRIB_MASK);
         setup();
         GL11.glTranslated(x, y, z);
         String visual = resolveVisual(entity);
         int variant = entity.getVisualVariant();
-        float yaw = interpolate(entity.prevRotationYaw, entity.rotationYaw, partialTicks);
-        float pitch = interpolate(entity.prevRotationPitch, entity.rotationPitch, partialTicks);
+        float yaw = Float.isNaN(remoteYaw)
+                ? interpolate(entity.prevRotationYaw, entity.rotationYaw, partialTicks)
+                : remoteYaw;
+        float pitch = Float.isNaN(remotePitch)
+                ? interpolate(entity.prevRotationPitch, entity.rotationPitch, partialTicks)
+                : remotePitch;
 
+        if (entity instanceof com.wartec.wartecmod.port.entity.EntityCustomCruise) {
+            CruiseRenderer.renderEntity((com.wartec.wartecmod.port.entity.EntityCustomCruise) entity,yaw,pitch,partialTicks);
+            GL11.glPopAttrib();GL11.glPopMatrix();return;
+        }
+        if (entity instanceof EntityCustomUav) {
+            CustomUavRenderer.renderEntity((EntityCustomUav) entity,
+                    yaw, pitch, partialTicks);
+            GL11.glColor4f(1.0F, 1.0F, 1.0F, 1.0F);
+            GL11.glPopAttrib();
+            GL11.glPopMatrix();
+            return;
+        }
+
+        float worldScale=com.wartec.wartecmod.port.entity.VehicleDimensions.worldScale(entity.getProfile(),visual);
+        GL11.glScalef(worldScale,worldScale,worldScale);
         if (visual.contains("storm_shadow")) {
             renderAdvancedMissile("models/storm_shadow/storm_shadow.obj",
                     "textures/models/storm_shadow/storm_shadow.png",
                     0.010F, -90.0F, 0.37F, 2.8F, 0.0F, false, false, yaw, pitch);
+        } else if (visual.contains("geran_5")) {
+            GL11.glRotatef(-yaw,0,1,0);GL11.glRotatef(pitch,1,0,0);
+            renderSingle("models/geran/geran5.obj","textures/models/geran/geran5.png");
+            if (entity instanceof com.wartec.wartecmod.port.entity.EntityWarTechMissile
+                    && ((com.wartec.wartecmod.port.entity.EntityWarTechMissile)entity).isGeranJetRunning()) {
+                CruiseExhaustRenderer.renderGeran5(entity.ticksExisted+partialTicks,
+                        Math.sqrt(entity.motionX*entity.motionX+entity.motionY*entity.motionY+entity.motionZ*entity.motionZ));
+            }
         } else if (visual.contains("geran")) {
             renderAdvancedMissile("models/geran/geran2.obj",
                     "textures/models/geran/geran2.png",
@@ -157,7 +227,9 @@ final class LegacyRenderLibrary {
         } else if (visual.contains("f16")) {
             GL11.glTranslatef(0.0F, 0.08F, 0.0F);
             GL11.glRotatef(-yaw + 90.0F, 0.0F, 1.0F, 0.0F);
-            GL11.glRotatef(-pitch + tacticalFlightPitchTrim(entity),
+            // Native F-16 nose is -X: opposite Z-rotation from the Su-27's +X nose.
+            GL11.glRotatef(f16RenderPitch(entity, pitch)
+                            - tacticalFlightPitchTrim(entity),
                     0.0F, 0.0F, 1.0F);
             applyTacticalWreckAttitude(entity);
             renderTactical(entity, false, false);
@@ -210,6 +282,21 @@ final class LegacyRenderLibrary {
             GL11.glRotatef(-yaw + 90.0F, 0.0F, 1.0F, 0.0F);
             GL11.glRotatef(pitch, 0.0F, 0.0F, 1.0F);
             renderStrategicBomb(variant, 1.0F);
+        } else if (visual.contains("strategic_flight")) {
+            renderStrategicFlight(entity instanceof EntityStrategicMissile
+                    ? (EntityStrategicMissile) entity : null,
+                    variant, yaw, pitch);
+        } else if (visual.contains("strategic_topol_m")
+                || visual.contains("strategic_yars")
+                || visual.contains("strategic_oreshnik")) {
+            GL11.glRotatef(180.0F - yaw, 0.0F, 1.0F, 0.0F);
+            EntityStrategicTel tel = entity instanceof EntityStrategicTel
+                    ? (EntityStrategicTel) entity : null;
+            float erection = tel == null ? 0.0F
+                    : tel.getErectionProgress() / 100.0F;
+            boolean loaded = tel == null || tel.isMissileLoaded();
+            int launchTicks = tel == null ? 0 : tel.getLaunchTicks();
+            renderStrategicTel(variant, erection, loaded, launchTicks);
         } else if (visual.contains("mobile_radar_truck")) {
             GL11.glRotatef(180.0F - yaw, 0.0F, 1.0F, 0.0F);
             renderRadarTruck(0.009F, false,
@@ -317,15 +404,21 @@ final class LegacyRenderLibrary {
 
     private static void fitItemToGuiSlot(ItemStack stack,
             ItemCameraTransforms.TransformType type) {
-        LegacyObjModel.Bounds bounds = new LegacyObjModel.Bounds();
-        GL11.glPushMatrix();
-        GL11.glLoadIdentity();
-        LegacyObjModel.beginMeasurement(bounds);
-        try {
-            renderItemRaw(stack, type);
-        } finally {
-            LegacyObjModel.endMeasurement();
-            GL11.glPopMatrix();
+        String key = ItemPreviewKey.of(stack.getItem().getRegistryName().getResourcePath(),
+                stack.getMetadata(), stack.getTagCompound());
+        LegacyObjModel.Bounds bounds = GUI_BOUNDS.get(key);
+        if (bounds == null) {
+            bounds = new LegacyObjModel.Bounds();
+            GL11.glPushMatrix();
+            GL11.glLoadIdentity();
+            LegacyObjModel.beginMeasurement(bounds);
+            try {
+                renderItemRaw(stack, type);
+            } finally {
+                LegacyObjModel.endMeasurement();
+                GL11.glPopMatrix();
+            }
+            GUI_BOUNDS.put(key, bounds);
         }
         if (!bounds.isValid() || bounds.largestSize() <= 1.0E-5F) {
             return;
@@ -354,6 +447,9 @@ final class LegacyRenderLibrary {
                     "textures/models/storm_shadow/storm_shadow.png",
                     0.010F, 0.28F, 135.0F, 0.37F, 2.8F, 0.0F,
                     false, inventory);
+        } else if ("geran5drone".equals(name)) {
+            renderAdvancedInventory("models/geran/geran5.obj","textures/models/geran/geran5.png",
+                    1.0F,.25F,135.0F,0.0F,-.20F,0.0F,true,inventory);
         } else if ("gerandrone".equals(name)) {
             renderAdvancedInventory("models/geran/geran2.obj",
                     "textures/models/geran/geran2.png",
@@ -378,6 +474,14 @@ final class LegacyRenderLibrary {
             GL11.glRotatef(64.0F, 1.0F, 0.0F, 0.0F);
             GL11.glRotatef(-38.0F, 0.0F, 1.0F, 0.0F);
             renderMq9(null, 82.0F, 0.0F);
+        } else if ("assembleduav".equals(name)) {
+            CustomUavRenderer.renderItem(UavBuild.fromStack(stack), type);
+        } else if ("assembledcruise".equals(name)) {
+            CruiseRenderer.renderItem(com.wartec.wartecmod.port.cruise.CruiseBuild.fromStack(stack),type);
+        } else if ("cruisemodule".equals(name)) {
+            com.wartec.wartecmod.port.cruise.CruisePartDefinition part=com.wartec.wartecmod.port.cruise.CruisePartDefinition.byMetadata(stack.getMetadata());
+            if(part!=null && part.getSlot()==com.wartec.wartecmod.port.cruise.CruiseSlot.BODY)
+                CruiseRenderer.renderItem(com.wartec.wartecmod.port.cruise.CruiseBuild.starter(part),type);
         } else if ("tacticalaircraft".equals(name) || "su27tacticalaircraft".equals(name)) {
             applySimpleInventoryTransform(type, -0.04F, 1.1F);
             GL11.glRotatef(62.0F, 1.0F, 0.0F, 0.0F);
@@ -397,6 +501,16 @@ final class LegacyRenderLibrary {
             GL11.glRotatef(20.0F, 1.0F, 0.0F, 0.0F);
             GL11.glRotatef(-32.0F, 0.0F, 0.0F, 1.0F);
             renderStrategicBomb(variant, inventory ? 0.42F : 0.72F);
+        } else if ("topolmtel".equals(name) || "yarstel".equals(name)
+                || "oreshniktel".equals(name)) {
+            applyVehicleItemTransform(type,
+                    -0.30F, 0.75F,
+                    0.65F, 0.35F, 0.15F, 0.11F, 0.15F);
+            GL11.glRotatef(22.0F, 1.0F, 0.0F, 0.0F);
+            GL11.glRotatef(138.0F, 0.0F, 1.0F, 0.0F);
+            renderStrategicTel("topolmtel".equals(name) ? 0
+                    : "yarstel".equals(name) ? 1 : 2,
+                    0.0F, true, 0);
         } else if ("mobileradartruck".equals(name)) {
             applyVehicleItemTransform(type,
                     -0.32F, 0.84F,
@@ -469,14 +583,17 @@ final class LegacyRenderLibrary {
     }
 
     static boolean isCustomItem(String path) {
-        return path.equals("stormshadow") || path.equals("gerandrone")
+        return path.equals("stormshadow") || path.equals("gerandrone") || path.equals("geran5drone")
                 || path.equals("antiradiationmissile") || path.equals("kh555missile")
-                || path.equals("mq9reaperdrone") || path.equals("mq9payload")
+                || path.equals("mq9reaperdrone") || path.equals("assembleduav") || path.equals("assembledcruise")
+                || path.equals("mq9payload")
                 || path.equals("strategicbomb") || path.equals("tu95strategicbomber")
                 || path.equals("tacticalaircraft") || path.equals("su27tacticalaircraft")
                 || path.equals("mobileradartruck") || path.equals("s400longrangeradar")
                 || path.equals("airdefensecommandtruck") || path.equals("electronicwarfareunit")
                 || path.equals("mobileairdefensesystem") || path.equals("mobileartillery")
+                || path.equals("topolmtel") || path.equals("yarstel")
+                || path.equals("oreshniktel")
                 || path.equals("itemkalibrmissile") || path.equals("itemtomahawkmissile")
                 || path.equals("itemcj10missile") || path.equals("itemiskandermissile")
                 || path.startsWith("itemmissileantiairtier") || path.equals("itemmissileasat")
@@ -507,6 +624,13 @@ final class LegacyRenderLibrary {
         } else if (profile == WarTechEntityProfile.ELECTRONIC_WARFARE) {
             GL11.glRotatef(180.0F - yaw, 0.0F, 1.0F, 0.0F);
             renderElectronicWarfare(0, false);
+        } else if (profile == WarTechEntityProfile.STRATEGIC_TOPOL_M
+                || profile == WarTechEntityProfile.STRATEGIC_YARS
+                || profile == WarTechEntityProfile.STRATEGIC_ORESHNIK) {
+            GL11.glRotatef(180.0F - yaw, 0.0F, 1.0F, 0.0F);
+            renderStrategicTel(StrategicSystemProfile
+                    .fromVehicleProfile(profile).ordinal(),
+                    0.0F, true, 0);
         } else {
             reportUnknownVisual(profile);
         }
@@ -594,6 +718,14 @@ final class LegacyRenderLibrary {
 
     private static void renderMq9(EntityWarTechBase entity, float scale,
             float animationTicks) {
+        boolean showPylons = !(entity instanceof EntityCustomUav)
+                || ((EntityCustomUav) entity).getAirframeType()
+                        != UavAirframe.RECON;
+        renderMq9(entity, scale, animationTicks, showPylons);
+    }
+
+    private static void renderMq9(EntityWarTechBase entity, float scale,
+            float animationTicks, boolean showPylons) {
         LegacyObjModel model = model("models/mq9/mq9_reaper.obj");
         GL11.glPushMatrix();
         GL11.glScalef(scale, scale, scale);
@@ -605,8 +737,10 @@ final class LegacyRenderLibrary {
         renderParts(model, MQ9_CAMERA);
         bind("textures/models/mq9/mq9_extras.png");
         model.renderPart("extras");
-        bind("textures/models/mq9/mq9_pylons.png");
-        renderParts(model, MQ9_PYLONS);
+        if (showPylons && entity==null) {
+            bind("textures/models/mq9/mq9_pylons.png");
+            renderParts(model, MQ9_PYLONS);
+        }
         bind("textures/models/mq9/mq9_body.png");
         GL11.glPushMatrix();
         GL11.glTranslatef(-0.0038F, 0.0F, 0.0F);
@@ -615,16 +749,14 @@ final class LegacyRenderLibrary {
         model.renderPart("propeller");
         GL11.glPopMatrix();
         GL11.glPopMatrix();
-        if (entity != null) {
-            float[] payloadZ = {-2.35F, -1.65F, -0.95F, 0.95F, 1.65F, 2.35F};
+        if (entity != null && showPylons) {
+            GL11.glPushMatrix();GL11.glRotatef(90,0,1,0);
             for (int slot = 0; slot < 6; ++slot) {
                 int code = entity.getLegacyPayloadCodeAt(slot);
                 if (code <= 0) continue;
-                GL11.glPushMatrix();
-                GL11.glTranslatef(-0.05F, -0.42F, payloadZ[slot]);
-                renderPayloadCode(code, 0.9F);
-                GL11.glPopMatrix();
+                renderConventionalAircraftStore(entity,slot,code,1.10);
             }
+            GL11.glPopMatrix();
         }
     }
 
@@ -718,11 +850,12 @@ final class LegacyRenderLibrary {
         GL11.glPopMatrix();
     }
 
-    private static void renderPayloadCode(int code, float scale) {
+    static void renderPayloadCode(int code, float scale) {
         if (code >= 1 && code <= 9) {
             renderOrdnance(code - 1, scale);
         } else if (code == 10) {
             GL11.glScalef(0.45F * scale, 0.45F * scale, 0.45F * scale);
+            GL11.glTranslatef(0,-.35F,0);
             renderSingle("models/strategic/kh555.obj",
                     "textures/models/strategic/kh555.png");
         } else if (code == 11 || code == 12) {
@@ -747,39 +880,68 @@ final class LegacyRenderLibrary {
                 1.85F, 1.60F, 1.55F, 1.45F};
         for (int slot = 0; slot < offset.length; ++slot) {
             int code = entity.getLegacyPayloadCodeAt(slot);
+            if(code>=13 && entity instanceof EntityWarTechAircraft) {
+                GL11.glPushMatrix();
+                // Cancel the carrier's native OBJ front-axis rotation, NOT double it.
+                GL11.glRotatef(com.wartec.wartecmod.port.cruise.CruiseAircraftLoadout.nativeCorrection(entity.getProfile()),0,1,0);
+                renderCustomAircraftStore((EntityWarTechAircraft)entity,slot,.08);
+                GL11.glPopMatrix();continue;
+            }
             if (code < 1 || code > 9) continue;
-            int type = code - 1;
-            float modelTop = tops[type] * scales[type] * 0.92F;
-            float payloadY = (float) underside[slot] - modelTop - 0.008F;
-            renderPylon((float) modelX[slot], payloadY + modelTop,
-                    (float) underside[slot], (float) offset[slot]);
             GL11.glPushMatrix();
-            GL11.glTranslatef((float) modelX[slot], payloadY, (float) offset[slot]);
-            if (su27) GL11.glRotatef(180.0F, 0.0F, 1.0F, 0.0F);
-            renderOrdnance(type, 0.92F);
+            GL11.glRotatef(com.wartec.wartecmod.port.cruise.CruiseAircraftLoadout.nativeCorrection(entity.getProfile()),0,1,0);
+            renderConventionalAircraftStore(entity,slot,code,.08);
             GL11.glPopMatrix();
         }
     }
 
     private static void renderTu95Payloads(EntityWarTechBase entity) {
-        float[] missileX = {-6.4F, -5.1F, -3.8F, 3.8F, 5.1F, 6.4F};
-        float[] missileZ = {0.65F, 1.0F, 1.35F, 1.35F, 1.0F, 0.65F};
-        float[] bombX = {-5.7F, -4.15F, -2.7F, 2.7F, 4.15F, 5.7F};
-        float[] bombZ = {1.45F, 1.15F, 0.85F, 0.85F, 1.15F, 1.45F};
         for (int slot = 0; slot < 6; ++slot) {
             int code = entity.getLegacyPayloadCodeAt(slot);
             if (code <= 0) continue;
             GL11.glPushMatrix();
-            if (code == 10) {
-                GL11.glTranslatef(missileX[slot], 1.38F, missileZ[slot]);
-                renderPayloadCode(code, 1.0F);
-            } else if (code == 11 || code == 12) {
-                GL11.glTranslatef(bombX[slot], 1.78F, bombZ[slot]);
-                GL11.glRotatef(90.0F, 0.0F, 1.0F, 0.0F);
-                renderPayloadCode(code, 1.0F);
+            if(code>=13 && entity instanceof EntityWarTechAircraft) {
+                renderCustomAircraftStore((EntityWarTechAircraft)entity,slot,-.25);
+            } else if (code>=10 && code<=12) {
+                double scale=com.wartec.wartecmod.port.entity.VehicleDimensions.scale(entity.getProfile());
+                net.minecraft.util.math.Vec3d at=com.wartec.wartecmod.port.entity.VehicleDimensions.tuStore(code,slot);
+                GL11.glScaled(1/scale,1/scale,1/scale);GL11.glTranslated(at.x,at.y+.25*scale,at.z);
+                double top=com.wartec.wartecmod.port.entity.VehicleDimensions.tuStoreBodyTop(code);
+                double attach=com.wartec.wartecmod.port.entity.VehicleDimensions.tuAttachY(code,slot);
+                GL11.glPushMatrix();GL11.glTranslated(0,top,0);GL11.glScaled(1,attach-at.y-top,1);
+                bind("textures/models/mq9/mq9_pylons.png");model("models/custom_uav/cruise_pylon.obj").renderAll();GL11.glPopMatrix();
+                if(code!=10) GL11.glRotatef(90.0F, 0.0F, 1.0F, 0.0F);
+                renderPayloadCode(code,code==10?1.10F/.45F:1.15F/.54F);
             }
             GL11.glPopMatrix();
         }
+    }
+
+    private static void renderCustomAircraftStore(EntityWarTechAircraft aircraft,int slot,double renderLift) {
+        com.wartec.wartecmod.port.cruise.CruiseBuild build=aircraft.getCruiseStoreBuild(slot);
+        net.minecraft.util.math.Vec3d at=com.wartec.wartecmod.port.cruise.CruiseAircraftLoadout.mount(aircraft.getProfile(),build,slot);
+        double carrierScale=com.wartec.wartecmod.port.entity.VehicleDimensions.scale(aircraft.getProfile());
+        // Coordinates are already WORLD dimensions. Cancel only the outer carrier scale,
+        // retaining its yaw/pitch and the original body's ground-contact origin.
+        GL11.glPushMatrix();GL11.glScaled(1/carrierScale,1/carrierScale,1/carrierScale);
+        GL11.glTranslated(at.x,at.y-renderLift*carrierScale,at.z);
+        double top=com.wartec.wartecmod.port.cruise.CruiseAircraftLoadout.storeBodyTop(build);
+        double attach=com.wartec.wartecmod.port.cruise.CruiseAircraftLoadout.attachY(aircraft.getProfile(),build,slot);
+        GL11.glPushMatrix();GL11.glTranslated(0,top,0);
+        GL11.glScaled(1,Math.max(.08,attach-at.y-top),1);
+        bind("textures/models/mq9/mq9_pylons.png");model("models/custom_uav/cruise_pylon.obj").renderAll();
+        GL11.glPopMatrix();CruiseRenderer.renderMount(build);GL11.glPopMatrix();
+    }
+    private static void renderConventionalAircraftStore(EntityWarTechBase aircraft,int slot,int code,double lift) {
+        double scale=com.wartec.wartecmod.port.entity.VehicleDimensions.scale(aircraft.getProfile());
+        net.minecraft.util.math.Vec3d at=com.wartec.wartecmod.port.entity.AircraftStores.mount(aircraft.getProfile(),code-1,slot);
+        double attach=com.wartec.wartecmod.port.entity.AircraftStores.anchor(aircraft.getProfile(),slot).y;
+        double top=com.wartec.wartecmod.port.entity.AircraftStores.bodyTop(code-1);
+        GL11.glPushMatrix();GL11.glScaled(1/scale,1/scale,1/scale);
+        GL11.glTranslated(at.x,at.y-lift*scale,at.z);
+        GL11.glPushMatrix();GL11.glTranslated(0,top,0);GL11.glScaled(1,attach-at.y-top,1);
+        bind("textures/models/mq9/mq9_pylons.png");model("models/custom_uav/cruise_pylon.obj").renderAll();GL11.glPopMatrix();
+        GL11.glRotatef(90,0,1,0);renderPayloadCode(code,1.15F);GL11.glPopMatrix();
     }
 
     private static void renderPylon(float x, float payloadTop, float underside,
@@ -1369,6 +1531,151 @@ final class LegacyRenderLibrary {
         model.renderPart("SM_S400_VarA_01_01_Truck_1_0");
     }
 
+    private static void renderStrategicTel(int variant, float erection,
+            boolean loaded, int launchTicks) {
+        StrategicSystemProfile system = StrategicSystemProfile.byOrdinal(variant);
+        float vehicleScale = system == StrategicSystemProfile.YARS ? 0.78F
+                : system == StrategicSystemProfile.ORESHNIK ? 0.72F : 0.76F;
+        float bodyR = system == StrategicSystemProfile.YARS ? 0.16F : 0.21F;
+        float bodyG = system == StrategicSystemProfile.ORESHNIK ? 0.24F : 0.28F;
+        float bodyB = system == StrategicSystemProfile.ORESHNIK ? 0.14F : 0.17F;
+        float progress = Math.max(0.0F, Math.min(1.0F, erection));
+        float angle = -90.0F * progress;
+        boolean capClosed = launchTicks < 14 || launchTicks > 72;
+
+        GL11.glPushMatrix();
+        GL11.glScalef(vehicleScale, vehicleScale, vehicleScale);
+        GL11.glTranslatef(2.45F, 0.0F, 0.0F);
+        LegacyObjModel tel = model("models/strategic/cc0_transporter_erector.obj");
+        GL11.glDisable(GL11.GL_TEXTURE_2D);
+        renderColoredPart(tel, "chassis_body", bodyR, bodyG, bodyB);
+        renderColoredPart(tel, "chassis_dark", 0.075F, 0.085F, 0.070F);
+        renderColoredPart(tel, "chassis_glass", 0.055F, 0.105F, 0.120F);
+        renderColoredPart(tel, "wheel_tire", 0.035F, 0.037F, 0.033F);
+        renderColoredPart(tel, "wheel_hub", 0.19F, 0.21F, 0.17F);
+
+        GL11.glPushMatrix();
+        GL11.glTranslatef(6.60F, 3.05F, 0.0F);
+        GL11.glRotatef(angle, 0.0F, 0.0F, 1.0F);
+        GL11.glTranslatef(-6.60F, -3.05F, 0.0F);
+        renderColoredPart(tel, "erector_body", bodyR * 0.90F,
+                bodyG * 0.90F, bodyB * 0.90F);
+        renderColoredPart(tel, "erector_dark", 0.065F, 0.070F, 0.060F);
+        GL11.glEnable(GL11.GL_TEXTURE_2D);
+
+        float length = system == StrategicSystemProfile.TOPOL_M ? 16.1F
+                : system == StrategicSystemProfile.YARS ? 15.7F : 14.4F;
+        float radius = system == StrategicSystemProfile.ORESHNIK ? 0.64F : 0.76F;
+        GL11.glPushMatrix();
+        GL11.glTranslatef(6.45F, 4.55F, 0.0F);
+        GL11.glRotatef(90.0F, 0.0F, 0.0F, 1.0F);
+        renderCanister(radius, length, capClosed);
+        if (loaded && !capClosed && launchTicks < 44) {
+            float rise = Math.max(0.0F, launchTicks - 14) / 30.0F * 3.0F;
+            GL11.glPushMatrix();
+            GL11.glTranslatef(0.0F, 0.55F + rise, 0.0F);
+            GL11.glScalef(0.43F, 1.08F, 0.43F);
+            renderStrategicMissileModel(system);
+            GL11.glPopMatrix();
+        }
+        GL11.glPopMatrix();
+        GL11.glPopMatrix();
+        GL11.glColor4f(1.0F, 1.0F, 1.0F, 1.0F);
+        GL11.glEnable(GL11.GL_TEXTURE_2D);
+        GL11.glPopMatrix();
+    }
+
+    private static void renderColoredPart(LegacyObjModel model, String part,
+            float red, float green, float blue) {
+        GL11.glColor4f(red, green, blue, 1.0F);
+        model.renderPart(part);
+    }
+
+    private static void renderCanister(float radius, float length,
+            boolean capClosed) {
+        GL11.glDisable(GL11.GL_TEXTURE_2D);
+        GL11.glColor4f(0.20F, 0.27F, 0.16F, 1.0F);
+        int segments = 32;
+        renderCylinderSide(radius, 0.0F, length, segments);
+
+        GL11.glColor4f(0.12F, 0.16F, 0.10F, 1.0F);
+        float[] bands = {0.22F, 1.45F, length * 0.50F,
+                length - 1.45F, length - 0.22F};
+        for (float band : bands) {
+            renderCylinderSide(radius * 1.055F, band - 0.08F,
+                    band + 0.08F, segments);
+        }
+
+        float rail = radius * 0.12F;
+        float railZ = radius * 0.985F;
+        GL11.glBegin(GL11.GL_QUAD_STRIP);
+        GL11.glNormal3f(0.0F, 0.0F, 1.0F);
+        GL11.glVertex3f(-rail, 0.35F, railZ);
+        GL11.glVertex3f(-rail, length - 0.35F, railZ);
+        GL11.glVertex3f(rail, 0.35F, railZ);
+        GL11.glVertex3f(rail, length - 0.35F, railZ);
+        GL11.glEnd();
+
+        renderCanisterDisc(radius, 0.0F, -1.0F, segments);
+        if (capClosed) {
+            GL11.glColor4f(0.27F, 0.33F, 0.22F, 1.0F);
+            renderCanisterDisc(radius * 1.02F, length, 1.0F, segments);
+        }
+        GL11.glColor4f(1.0F, 1.0F, 1.0F, 1.0F);
+        GL11.glEnable(GL11.GL_TEXTURE_2D);
+    }
+
+    private static void renderCylinderSide(float radius, float start,
+            float end, int segments) {
+        GL11.glBegin(GL11.GL_QUAD_STRIP);
+        for (int index = 0; index <= segments; ++index) {
+            double angle = Math.PI * 2.0D * index / segments;
+            float x = (float) Math.cos(angle) * radius;
+            float z = (float) Math.sin(angle) * radius;
+            GL11.glNormal3f(x / radius, 0.0F, z / radius);
+            GL11.glVertex3f(x, start, z);
+            GL11.glVertex3f(x, end, z);
+        }
+        GL11.glEnd();
+    }
+
+    private static void renderCanisterDisc(float radius, float y,
+            float normalY, int segments) {
+        GL11.glBegin(GL11.GL_TRIANGLE_FAN);
+        GL11.glNormal3f(0.0F, normalY, 0.0F);
+        GL11.glVertex3f(0.0F, y, 0.0F);
+        for (int index = 0; index <= segments; ++index) {
+            int winding = normalY > 0.0F ? index : segments - index;
+            double angle = Math.PI * 2.0D * winding / segments;
+            GL11.glVertex3f((float) Math.cos(angle) * radius, y,
+                    (float) Math.sin(angle) * radius);
+        }
+        GL11.glEnd();
+    }
+
+    private static void renderStrategicFlight(EntityStrategicMissile missile,
+            int variant, float yaw, float pitch) {
+        StrategicSystemProfile system = StrategicSystemProfile.byOrdinal(variant);
+        GL11.glRotatef(-yaw, 0.0F, 1.0F, 0.0F);
+        GL11.glRotatef(pitch + 90.0F, 1.0F, 0.0F, 0.0F);
+        boolean reentry = missile != null && missile.isReentryVehicle();
+        float scale = reentry ? 0.13F
+                : system == StrategicSystemProfile.YARS ? 0.61F
+                : system == StrategicSystemProfile.ORESHNIK ? 0.52F : 0.58F;
+        GL11.glScalef(scale, scale, scale);
+        renderStrategicMissileModel(system);
+    }
+
+    private static void renderStrategicMissileModel(
+            StrategicSystemProfile system) {
+        String texture = system == StrategicSystemProfile.YARS
+                ? "hbm:textures/models/missiles/missile_huge_bu.png"
+                : system == StrategicSystemProfile.ORESHNIK
+                ? "hbm:textures/models/missiles/missile_huge_cl.png"
+                : "hbm:textures/models/missiles/missile_huge.png";
+        renderSingle("hbm:models/missile_huge.obj", texture);
+    }
+
     static void renderBlock(String name, double x, double y, double z,
             TileEntityWarTechMachine tile, EnumFacing decorationFacing,
             float partialTicks) {
@@ -1377,10 +1684,21 @@ final class LegacyRenderLibrary {
         setup();
         if ("geranlauncher".equals(name)) {
             GL11.glTranslated(x + 0.5D, y, z + 0.5D);
+            float scale=com.wartec.wartecmod.port.entity.VehicleDimensions.blockScale(name);
+            GL11.glScalef(scale,scale,scale);
             renderSingle("models/geran/geran_catapult.obj",
                     "textures/models/geran/geran_catapult.png");
             if (tile != null && !tile.getStackInSlot(0).isEmpty()) {
                 GL11.glPushMatrix();
+                if(tile.getStackInSlot(0).getItem()==com.wartec.wartecmod.port.content.WarTechContent.GERAN_5_DRONE) {
+                    // A low sliding cradle supports the pod and fuselage, with no
+                    // changes to the user's mesh and no rail inside its wing.
+                    GL11.glRotatef(-12,1,0,0);
+                    GL11.glScalef(1/scale,1/scale,1/scale);
+                    renderSingle("models/geran/geran5_cradle.obj","textures/models/geran/geran_catapult.png");
+                    GL11.glTranslatef(0,1.30064F,.46049F);
+                    renderSingle("models/geran/geran5.obj","textures/models/geran/geran5.png");
+                } else {
                 GL11.glTranslatef(0.0F, 1.22F, 0.45F);
                 GL11.glRotatef(-12.0F, 1.0F, 0.0F, 0.0F);
                 GL11.glRotatef(180.0F, 1.0F, 0.0F, 0.0F);
@@ -1388,16 +1706,21 @@ final class LegacyRenderLibrary {
                 GL11.glTranslatef(0.0F, -0.8F, -25.0F);
                 renderSingle("models/geran/geran2_launcher_lod.obj",
                         "textures/models/geran/geran2.png");
+                }
                 GL11.glPopMatrix();
             }
         } else if ("patriotlauncher".equals(name)) {
             GL11.glTranslated(x + 0.5D, y, z + 0.5D);
+            float scale=com.wartec.wartecmod.port.entity.VehicleDimensions.blockScale(name);
+            GL11.glScalef(scale,scale,scale);
             GL11.glRotatef(90.0F, 0.0F, 1.0F, 0.0F);
             GL11.glScalef(0.60F, 0.60F, 0.60F);
             GL11.glTranslatef(2.42275F, 0.047F, 0.0F);
             renderPatriot();
         } else if ("s400launcher".equals(name)) {
             GL11.glTranslated(x + 0.5D, y, z + 0.5D);
+            float scale=com.wartec.wartecmod.port.entity.VehicleDimensions.blockScale(name);
+            GL11.glScalef(scale,scale,scale);
             GL11.glRotatef(180.0F, 0.0F, 1.0F, 0.0F);
             GL11.glScalef(0.008F, 0.008F, 0.008F);
             GL11.glTranslatef(0.0F, 1.9531822F, 116.85965F);
@@ -1454,11 +1777,8 @@ final class LegacyRenderLibrary {
         String id = item.getProfile().getIntentPath();
         GL11.glPushMatrix();
         GL11.glTranslated(0.0D, 1.0D, 0.0D);
-        if ("slbm".equals(id)) {
-            GL11.glScalef(1.5F, 1.5F, 1.5F);
-        } else if (id.startsWith("micro_") || "asat".equals(id)) {
-            GL11.glScalef(2.0F, 2.0F, 2.0F);
-        }
+        float scale=com.wartec.wartecmod.port.entity.VehicleDimensions.missileScale(id);
+        GL11.glScalef(scale,scale,scale);
         // The dev66 launcher intentionally used the neutron skin for loaded ASAT.
         renderLegacyMissile("asat".equals(id) ? "micro_neutron" : id,
                 90.0F, 0.0F, 1);
@@ -1491,6 +1811,8 @@ final class LegacyRenderLibrary {
     private static void renderLoadedLaunchTubeMissile(
             MissileProfile profile) {
         String id = profile.getIntentPath();
+        float scale=com.wartec.wartecmod.port.entity.VehicleDimensions.missileScale(id);
+        GL11.glScalef(scale,scale,scale);
         if (profile.getFlightClass() == MissileProfile.FlightClass.HYPERSONIC) {
             bind(id.contains("nuclear")
                     ? "textures/models/entity_hypersonic_cruise_missile_nuclear_tex.png"
@@ -1646,6 +1968,10 @@ final class LegacyRenderLibrary {
             case MOBILE_AIR_DEFENSE: return "deployment/mobile_air_defense";
             case MOBILE_ARTILLERY: return "deployment/mobile_artillery";
             case ELECTRONIC_WARFARE: return "deployment/electronic_warfare_unit";
+            case STRATEGIC_TOPOL_M: return "deployment/strategic_topol_m";
+            case STRATEGIC_YARS: return "deployment/strategic_yars";
+            case STRATEGIC_ORESHNIK: return "deployment/strategic_oreshnik";
+            case STRATEGIC_FLIGHT: return "strategic_flight/boost";
             default: return "missile/storm_shadow";
         }
     }
@@ -1675,9 +2001,12 @@ final class LegacyRenderLibrary {
         if (LegacyObjModel.isMeasuring()) {
             return;
         }
+        String normalized = path.toLowerCase(Locale.ROOT);
         OpenGlHelper.setActiveTexture(OpenGlHelper.defaultTexUnit);
         Minecraft.getMinecraft().getTextureManager().bindTexture(
-                new ResourceLocation(WarTechReforged.MODID, path.toLowerCase(Locale.ROOT)));
+                normalized.indexOf(':') >= 0
+                        ? new ResourceLocation(normalized)
+                        : new ResourceLocation(WarTechReforged.MODID, normalized));
     }
 
     private static void setup() {
@@ -1698,6 +2027,16 @@ final class LegacyRenderLibrary {
     private static float tacticalFlightPitchTrim(EntityWarTechBase entity) {
         int state = entity.getLegacyState();
         return state != 0 && state != 6 ? 3.5F : 0.0F;
+    }
+
+    private static float f16RenderPitch(EntityWarTechBase entity,
+            float pitch) {
+        if (!(entity instanceof EntityWarTechAircraft)
+                || entity.getLegacyState() == 0
+                || entity.getLegacyState() == 6) {
+            return pitch;
+        }
+        return Math.max(-32.0F, Math.min(24.0F, pitch));
     }
 
     private static void applyTacticalWreckAttitude(EntityWarTechBase entity) {

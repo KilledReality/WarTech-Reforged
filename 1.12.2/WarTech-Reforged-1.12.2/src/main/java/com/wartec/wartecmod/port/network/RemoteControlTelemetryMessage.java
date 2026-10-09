@@ -2,6 +2,7 @@ package com.wartec.wartecmod.port.network;
 
 import com.wartec.wartecmod.port.entity.EntityWarTechAircraft;
 import com.wartec.wartecmod.port.entity.EntityWarTechMissile;
+import com.wartec.wartecmod.port.entity.EntityCustomUav;
 import io.netty.buffer.ByteBuf;
 import net.minecraftforge.fml.common.network.ByteBufUtils;
 import net.minecraftforge.fml.common.network.simpleimpl.IMessage;
@@ -11,6 +12,7 @@ import net.minecraftforge.fml.common.network.simpleimpl.MessageContext;
 public final class RemoteControlTelemetryMessage implements IMessage {
     public int entityId;
     public int vehicleType;
+    public int serverTick;
     public double x;
     public double y;
     public double z;
@@ -38,6 +40,7 @@ public final class RemoteControlTelemetryMessage implements IMessage {
     public RemoteControlTelemetryMessage(EntityWarTechAircraft aircraft) {
         entityId = aircraft.getEntityId();
         vehicleType = aircraft.getRemoteVehicleType();
+        serverTick = aircraft.ticksExisted;
         x = aircraft.posX;
         y = aircraft.posY;
         z = aircraft.posZ;
@@ -62,7 +65,8 @@ public final class RemoteControlTelemetryMessage implements IMessage {
 
     public RemoteControlTelemetryMessage(EntityWarTechMissile missile) {
         entityId = missile.getEntityId();
-        vehicleType = 1;
+        vehicleType = missile.getRemoteVehicleType();
+        serverTick = missile.ticksExisted;
         x = missile.posX;
         y = missile.posY;
         z = missile.posZ;
@@ -85,10 +89,37 @@ public final class RemoteControlTelemetryMessage implements IMessage {
         weapon = "WARHEAD";
     }
 
+    public RemoteControlTelemetryMessage(EntityCustomUav uav) {
+        entityId = uav.getEntityId();
+        vehicleType = uav.getRemoteVehicleType();
+        serverTick = uav.ticksExisted;
+        x = uav.posX;
+        y = uav.posY;
+        z = uav.posZ;
+        motionX = uav.motionX;
+        motionY = uav.motionY;
+        motionZ = uav.motionZ;
+        yaw = uav.rotationYaw;
+        pitch = uav.rotationPitch;
+        throttle = uav.getRemoteThrottle();
+        power = uav.getLegacyPower();
+        maxPower = uav.getEnergyCapacity();
+        healthPercent = uav.getHealthPercent();
+        flares = uav.getFlareCount();
+        airborne = uav.isRemoteAirborne();
+        selectedHardpoint = uav.getLegacySelectedHardpoint();
+        payloadMask = uav.getLegacyPayloadMask();
+        payloadCounts = uav.getPackedPayloadCounts();
+        distance = uav.getDistanceFromLaunch();
+        maxRange = uav.getLinkRange();
+        weapon = uav.getSelectedHardpointName();
+    }
+
     @Override
     public void fromBytes(ByteBuf buffer) {
         entityId = buffer.readInt();
         vehicleType = buffer.readUnsignedByte();
+        serverTick = buffer.readInt();
         x = buffer.readDouble();
         y = buffer.readDouble();
         z = buffer.readDouble();
@@ -115,6 +146,7 @@ public final class RemoteControlTelemetryMessage implements IMessage {
     public void toBytes(ByteBuf buffer) {
         buffer.writeInt(entityId);
         buffer.writeByte(vehicleType);
+        buffer.writeInt(serverTick);
         buffer.writeDouble(x);
         buffer.writeDouble(y);
         buffer.writeDouble(z);

@@ -2,11 +2,14 @@ package com.wartec.wartecmod.port;
 
 import com.hbm.interfaces.IBomb;
 import com.wartec.wartecmod.port.content.WarTechContent;
+import com.wartec.wartecmod.port.content.WarTechCreativeTabs;
 import com.wartec.wartecmod.port.entity.WarTechEntityProfile;
 import com.wartec.wartecmod.port.integration.OwnerTeamNbt;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 import net.minecraft.block.Block;
+import net.minecraft.creativetab.CreativeTabs;
 import net.minecraft.init.Bootstrap;
 import net.minecraft.item.Item;
 import net.minecraft.util.ResourceLocation;
@@ -26,8 +29,8 @@ public class PortCatalogSmokeTest {
 
     @Test
     public void catalogKeepsTheDev66Surface() {
-        assertEquals(80, WarTechContent.getItems().size());
-        assertEquals(32, WarTechContent.getBlocks().size());
+        assertEquals(93, WarTechContent.getItems().size());
+        assertEquals(38, WarTechContent.getBlocks().size());
 
         Set<ResourceLocation> names = new HashSet<>();
         for (Item item : WarTechContent.getItems()) {
@@ -36,7 +39,7 @@ public class PortCatalogSmokeTest {
         for (Block block : WarTechContent.getBlocks()) {
             assertRegistryName(block.getRegistryName(), names);
         }
-        assertEquals(112, names.size());
+        assertEquals(131, names.size());
         assertEquals(new ResourceLocation("wartecmod", "designator_arty_range"),
                 WarTechContent.ARTILLERY_TARGET_DESIGNATOR.getRegistryName());
     }
@@ -53,17 +56,40 @@ public class PortCatalogSmokeTest {
     }
 
     @Test
-    public void vehicleProfilesMatchDev66EntityConstants() {
+    public void customUavContentUsesItsOwnCreativeTab() {
+        CreativeTabs customUavTab = WarTechCreativeTabs.CUSTOM_UAV;
+        assertTrue(Arrays.asList(CreativeTabs.CREATIVE_TAB_ARRAY)
+                .contains(customUavTab));
+        assertEquals(customUavTab,
+                WarTechContent.UAV_MODULE.getCreativeTab());
+        assertEquals(WarTechCreativeTabs.CUSTOM_UAV,
+                WarTechContent.UAV_BLUEPRINT.getCreativeTab());
+        assertEquals(WarTechCreativeTabs.CUSTOM_UAV,
+                WarTechContent.ASSEMBLED_UAV.getCreativeTab());
+        assertEquals(WarTechCreativeTabs.CUSTOM_UAV,
+                WarTechContent.UAV_GUIDE_BOOK.getCreativeTab());
+        assertEquals(WarTechCreativeTabs.CUSTOM_UAV,
+                WarTechContent.UAV_RECON_REPORT.getCreativeTab());
+        assertEquals(WarTechCreativeTabs.CUSTOM_UAV,
+                WarTechContent.UAV_FABRICATOR.getCreativeTabToDisplayOn());
+        assertEquals(WarTechCreativeTabs.CUSTOM_UAV,
+                WarTechContent.UAV_LAUNCH_POINT.getCreativeTabToDisplayOn());
+        assertEquals(WarTechCreativeTabs.CUSTOM_UAV,
+                WarTechContent.UAV_MISSION_STATION.getCreativeTabToDisplayOn());
+    }
+
+    @Test
+    public void vehicleProfilesUseCurrentDefenseBalanceAndStableAirframes() {
         assertProfile(WarTechEntityProfile.MQ_9_REAPER, 3.20F, 1.00F, 120.0F, 3.0F);
         assertProfile(WarTechEntityProfile.F_16C, 3.30F, 1.70F, 180.0F, 5.5F);
         assertProfile(WarTechEntityProfile.SU_27, 3.70F, 2.00F, 240.0F, 6.0F);
         assertProfile(WarTechEntityProfile.TU_95, 5.20F, 2.80F, 600.0F, 8.0F);
-        assertProfile(WarTechEntityProfile.COMMAND_TRUCK, 2.60F, 2.50F, 720.0F, 4.5F);
-        assertProfile(WarTechEntityProfile.RADAR_TRUCK, 4.20F, 3.00F, 300.0F, 3.5F);
-        assertProfile(WarTechEntityProfile.MOBILE_AIR_DEFENSE, 3.10F, 3.00F, 500.0F, 4.0F);
+        assertProfile(WarTechEntityProfile.COMMAND_TRUCK, 2.60F, 2.50F, 360.0F, 4.5F);
+        assertProfile(WarTechEntityProfile.RADAR_TRUCK, 4.20F, 3.00F, 240.0F, 3.5F);
+        assertProfile(WarTechEntityProfile.MOBILE_AIR_DEFENSE, 3.10F, 3.00F, 200.0F, 4.0F);
         assertProfile(WarTechEntityProfile.MOBILE_ARTILLERY, 3.00F, 2.35F, 500.0F, 5.0F);
         assertProfile(WarTechEntityProfile.ELECTRONIC_WARFARE, 2.40F, 3.20F, 240.0F, 3.5F);
-        assertProfile(WarTechEntityProfile.S400_RADAR, 4.60F, 4.20F, 600.0F, 5.0F);
+        assertProfile(WarTechEntityProfile.S400_RADAR, 4.60F, 4.20F, 300.0F, 5.0F);
     }
 
     @Test
@@ -98,8 +124,9 @@ public class PortCatalogSmokeTest {
 
     private static void assertProfile(WarTechEntityProfile profile,
             float width, float height, float health, float explosion) {
-        assertEquals(width, profile.getWidth(), 0.001F);
-        assertEquals(height, profile.getHeight(), 0.001F);
+        float scale=com.wartec.wartecmod.port.entity.VehicleDimensions.scale(profile);
+        assertEquals(width*scale, profile.getWidth(), 0.001F);
+        assertEquals(height*scale, profile.getHeight(), 0.001F);
         assertEquals(health, profile.getMaxHealth(), 0.001F);
         assertEquals(explosion, profile.getExplosionStrength(), 0.001F);
     }

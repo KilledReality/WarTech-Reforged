@@ -1,8 +1,9 @@
 package com.wartec.wartecmod.port.integration;
 
-import api.hbm.entity.IRadarDetectable;
 import com.wartec.wartecmod.port.entity.EntityWarTechMissile;
-import com.wartec.wartecmod.port.entity.LegacyMissileSpecification.FlightFamily;
+import com.wartec.wartecmod.port.entity.EntityCustomCruise;
+import com.wartec.wartecmod.port.cruise.CruiseCombatProfile;
+import com.wartec.wartecmod.port.cruise.CruiseFlightMath;
 import com.wartec.wartecmod.port.network.MissileTrackingService;
 import java.util.Map;
 import java.util.WeakHashMap;
@@ -12,6 +13,9 @@ import net.minecraft.util.EnumParticleTypes;
 import net.minecraft.util.SoundCategory;
 import net.minecraft.world.World;
 import net.minecraft.world.WorldServer;
+import net.minecraft.util.math.Vec3d;
+import net.minecraft.util.math.AxisAlignedBB;
+import net.minecraft.util.math.RayTraceResult;
 
 /**
  * Direct 1.12.2 adaptation of dev66 VlsDefenseCompat interceptor flight.
@@ -100,7 +104,7 @@ public final class VlsInterceptorGuidance {
         }
 
         Entity target = world.getEntityByID(targetId);
-        if (!isValidTarget(target)) {
+        if (!isValidTarget(target) || NetworkTeamHelper.isFriendly(interceptor.getOwnerTeam(),target)) {
             MissileTrackingService.releaseReservation(world, targetId,
                     interceptor.getEntityId());
             beginAbort(world, interceptor, tier, targetId,
@@ -112,6 +116,15 @@ public final class VlsInterceptorGuidance {
 
         GuidanceState guidance = updateTargetMotion(
                 interceptor, target, world.getTotalWorldTime());
+        if(target instanceof EntityCustomCruise && guidance.previousRelative!=null) {
+            AxisAlignedBB body=target.getEntityBoundingBox().offset(-target.posX,-target.posY,-target.posZ).grow(.2);
+            Vec3d now=interceptor.getPositionVector().subtract(target.getPositionVector());
+            // Resolve the actual previous tick too: target and interceptor tick in either order.
+            if(InterceptorContact.bodyHit(guidance.previousRelative,now,body)!=null
+                    && AirDefenseVisibility.visible(world,interceptor.getPositionVector(),target)) {
+                successfulIntercept(world,interceptor,target);return;
+            }
+        }
         int targetTier = getTargetTier(target);
         double speed = getInterceptorSpeed(tier, targetTier, target);
         boolean artilleryRocket = MissileTrackingService.isHbmArtilleryRocket(target);
@@ -144,7 +157,8 @@ public final class VlsInterceptorGuidance {
                             + guidance.velocityZ * guidance.velocityZ);
             double interceptRadius = speed * 1.6D + 3.0D
                     + Math.min(12.0D, targetSpeed * 0.75D);
-            if (distance <= interceptRadius) {
+            if (!(target instanceof EntityCustomCruise) && distance <= interceptRadius
+                    && AirDefenseVisibility.visible(world,interceptor.getPositionVector(),target)) {
                 intercept(world, interceptor, target, tier, targetTier);
                 return;
             }
@@ -165,11 +179,31 @@ public final class VlsInterceptorGuidance {
         double nextX = interceptor.posX + interceptor.motionX;
         double nextY = interceptor.posY + interceptor.motionY;
         double nextZ = interceptor.posZ + interceptor.motionZ;
-        int groundY = world.getHeight(
-                (int) Math.floor(nextX), (int) Math.floor(nextZ));
-        if (interceptor.ticksExisted > 4 && nextY <= groundY + 0.5D) {
-            detonateGroundImpact(world, interceptor, tier, targetId, nextX,
-                    Math.max(nextY, groundY + 0.5D), nextZ, true);
+        Vec3d from=interceptor.getPositionVector(),next=new Vec3d(nextX,nextY,nextZ);
+        if(!MissileChunkLoader.flightReady(interceptor,interceptor.motionX,interceptor.motionZ)) return;
+        // Compare the first physical contact, not just whether the next point is underground.
+        RayTraceResult obstacle=world.rayTraceBlocks(from,next,false,true,false);
+        double obstacleDistance=obstacle==null?Double.POSITIVE_INFINITY:from.squareDistanceTo(obstacle.hitVec);
+        if(target instanceof EntityCustomCruise) {
+            Vec3d relative=from.subtract(target.getPositionVector());
+            Vec3d relativeNext=next.subtract(target.getPositionVector().addVector(guidance.velocityX,guidance.velocityY,guidance.velocityZ));
+            AxisAlignedBB body=target.getEntityBoundingBox().offset(-target.posX,-target.posY,-target.posZ).grow(.2);
+            Vec3d contact=InterceptorContact.bodyHit(relative,relativeNext,body);
+            double fraction=contact==null?Double.POSITIVE_INFINITY:
+                Math.sqrt(relative.squareDistanceTo(contact)/Math.max(1e-12,relative.squareDistanceTo(relativeNext)));
+            if(contact!=null && from.squareDistanceTo(from.add(next.subtract(from).scale(fraction)))<=obstacleDistance) {
+                // A real body collision is not a dice roll for a proximity-fuse miss.
+                successfulIntercept(world,interceptor,target);return;
+            }
+            if(CruiseFlightMath.passed(relative,relativeNext,Vec3d.ZERO,3.5+target.width*.5)
+                    && obstacle==null && AirDefenseVisibility.visible(world,from,target)) {
+                intercept(world,interceptor,target,tier,targetTier);return;
+            }
+        }
+        Vec3d impact=InterceptorContact.nearest(from,obstacle==null?null:obstacle.hitVec,
+            incidentalImpact(world,interceptor,from,next,target));
+        if(impact!=null) {
+            detonateGroundImpact(world,interceptor,tier,targetId,impact.x,impact.y,impact.z,true);
             return;
         }
         interceptor.setPosition(nextX, nextY, nextZ);
@@ -243,8 +277,11 @@ public final class VlsInterceptorGuidance {
             state = new GuidanceState(interceptor, target, tick);
             GUIDANCE_STATES.put(interceptor, state);
         } else {
+            state.previousRelative=tick-state.lastTick==1 && state.lastInterceptor!=null
+                ?state.lastInterceptor.subtract(new Vec3d(state.lastX,state.lastY,state.lastZ)):null;
             state.update(target, tick);
         }
+        state.lastInterceptor=interceptor.getPositionVector();
         return state;
     }
 
@@ -325,12 +362,11 @@ public final class VlsInterceptorGuidance {
         double nextX = interceptor.posX + interceptor.motionX;
         double nextY = interceptor.posY + interceptor.motionY;
         double nextZ = interceptor.posZ + interceptor.motionZ;
-        int groundY = world.getHeight(
-                (int) Math.floor(nextX), (int) Math.floor(nextZ));
-        if (elapsed > 6 && nextY <= groundY + 0.5D
-                || elapsed >= abort.detonationDelay) {
-            detonateAbort(world, interceptor, tier, nextX,
-                    Math.max(nextY, groundY + 0.5D), nextZ);
+        if(!MissileChunkLoader.flightReady(interceptor,interceptor.motionX,interceptor.motionZ)) return;
+        Vec3d impact=physicalImpact(world,interceptor,new Vec3d(nextX,nextY,nextZ));
+        if (impact!=null || elapsed >= abort.detonationDelay) {
+            Vec3d p=impact==null?new Vec3d(nextX,nextY,nextZ):impact;
+            detonateAbort(world, interceptor, tier, p.x,p.y,p.z);
             return;
         }
         interceptor.setPosition(nextX, nextY, nextZ);
@@ -349,12 +385,11 @@ public final class VlsInterceptorGuidance {
         double nextX = interceptor.posX + interceptor.motionX;
         double nextY = interceptor.posY + interceptor.motionY;
         double nextZ = interceptor.posZ + interceptor.motionZ;
-        int groundY = world.getHeight(
-                (int) Math.floor(nextX), (int) Math.floor(nextZ));
-        if (interceptor.ticksExisted > 12 && nextY <= groundY + 0.5D
-                || interceptor.ticksExisted > 300) {
-            detonateMalfunction(world, interceptor, tier, nextX,
-                    Math.max(nextY, groundY + 0.5D), nextZ);
+        if(!MissileChunkLoader.flightReady(interceptor,interceptor.motionX,interceptor.motionZ)) return;
+        Vec3d impact=physicalImpact(world,interceptor,new Vec3d(nextX,nextY,nextZ));
+        if (impact!=null || interceptor.ticksExisted > 300) {
+            Vec3d p=impact==null?new Vec3d(nextX,nextY,nextZ):impact;
+            detonateMalfunction(world, interceptor, tier, p.x,p.y,p.z);
             return;
         }
         interceptor.setPosition(nextX, nextY, nextZ);
@@ -365,9 +400,13 @@ public final class VlsInterceptorGuidance {
             Entity target, int interceptorTier, int targetTier) {
         double chance = getInterceptChance(interceptorTier, targetTier, target);
         if (world.rand.nextDouble() >= chance) {
-            failedIntercept(world, interceptor, target);
+            failedIntercept(world, interceptor, target, interceptorTier);
             return;
         }
+        successfulIntercept(world,interceptor,target);
+    }
+
+    private static void successfulIntercept(World world,EntityWarTechMissile interceptor,Entity target) {
         double x = target.posX;
         double y = target.posY;
         double z = target.posZ;
@@ -387,14 +426,20 @@ public final class VlsInterceptorGuidance {
     }
 
     private static void failedIntercept(World world,
-            EntityWarTechMissile interceptor, Entity target) {
+            EntityWarTechMissile interceptor, Entity target,int tier) {
         double x = interceptor.posX;
         double y = interceptor.posY;
         double z = interceptor.posZ;
         MissileTrackingService.releaseReservation(world, target.getEntityId(),
                 interceptor.getEntityId());
         MissileTrackingService.deferTarget(world, target.getEntityId());
-        interceptor.setDead();
+        Vec3d retainedMotion=new Vec3d(interceptor.motionX,interceptor.motionY,interceptor.motionZ);
+        beginAbort(world,interceptor,tier,target.getEntityId(),GUIDANCE_STATES.get(interceptor));
+        // A missed interceptor retains its momentum; it does not stop in mid-air.
+        interceptor.motionX=retainedMotion.x*.95;
+        interceptor.motionY=retainedMotion.y;
+        interceptor.motionZ=retainedMotion.z*.95;
+        interceptor.setTrackedEntity(null);
         world.playSound(null, x, y, z, SoundEvents.BLOCK_FIRE_EXTINGUISH,
                 SoundCategory.HOSTILE, 2.0F, 1.4F);
         if (world instanceof WorldServer) {
@@ -406,8 +451,34 @@ public final class VlsInterceptorGuidance {
         }
     }
 
+    private static Vec3d physicalImpact(World world,EntityWarTechMissile interceptor,Vec3d next) {
+        Vec3d from=interceptor.getPositionVector();
+        RayTraceResult block=world.rayTraceBlocks(from,next,false,true,false);
+        Vec3d entity=incidentalImpact(world,interceptor,from,next,null);
+        return InterceptorContact.nearest(from,block==null?null:block.hitVec,entity);
+    }
+
+    /** Swept collisions cover thin walls and unrelated living/vehicle targets at high speed. */
+    private static Vec3d incidentalImpact(World world,EntityWarTechMissile interceptor,Vec3d from,Vec3d next,Entity tracked) {
+        Vec3d closest=null;
+        // The Vec3d-pair constructor is stripped from a dedicated 1.12.2 server.
+        AxisAlignedBB sweep=new AxisAlignedBB(Math.min(from.x,next.x),Math.min(from.y,next.y),Math.min(from.z,next.z),
+            Math.max(from.x,next.x),Math.max(from.y,next.y),Math.max(from.z,next.z)).grow(.5);
+        for(Entity e:world.getEntitiesWithinAABBExcludingEntity(interceptor,sweep)) {
+            if(e.isDead || e==tracked || e instanceof EntityWarTechMissile
+                    || !(e instanceof net.minecraft.entity.EntityLivingBase
+                        || e instanceof com.wartec.wartecmod.port.entity.EntityWarTechBase)) continue;
+            // Clear the launching vehicle before the fuse arms.
+            if(interceptor.ticksExisted<=4 && NetworkTeamHelper.isFriendly(interceptor.getOwnerTeam(),e)) continue;
+            Vec3d hit=InterceptorContact.bodyHit(from,next,e.getEntityBoundingBox().grow(.2));
+            closest=InterceptorContact.nearest(from,closest,hit);
+        }
+        return closest;
+    }
+
     private static double getInterceptChance(int interceptorTier, int targetTier,
             Entity target) {
+        if(target instanceof EntityCustomCruise) return CruiseCombatProfile.interceptChance(interceptorTier,targetTier);
         if (MissileTrackingService.isHbmHeavyArtilleryRocket(target)) {
             return interceptorTier == 1 ? 0.25D : 1.0D;
         }
@@ -445,35 +516,7 @@ public final class VlsInterceptorGuidance {
     }
 
     private static int getTargetTier(Entity target) {
-        if (target instanceof EntityWarTechMissile) {
-            FlightFamily family =
-                    ((EntityWarTechMissile) target).getMissileSpecification().getFlightFamily();
-            if (family == FlightFamily.SUBSONIC || family == FlightFamily.GERAN
-                    || family == FlightFamily.ANTI_RADIATION) {
-                return 1;
-            }
-            if (family == FlightFamily.SUPERSONIC || family == FlightFamily.KH555) {
-                return 2;
-            }
-            if (family == FlightFamily.HYPERSONIC) {
-                return 3;
-            }
-        }
-        if (MissileTrackingService.isHbmArtilleryTarget(target)) {
-            return Math.max(1, Math.min(3,
-                    MissileTrackingService.getThreatTier(target)));
-        }
-        if (target instanceof IRadarDetectable) {
-            IRadarDetectable.RadarTargetType type =
-                    ((IRadarDetectable) target).getTargetType();
-            if (type == null || type == IRadarDetectable.RadarTargetType.MISSILE_AB
-                    || type == IRadarDetectable.RadarTargetType.PLAYER) {
-                return 0;
-            }
-            int ordinal = type.ordinal();
-            return ordinal <= 1 ? 1 : ordinal == 2 ? 2 : 3;
-        }
-        return 0;
+        return MissileTrackingService.getThreatTier(target);
     }
 
     private static void detonateAbort(World world,
@@ -485,11 +528,11 @@ public final class VlsInterceptorGuidance {
                 SoundCategory.HOSTILE, 8.0F, 0.82F);
         if (world instanceof WorldServer) {
             WorldServer server = (WorldServer) world;
-            server.spawnParticle(EnumParticleTypes.EXPLOSION_LARGE,
+            server.spawnParticle(EnumParticleTypes.EXPLOSION_LARGE,true,
                     x, y, z, 5, 0.9D, 0.7D, 0.9D, 0.09D);
-            server.spawnParticle(EnumParticleTypes.SMOKE_NORMAL,
+            server.spawnParticle(EnumParticleTypes.SMOKE_NORMAL,true,
                     x, y, z, 28, 1.3D, 0.8D, 1.3D, 0.07D);
-            server.spawnParticle(EnumParticleTypes.FLAME,
+            server.spawnParticle(EnumParticleTypes.FLAME,true,
                     x, y, z, 24, 1.1D, 0.6D, 1.1D, 0.11D);
         }
         interceptor.setDead();
@@ -498,10 +541,7 @@ public final class VlsInterceptorGuidance {
     private static void detonateMalfunction(World world,
             EntityWarTechMissile interceptor, int tier,
             double x, double y, double z) {
-        boolean fire = world.rand.nextFloat() < 0.35F;
-        world.newExplosion(interceptor, x, y, z,
-                MALFUNCTION_EXPLOSIONS[tier], fire, true);
-        interceptor.setDead();
+        detonateAbort(world,interceptor,tier,x,y,z);
     }
 
     private static void detonateGroundImpact(World world,
@@ -516,11 +556,11 @@ public final class VlsInterceptorGuidance {
                 SoundCategory.HOSTILE, 8.0F, 0.8F);
         if (world instanceof WorldServer) {
             WorldServer server = (WorldServer) world;
-            server.spawnParticle(EnumParticleTypes.EXPLOSION_LARGE,
+            server.spawnParticle(EnumParticleTypes.EXPLOSION_LARGE,true,
                     x, y, z, 4, 0.8D, 0.45D, 0.8D, 0.08D);
-            server.spawnParticle(EnumParticleTypes.SMOKE_NORMAL,
+            server.spawnParticle(EnumParticleTypes.SMOKE_NORMAL,true,
                     x, y, z, 24, 1.2D, 0.65D, 1.2D, 0.06D);
-            server.spawnParticle(EnumParticleTypes.FLAME,
+            server.spawnParticle(EnumParticleTypes.FLAME,true,
                     x, y, z, 20, 1.0D, 0.45D, 1.0D, 0.1D);
         }
         interceptor.setDead();
@@ -532,14 +572,14 @@ public final class VlsInterceptorGuidance {
             return;
         }
         WorldServer server = (WorldServer) world;
-        server.spawnParticle(EnumParticleTypes.EXPLOSION_HUGE,
+        server.spawnParticle(EnumParticleTypes.EXPLOSION_HUGE,true,
                 x, y, z, 1, 0.0D, 0.0D, 0.0D, 0.0D);
-        server.spawnParticle(EnumParticleTypes.EXPLOSION_LARGE,
+        server.spawnParticle(EnumParticleTypes.EXPLOSION_LARGE,true,
                 x, y, z, 8, 1.5D, 1.5D, 1.5D, 0.12D);
-        server.spawnParticle(EnumParticleTypes.SMOKE_NORMAL,
+        server.spawnParticle(EnumParticleTypes.SMOKE_NORMAL,true,
                 x, y, z, 40, 2.0D, 2.0D, 2.0D, 0.08D);
         if (fire) {
-            server.spawnParticle(EnumParticleTypes.FLAME,
+            server.spawnParticle(EnumParticleTypes.FLAME,true,
                     x, y, z, 36, 1.8D, 1.8D, 1.8D, 0.15D);
         }
     }
@@ -599,6 +639,7 @@ public final class VlsInterceptorGuidance {
         double velocityZ;
         int samples;
         boolean countermeasureChecked;
+        Vec3d lastInterceptor,previousRelative;
 
         GuidanceState(Entity interceptor, Entity target, long tick) {
             targetId = target.getEntityId();

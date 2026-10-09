@@ -95,6 +95,14 @@ public final class GameplayIntentHandler implements ContentHooks.IntentHandler {
         entity.setOwner(context.getPlayer());
         entity.setOwnerTeam(OwnerTeamNbt.resolvePlacementTeam(
                 context.getStack(), context.getPlayer()));
+        if (entity instanceof com.wartec.wartecmod.port.entity.EntityStrategicTel
+                && context.getStack().hasTagCompound()
+                && context.getStack().getTagCompound()
+                        .hasKey("StrategicLoaded", 1)) {
+            ((com.wartec.wartecmod.port.entity.EntityStrategicTel) entity)
+                    .setMissileLoaded(context.getStack().getTagCompound()
+                            .getBoolean("StrategicLoaded"));
+        }
         EnumActionResult result = spawnAndConsume(context, entity);
         if (result == EnumActionResult.SUCCESS) {
             playDeploymentSound(context.getWorld(), context.getPos(), entity);
@@ -267,6 +275,12 @@ public final class GameplayIntentHandler implements ContentHooks.IntentHandler {
                 volume = 0.65F;
                 pitch = 0.80F;
                 break;
+            case STRATEGIC_TOPOL_M:
+            case STRATEGIC_YARS:
+            case STRATEGIC_ORESHNIK:
+                volume = 1.15F;
+                pitch = 0.58F;
+                break;
             case F_16C:
             case SU_27:
                 volume = 0.80F;
@@ -347,6 +361,15 @@ public final class GameplayIntentHandler implements ContentHooks.IntentHandler {
     }
 
     private static WarTechEntityProfile groundProfile(String id, int variant) {
+        if (id.contains("strategic_topol_m")) {
+            return WarTechEntityProfile.STRATEGIC_TOPOL_M;
+        }
+        if (id.contains("strategic_yars")) {
+            return WarTechEntityProfile.STRATEGIC_YARS;
+        }
+        if (id.contains("strategic_oreshnik")) {
+            return WarTechEntityProfile.STRATEGIC_ORESHNIK;
+        }
         if (id.contains("air_defense_command_truck") || id.contains("command_truck")) {
             return WarTechEntityProfile.COMMAND_TRUCK;
         }

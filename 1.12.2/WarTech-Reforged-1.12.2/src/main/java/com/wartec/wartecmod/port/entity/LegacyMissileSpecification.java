@@ -71,7 +71,9 @@ public enum LegacyMissileSpecification {
     FRAGMENTATION(MissileProfile.FRAGMENTATION, FlightFamily.SUBSONIC,
             Payload.FRAGMENTATION, RadarTargetType.MISSILE_TIER0, 10, 4),
     INVALID(MissileProfile.INVALID, FlightFamily.INVALID, Payload.NONE,
-            RadarTargetType.MISSILE_TIER0, 0, 0);
+            RadarTargetType.MISSILE_TIER0, 0, 0),
+    GERAN_5(MissileProfile.GERAN_5, FlightFamily.GERAN, Payload.GERAN,
+            RadarTargetType.MISSILE_TIER2, 6, 2);
 
     private static final Map<MissileProfile, LegacyMissileSpecification> BY_PROFILE =
             new EnumMap<MissileProfile, LegacyMissileSpecification>(MissileProfile.class);

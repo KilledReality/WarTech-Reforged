@@ -40,6 +40,9 @@ public final class HimarsAmmoItem extends VariantItem {
             strength(tooltip, 50, type == LARGE ? 5 : 12, true);
         } else if (type == SMALL_TB) {
             strength(tooltip, 20, 10, true);
+        } else if(type==SMALL_MINI_NUKE) {
+            tooltip.add(TextFormatting.YELLOW + "Nuclear effect: 20 (HBM scale)");
+            tooltip.add(TextFormatting.RED + "Destroys blocks");
         } else {
             strength(tooltip, 20, 3,
                     type != SMALL && type != SMALL_WP);
@@ -56,9 +59,11 @@ public final class HimarsAmmoItem extends VariantItem {
 
     private static void strength(List<String> tooltip, int strength,
             int damageModifier, boolean breaksBlocks) {
+        boolean thermal=damageModifier>=10;
+        strength=(int)com.wartec.wartecmod.port.integration.WeaponBalance.artilleryStrength(strength,damageModifier);
         tooltip.add(TextFormatting.YELLOW + "Strength: " + strength);
         tooltip.add(TextFormatting.YELLOW + "Damage modifier: "
-                + damageModifier + "x");
+                + com.wartec.wartecmod.port.integration.WeaponBalance.entityArea(thermal) + "x");
         tooltip.add((breaksBlocks ? TextFormatting.RED : TextFormatting.BLUE)
                 + (breaksBlocks ? "Destroys blocks"
                         : "Does not destroy blocks"));

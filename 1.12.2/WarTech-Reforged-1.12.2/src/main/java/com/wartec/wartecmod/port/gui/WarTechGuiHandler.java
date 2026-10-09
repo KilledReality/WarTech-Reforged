@@ -3,6 +3,8 @@ package com.wartec.wartecmod.port.gui;
 import com.wartec.wartecmod.WarTechReforged;
 import com.wartec.wartecmod.port.entity.EntityWarTechBase;
 import com.wartec.wartecmod.port.entity.WarTechEntityProfile;
+import com.wartec.wartecmod.port.gameplay.TileEntityUavFabricator;
+import com.wartec.wartecmod.port.gameplay.TileEntityUavMissionStation;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.util.math.BlockPos;
@@ -20,6 +22,12 @@ public final class WarTechGuiHandler implements IGuiHandler {
     public static final int GUI_COMMUNICATION_MAST = 76;
     public static final int GUI_STRATEGIC_RADAR = 77;
     public static final int GUI_MOBILE_ARTILLERY = 78;
+    public static final int GUI_UAV_FABRICATOR = 79;
+    public static final int GUI_UAV_MISSION_STATION = 80;
+    public static final int GUI_STRATEGIC_TEL = 81;
+    public static final int GUI_CRUISE_FABRICATOR = 82;
+    public static final int GUI_CRUISE_PROGRAMMER = 83;
+    public static final int GUI_CRUISE_LAUNCHER = 84;
 
     @Override
     public Object getServerGuiElement(
@@ -30,6 +38,40 @@ public final class WarTechGuiHandler implements IGuiHandler {
         int y,
         int z
     ) {
+        if (id == GUI_STRATEGIC_TEL
+                && !com.wartec.wartecmod.port.content.StrategicFeature.isEnabled()) {
+            return null;
+        }
+        if(id==GUI_CRUISE_PROGRAMMER) {
+            if((x!=player.inventory.currentItem && x!=40) || player.inventory.getStackInSlot(x).getItem()!=com.wartec.wartecmod.port.content.WarTechContent.ASSEMBLED_CRUISE) return null;
+            return new ContainerCruiseProgrammer(player.inventory,x);
+        }
+        if(id==GUI_CRUISE_LAUNCHER) {
+            net.minecraft.tileentity.TileEntity tile=world.getTileEntity(new BlockPos(x,y,z));
+            return tile instanceof com.wartec.wartecmod.port.gameplay.TileEntityCruiseLauncher
+                && ((com.wartec.wartecmod.port.gameplay.TileEntityCruiseLauncher)tile).isUsableByPlayer(player)
+                ?new ContainerCruiseLauncher(player.inventory,(com.wartec.wartecmod.port.gameplay.TileEntityCruiseLauncher)tile):null;
+        }
+        if (id == GUI_UAV_FABRICATOR) {
+            net.minecraft.tileentity.TileEntity tile =
+                    world.getTileEntity(new BlockPos(x, y, z));
+            return tile instanceof TileEntityUavFabricator
+                    ? new ContainerUavFabricator(player.inventory,
+                            (TileEntityUavFabricator) tile) : null;
+        }
+        if (id == GUI_CRUISE_FABRICATOR) {
+            net.minecraft.tileentity.TileEntity tile = world.getTileEntity(new BlockPos(x,y,z));
+            return tile instanceof com.wartec.wartecmod.port.gameplay.TileEntityCruiseFabricator
+                ? new ContainerCruiseFabricator(player.inventory,
+                    (com.wartec.wartecmod.port.gameplay.TileEntityCruiseFabricator) tile) : null;
+        }
+        if (id == GUI_UAV_MISSION_STATION) {
+            net.minecraft.tileentity.TileEntity tile =
+                    world.getTileEntity(new BlockPos(x, y, z));
+            return tile instanceof TileEntityUavMissionStation
+                    ? new ContainerUavMissionStation(player.inventory,
+                            (TileEntityUavMissionStation) tile) : null;
+        }
         if (id == GUI_LAUNCH_TUBE || id == GUI_BALLISTIC_LAUNCHER
                 || id == GUI_COMMUNICATION_MAST || id == GUI_STRATEGIC_RADAR) {
             return createTileContainer(id, player, world, new BlockPos(x, y, z));
@@ -48,6 +90,10 @@ public final class WarTechGuiHandler implements IGuiHandler {
         int y,
         int z
     ) {
+        if (id == GUI_STRATEGIC_TEL
+                && !com.wartec.wartecmod.port.content.StrategicFeature.isEnabled()) {
+            return null;
+        }
         return WarTechReforged.proxy.createControlGui(id, player, world, x, y, z);
     }
 
@@ -63,6 +109,11 @@ public final class WarTechGuiHandler implements IGuiHandler {
         if (profile == WarTechEntityProfile.COMMAND_TRUCK) return GUI_COMMAND;
         if (profile == WarTechEntityProfile.MOBILE_AIR_DEFENSE) return GUI_MOBILE_AIR_DEFENSE;
         if (profile == WarTechEntityProfile.MOBILE_ARTILLERY) return GUI_MOBILE_ARTILLERY;
+        if (profile == WarTechEntityProfile.STRATEGIC_TOPOL_M
+                || profile == WarTechEntityProfile.STRATEGIC_YARS
+                || profile == WarTechEntityProfile.STRATEGIC_ORESHNIK) {
+            return GUI_STRATEGIC_TEL;
+        }
         if (profile == WarTechEntityProfile.TU_95) return GUI_TU95;
         if (profile == WarTechEntityProfile.MQ_9_REAPER
                 || profile == WarTechEntityProfile.F_16C
@@ -75,6 +126,7 @@ public final class WarTechGuiHandler implements IGuiHandler {
         if (id == GUI_COMMAND) return ContainerLegacyEntity.Layout.COMMAND;
         if (id == GUI_MOBILE_AIR_DEFENSE) return ContainerLegacyEntity.Layout.AIR_DEFENSE;
         if (id == GUI_MOBILE_ARTILLERY) return ContainerLegacyEntity.Layout.ARTILLERY;
+        if (id == GUI_STRATEGIC_TEL) return ContainerLegacyEntity.Layout.STRATEGIC;
         return ContainerLegacyEntity.Layout.AIRCRAFT;
     }
 

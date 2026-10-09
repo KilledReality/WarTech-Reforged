@@ -1,9 +1,13 @@
 package com.wartec.wartecmod.port.proxy;
 
 import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.item.ItemStack;
 import net.minecraft.world.World;
+import com.wartec.wartecmod.port.uav.UavReconReport;
 
 public class CommonProxy {
+    public void spawnCruiseVisualEvent(com.wartec.wartecmod.port.network.CruiseVisualEventMessage message) { }
+    public void updateCruiseTrail(com.wartec.wartecmod.port.entity.EntityCustomCruise entity) { }
     public void preInit() {
     }
 
@@ -16,6 +20,13 @@ public class CommonProxy {
     }
 
     public void openIffSelector() {
+    }
+    public void openCruiseProgrammer(net.minecraft.util.EnumHand hand) { }
+
+    public void openUavGuide(EntityPlayer player, ItemStack stack) {
+    }
+
+    public void openUavReconReport(String title, UavReconReport report) {
     }
 
     public Object createControlGui(

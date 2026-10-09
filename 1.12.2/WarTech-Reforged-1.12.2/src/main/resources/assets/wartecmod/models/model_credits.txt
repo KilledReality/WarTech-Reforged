@@ -12,6 +12,37 @@ Storm Shadow Ukraine
 Creator: Viktor_ (Viktor.Zhuravlev)
 Source: https://sketchfab.com/3d-models/storm-shadow-ukraine-d1ad04ce964f46dd9cbac6a64cd19b1b
 License: Creative Commons Attribution (CC BY)
+Adaptation: national/flag/political decorations removed from local albedo regions;
+            technical stencils retained; original geometry and UVs unchanged.
+            Derived custom-cruise meshes regroup original faces and continuously
+            vary wing span/folding; all source faces and UVs retained.
+
+R-360 "Neptune" anti-ship cruise missile
+Creator: MrZeuglodon
+Source: https://sketchfab.com/3d-models/r-360-neptune-anti-ship-cruise-missile-a64c109936da417eb7ce4346a801a276
+License: Creative Commons Attribution 4.0, https://creativecommons.org/licenses/by/4.0/
+Adaptation: one original showcase copy retained, centred/reoriented OBJ export,
+            separate original booster; neutral white/orange albedo decals;
+            national insignia and manufacturer emblems removed, technical
+            names and calibration marks retained. Custom-cruise renderer resizes
+            original wing/engine groups and detaches the original booster.
+
+Tupolev Tu-141 Strizh reconnaissance drone
+Additional dev52 adaptation: the same credited mesh/neutral textures are reused
+at 1.45 game scale for a fictional heavy long-range jet-missile class.
+This does not claim to be a Flamingo model. Original attribution/license retained.
+Creator: æck / aeck2142
+Source: https://sketchfab.com/3d-models/tupolev-tu-141-strizh-reconnaissance-drone-501d8fa00fd64ad69a3d1b08d2347d5c
+License: Creative Commons Attribution-NonCommercial-ShareAlike 4.0
+         https://creativecommons.org/licenses/by-nc-sa/4.0/
+Adaptation: evaluated original 4750-triangle mesh, centred/reoriented/scaled
+            body and glass OBJ export with separate original control groups;
+            seven national stars removed locally from 4096-square albedo;
+            technical number 05, weathering and author watermark retained.
+            Original glass texture unchanged. Adapted mesh/texture remains
+            CC BY-NC-SA 4.0; attribution, noncommercial use and ShareAlike apply.
+            Derived modular meshes regroup original faces and continuously vary
+            wing span/folding, retaining all source faces and UVs, under the same license.
 
 Geranium-2
 Creator: Karosio
@@ -108,3 +139,10 @@ WarTech Strategic Early-Warning Radar
 Creator: WarTech Reforged project
 Source: original generated low-poly geometry inspired by fixed phased-array radar architecture
 License: original project asset; no third-party mesh or texture data used
+
+Topol-M / Yars / Oreshnik mobile TEL presentation
+Creator: WarTech Reforged project (runtime kitbash)
+Source: existing credited S-400 truck mesh, original procedural launch canister,
+        and the pre-existing entity_sarmat_missile.obj,
+        entity_gbsd_missile.obj and entity_df5b_missile.obj assets
+License: no newly downloaded third-party mesh was added

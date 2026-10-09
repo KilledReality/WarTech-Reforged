@@ -17,12 +17,18 @@ public enum WarTechEntityProfile {
     FAB_5000(WarTechEntityType.ORDNANCE, 0.65D, 0.0D, 0.0D, 0.055D, 11.0F, 1800, 1.20F, 2.40F, 45.0F, RadarTargetType.MISSILE_TIER2),
     KAB_3000(WarTechEntityType.ORDNANCE, 0.85D, 0.018D, 0.065D, 0.040D, 9.0F, 2200, 0.90F, 1.90F, 36.0F, RadarTargetType.MISSILE_TIER2),
 
-    COMMAND_TRUCK(WarTechEntityType.GROUND_VEHICLE, 0.22D, 0.016D, 0.10D, 0.080D, 4.5F, 0, 2.60F, 2.50F, 720.0F, RadarTargetType.PLAYER),
-    RADAR_TRUCK(WarTechEntityType.GROUND_VEHICLE, 0.20D, 0.014D, 0.09D, 0.080D, 3.5F, 0, 4.20F, 3.00F, 300.0F, RadarTargetType.PLAYER),
-    MOBILE_AIR_DEFENSE(WarTechEntityType.GROUND_VEHICLE, 0.18D, 0.013D, 0.08D, 0.080D, 4.0F, 0, 3.10F, 3.00F, 500.0F, RadarTargetType.PLAYER),
+    COMMAND_TRUCK(WarTechEntityType.GROUND_VEHICLE, 0.22D, 0.016D, 0.10D, 0.080D, 4.5F, 0, 2.60F, 2.50F, 360.0F, RadarTargetType.PLAYER),
+    RADAR_TRUCK(WarTechEntityType.GROUND_VEHICLE, 0.20D, 0.014D, 0.09D, 0.080D, 3.5F, 0, 4.20F, 3.00F, 240.0F, RadarTargetType.PLAYER),
+    MOBILE_AIR_DEFENSE(WarTechEntityType.GROUND_VEHICLE, 0.18D, 0.013D, 0.08D, 0.080D, 4.0F, 0, 3.10F, 3.00F, 200.0F, RadarTargetType.PLAYER),
     MOBILE_ARTILLERY(WarTechEntityType.GROUND_VEHICLE, 0.17D, 0.012D, 0.08D, 0.080D, 5.0F, 0, 3.00F, 2.35F, 500.0F, RadarTargetType.PLAYER),
     ELECTRONIC_WARFARE(WarTechEntityType.GROUND_VEHICLE, 0.19D, 0.013D, 0.09D, 0.080D, 3.5F, 0, 2.40F, 3.20F, 240.0F, RadarTargetType.PLAYER),
-    S400_RADAR(WarTechEntityType.GROUND_VEHICLE, 0.18D, 0.012D, 0.08D, 0.080D, 5.0F, 0, 4.60F, 4.20F, 600.0F, RadarTargetType.PLAYER);
+    S400_RADAR(WarTechEntityType.GROUND_VEHICLE, 0.18D, 0.012D, 0.08D, 0.080D, 5.0F, 0, 4.60F, 4.20F, 300.0F, RadarTargetType.PLAYER),
+
+    // Appended to preserve every pre-existing profile ordinal in saved worlds.
+    STRATEGIC_TOPOL_M(WarTechEntityType.GROUND_VEHICLE, 0.13D, 0.008D, 0.055D, 0.080D, 9.0F, 0, 4.80F, 3.80F, 1100.0F, RadarTargetType.PLAYER),
+    STRATEGIC_YARS(WarTechEntityType.GROUND_VEHICLE, 0.13D, 0.008D, 0.055D, 0.080D, 9.0F, 0, 4.90F, 3.90F, 1200.0F, RadarTargetType.PLAYER),
+    STRATEGIC_ORESHNIK(WarTechEntityType.GROUND_VEHICLE, 0.15D, 0.009D, 0.060D, 0.080D, 8.0F, 0, 4.70F, 3.70F, 1000.0F, RadarTargetType.PLAYER),
+    STRATEGIC_FLIGHT(WarTechEntityType.MISSILE, 2.80D, 0.085D, 0.035D, 0.0D, 0.0F, 1000, 1.25F, 5.50F, 160.0F, RadarTargetType.MISSILE_TIER3);
 
     private final WarTechEntityType type;
     private final double speed;
@@ -81,11 +87,11 @@ public enum WarTechEntityProfile {
     }
 
     public float getWidth() {
-        return width;
+        return width * VehicleDimensions.scale(this);
     }
 
     public float getHeight() {
-        return height;
+        return height * VehicleDimensions.scale(this);
     }
 
     public float getMaxHealth() {

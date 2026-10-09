@@ -20,6 +20,10 @@ public final class AircraftCountermeasureCompat {
     }
 
     public static boolean beginCrash(Entity entity) {
+        if(entity instanceof com.wartec.wartecmod.port.entity.EntityCustomCruise)
+            return ((com.wartec.wartecmod.port.entity.EntityCustomCruise)entity).beginCombatCrash();
+        if(entity instanceof com.wartec.wartecmod.port.entity.EntityWarTechMissile)
+            return ((com.wartec.wartecmod.port.entity.EntityWarTechMissile)entity).beginCombatCrash();
         return entity instanceof AircraftCountermeasure
                 && ((AircraftCountermeasure) entity).beginCombatCrash();
     }

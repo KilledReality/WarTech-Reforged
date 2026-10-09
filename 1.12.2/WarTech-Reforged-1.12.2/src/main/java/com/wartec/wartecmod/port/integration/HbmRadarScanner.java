@@ -8,6 +8,7 @@ import java.util.List;
 import net.minecraft.entity.Entity;
 import net.minecraft.util.math.AxisAlignedBB;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
 
 /**
@@ -38,6 +39,10 @@ public final class HbmRadarScanner {
         boolean excludeFriendlies,
         TargetFilter filter
     ) {
+        return scan(world,origin,horizontalRange,verticalRange,limit,observerTeam,excludeFriendlies,filter,2.5);
+    }
+    public static List<RadarContact> scan(World world,BlockPos origin,double horizontalRange,double verticalRange,
+            int limit,String observerTeam,boolean excludeFriendlies,TargetFilter filter,double sensorOffset) {
         if (world == null || origin == null || horizontalRange <= 0.0D || verticalRange < 0.0D || limit <= 0) {
             return Collections.emptyList();
         }
@@ -57,10 +62,12 @@ public final class HbmRadarScanner {
         TargetFilter effectiveFilter = filter == null ? ACCEPT_ALL : filter;
         List<RadarContact> contacts = new ArrayList<RadarContact>();
 
-        for (Entity entity : world.getEntitiesWithinAABB(Entity.class, searchBox)) {
+        for (Entity entity : world.loadedEntityList) {
             if (entity == null || entity.isDead || !(entity instanceof IRadarDetectable)) {
                 continue;
             }
+            if(!entity.getEntityBoundingBox().intersects(searchBox)) continue;
+            if(com.wartec.wartecmod.port.network.MissileTrackingService.getThreatTier(entity)==0) continue;
 
             double deltaX = entity.posX - centerX;
             double deltaZ = entity.posZ - centerZ;
@@ -70,7 +77,8 @@ public final class HbmRadarScanner {
 
             IRadarDetectable.RadarTargetType targetType =
                 ((IRadarDetectable) entity).getTargetType();
-            if (targetType == null || !effectiveFilter.accept(entity, targetType)) {
+            if (targetType == null || targetType==IRadarDetectable.RadarTargetType.PLAYER
+                    || targetType==IRadarDetectable.RadarTargetType.MISSILE_AB || !effectiveFilter.accept(entity, targetType)) {
                 continue;
             }
 
@@ -84,12 +92,13 @@ public final class HbmRadarScanner {
         }
 
         Collections.sort(contacts, RadarContact.ORDER);
-        if (contacts.size() > limit) {
-            return Collections.unmodifiableList(
-                new ArrayList<RadarContact>(contacts.subList(0, limit))
-            );
+        List<RadarContact> visible=new ArrayList<>();
+        int checked=0;
+        for(RadarContact contact:contacts) {
+            if(checked++>=AirDefenseVisibility.MAX_CONTACT_CHECKS || visible.size()>=limit) break;
+            if(AirDefenseVisibility.visible(world,new Vec3d(centerX,centerY+sensorOffset,centerZ),contact.entity)) visible.add(contact);
         }
-        return Collections.unmodifiableList(contacts);
+        return Collections.unmodifiableList(visible);
     }
 
     public static final class RadarContact {

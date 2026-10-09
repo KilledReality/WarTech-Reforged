@@ -136,6 +136,8 @@ public final class WarTechContent {
         missile("StormShadow", MissileProfile.STORM_SHADOW);
     public static final MissileItem GERAN_DRONE =
         missile("GeranDrone", MissileProfile.GERAN_2);
+    public static final MissileItem GERAN_5_DRONE =
+        missile("Geran5Drone", MissileProfile.GERAN_5);
     public static final MissileItem ANTI_RADIATION_MISSILE =
         missile("AntiRadiationMissile", MissileProfile.ANTI_RADIATION);
     public static final MissileItem KH555_MISSILE =
@@ -160,7 +162,7 @@ public final class WarTechContent {
                 "ItemMissileStrikeCaller", WarTechCreativeTabs.GEAR));
     public static final ArtilleryTargetDesignatorItem ARTILLERY_TARGET_DESIGNATOR =
         addItem("designator_arty_range", new ArtilleryTargetDesignatorItem(
-                "designator_arty_range", WarTechCreativeTabs.SUPPORT));
+                "designator_arty_range", WarTechCreativeTabs.GEAR));
 
     // Dev66 aviation, air-defense and support inventory.
     public static final DeployableItem MQ9_REAPER_DRONE =
@@ -175,7 +177,7 @@ public final class WarTechContent {
                 "MQ9Flares", WarTechCreativeTabs.AVIATION));
     public static final SalvageWrenchItem WARTEC_SALVAGE_WRENCH =
         addItem("WarTecSalvageWrench", new SalvageWrenchItem(
-                "WarTecSalvageWrench", WarTechCreativeTabs.SUPPORT));
+                "WarTecSalvageWrench", WarTechCreativeTabs.GEAR));
     public static final DeployableItem MOBILE_ARTILLERY =
         deployable("MobileArtillery", WarTechCreativeTabs.SUPPORT, "mobile_artillery",
             "empty", "greg", "henry");
@@ -206,7 +208,7 @@ public final class WarTechContent {
             new PantsirAmmoBeltItem("Pantsir30mmBelt", WarTechCreativeTabs.AIR_DEFENSE));
     public static final PortIntentItem WARTECH_IFF_CONFIGURATOR =
         addItem("WarTechIffConfigurator",
-            new IffConfiguratorItem("WarTechIffConfigurator", WarTechCreativeTabs.SUPPORT));
+            new IffConfiguratorItem("WarTechIffConfigurator", WarTechCreativeTabs.GEAR));
     public static final VariantItem STRATEGIC_BOMB =
         addItem("StrategicBomb", new VariantItem(
                 "StrategicBomb", WarTechCreativeTabs.AVIATION, 1,
@@ -217,6 +219,39 @@ public final class WarTechContent {
         deployable("TacticalAircraft", WarTechCreativeTabs.AVIATION, "f16_tactical_aircraft", "default");
     public static final DeployableItem SU27_TACTICAL_AIRCRAFT =
         deployable("Su27TacticalAircraft", WarTechCreativeTabs.AVIATION, "su27_tactical_aircraft", "default");
+    public static final DeployableItem TOPOL_M_TEL =
+        deployable("TopolMTel", WarTechCreativeTabs.CRUISE_MISSILES,
+                "strategic_topol_m", "default");
+    public static final DeployableItem YARS_TEL =
+        deployable("YarsTel", WarTechCreativeTabs.CRUISE_MISSILES,
+                "strategic_yars", "default");
+    public static final DeployableItem ORESHNIK_TEL =
+        deployable("OreshnikTel", WarTechCreativeTabs.CRUISE_MISSILES,
+                "strategic_oreshnik", "default");
+    public static final StrategicMissileItem STRATEGIC_MISSILE =
+        addItem("StrategicMissile", new StrategicMissileItem(
+                "StrategicMissile"));
+
+    // Modular UAV constructor.
+    public static final CruisePartItem CRUISE_MODULE =
+        addItem("CruiseModule", new CruisePartItem("CruiseModule", WarTechCreativeTabs.CUSTOM_CRUISE));
+    public static final CruiseBlueprintItem CRUISE_BLUEPRINT =
+        addItem("CruiseBlueprint", new CruiseBlueprintItem("CruiseBlueprint", WarTechCreativeTabs.CUSTOM_CRUISE));
+    public static final AssembledCruiseItem ASSEMBLED_CRUISE =
+        addItem("AssembledCruise", new AssembledCruiseItem("AssembledCruise", WarTechCreativeTabs.CUSTOM_CRUISE));
+    public static final UavPartItem UAV_MODULE =
+        addItem("UavModule", new UavPartItem(
+                "UavModule", WarTechCreativeTabs.CUSTOM_UAV));
+    public static final UavBlueprintItem UAV_BLUEPRINT =
+        addItem("UavBlueprint", new UavBlueprintItem(
+                "UavBlueprint", WarTechCreativeTabs.CUSTOM_UAV));
+    public static final AssembledUavItem ASSEMBLED_UAV =
+        addItem("AssembledUav", new AssembledUavItem(
+                "AssembledUav", WarTechCreativeTabs.CUSTOM_UAV));
+    public static final UavGuideBookItem UAV_GUIDE_BOOK =
+        addItem("UavGuideBook", new UavGuideBookItem("UavGuideBook"));
+    public static final UavReconReportItem UAV_RECON_REPORT =
+        addItem("UavReconReport", new UavReconReportItem("UavReconReport"));
 
     // Legacy blocks.
     public static final PortBlock DECO_BLOCK_CRUISE_MISSILE =
@@ -292,6 +327,18 @@ public final class WarTechContent {
     public static final StrategicRadarStructureBlock STRATEGIC_RADAR_STRUCTURE =
         addBlock("StrategicRadarStructure",
                 new StrategicRadarStructureBlock());
+    public static final UavFabricatorBlock UAV_FABRICATOR =
+        addBlock("UavFabricator", new UavFabricatorBlock());
+    public static final CruiseFabricatorBlock CRUISE_FABRICATOR =
+        addBlock("CruiseFabricator", new CruiseFabricatorBlock());
+    public static final CruiseLaunchPointBlock CRUISE_LAUNCH_POINT =
+        addBlock("CruiseLaunchPoint", new CruiseLaunchPointBlock(false));
+    public static final CruiseLaunchPointBlock CRUISE_DRONE_RAIL =
+        addBlock("CruiseDroneRail", new CruiseLaunchPointBlock(true));
+    public static final UavLaunchPointBlock UAV_LAUNCH_POINT =
+        addBlock("UavLaunchPoint", new UavLaunchPointBlock());
+    public static final UavMissionStationBlock UAV_MISSION_STATION =
+        addBlock("UavMissionStation", new UavMissionStationBlock());
 
     private WarTechContent() {
     }
@@ -350,7 +397,9 @@ public final class WarTechContent {
     }
 
     private static MissileItem missile(String legacyName, MissileProfile profile) {
-        return addItem(legacyName, new MissileItem(legacyName, WarTechCreativeTabs.CRUISE_MISSILES, profile));
+        CreativeTabs tab=profile.getFlightClass()==MissileProfile.FlightClass.INTERCEPTOR
+            || profile==MissileProfile.ASAT ? WarTechCreativeTabs.AIR_DEFENSE : WarTechCreativeTabs.CRUISE_MISSILES;
+        return addItem(legacyName, new MissileItem(legacyName, tab, profile));
     }
 
     private static DeployableItem deployable(

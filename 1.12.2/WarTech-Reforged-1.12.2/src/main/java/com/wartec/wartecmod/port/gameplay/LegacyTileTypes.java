@@ -39,6 +39,13 @@ public final class LegacyTileTypes {
                 new ResourceLocation(MODID, "wartech_machine"));
         GameRegistry.registerTileEntity(TileEntityWarTechVisual.class,
                 new ResourceLocation(MODID, "wartech_visual"));
+        GameRegistry.registerTileEntity(TileEntityUavFabricator.class,
+                new ResourceLocation(MODID, "uav_fabricator"));
+        GameRegistry.registerTileEntity(TileEntityUavMissionStation.class,
+                new ResourceLocation(MODID, "uav_mission_station"));
+        GameRegistry.registerTileEntity(TileEntityCruiseFabricator.class,
+                new ResourceLocation(MODID, "cruise_fabricator"));
+        net.minecraftforge.fml.common.registry.GameRegistry.registerTileEntity(TileEntityCruiseLauncher.class,new ResourceLocation(MODID,"cruise_launcher"));
         for (TileRegistration registration : LEGACY_REGISTRATIONS) {
             GameRegistry.registerTileEntity(registration.getTileClass(),
                     new ResourceLocation(MODID, registration.getRegistryPath()));

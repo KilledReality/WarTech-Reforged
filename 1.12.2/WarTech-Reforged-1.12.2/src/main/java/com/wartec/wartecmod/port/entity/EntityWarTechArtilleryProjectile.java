@@ -47,6 +47,7 @@ public final class EntityWarTechArtilleryProjectile
     private boolean shouldWhistle;
     private boolean clustered;
     private boolean cargoStuck;
+    private float clusterBlastStrength;
     private ItemStack cargo = ItemStack.EMPTY;
 
     public EntityWarTechArtilleryProjectile(World world) {
@@ -93,9 +94,17 @@ public final class EntityWarTechArtilleryProjectile
         return dataManager.get(PROJECTILE_KIND);
     }
 
+    public void configureCruiseSubmunition(int strength) {
+        configure(KIND_GREG,new ItemStack(com.wartec.wartecmod.port.content.WarTechContent.ARTILLERY_AMMO,1,ArtilleryAmmoItem.NORMAL),posX,posY-32,posZ);
+        clusterBlastStrength=com.wartec.wartecmod.port.integration.WeaponBalance.clusterStrength(strength);
+        setArmed(false);setSize(.2F,.2F);
+    }
+
     public int getAmmoType() {
         return dataManager.get(AMMO_TYPE);
     }
+    public boolean isCruiseSubmunition() { return clusterBlastStrength>0; }
+    public boolean needsFlightChunkTicket() { return !cargoStuck; }
 
     public void setWhistle(boolean whistle) {
         this.shouldWhistle = whistle;
@@ -117,6 +126,7 @@ public final class EntityWarTechArtilleryProjectile
     protected void serverTick(WarTechEntityProfile profile) {
         if (cargoStuck) {
             motionX = motionY = motionZ = 0.0D;
+            MissileChunkLoader.untrack(this);
             return;
         }
         MissileChunkLoader.track(this);
@@ -131,7 +141,8 @@ public final class EntityWarTechArtilleryProjectile
         if ((getAmmoType() == ArtilleryAmmoItem.MINI_NUKE_MULTI
                 || getAmmoType() == ArtilleryAmmoItem.PHOSPHORUS_MULTI)
                 && shouldWhistle && !clustered && motionY <= 0.0D
-                && posY <= getTargetY() + 300.0D) {
+                && posY <= getTargetY() + 300.0D
+                && MissileChunkLoader.availableFlightSlots(world)>=(getAmmoType()==ArtilleryAmmoItem.MINI_NUKE_MULTI?5:10)) {
             splitGregCluster();
             return;
         }
@@ -147,9 +158,9 @@ public final class EntityWarTechArtilleryProjectile
                     getTargetX(), getTargetY(), getTargetZ(),
                     15.0F, 0.9F + rand.nextFloat() * 0.2F);
         }
-        moveAndCheckImpact();
+        if(!moveAndCheckImpact()) return;
         if (!isDead && !cargoStuck) {
-            motionY -= 0.4905D;
+            motionY -= clusterBlastStrength>0?.075D:.4905D;
             updateRotationFromMotion();
         }
     }
@@ -174,7 +185,7 @@ public final class EntityWarTechArtilleryProjectile
         } else {
             turnHenryTowardTarget(25.0D, 15.0D);
         }
-        moveAndCheckImpact();
+        if(!moveAndCheckImpact()) return;
         if (!isDead) {
             WarTechNetwork.CHANNEL.sendToAllAround(
                     new LegacyKeroseneTrailMessage(
@@ -217,9 +228,12 @@ public final class EntityWarTechArtilleryProjectile
         motionZ = -Math.cos(yawRadians) * horizontal;
     }
 
-    private void moveAndCheckImpact() {
+    private boolean moveAndCheckImpact() {
         Vec3d start = new Vec3d(posX, posY, posZ);
         Vec3d end = start.addVector(motionX, motionY, motionZ);
+        if(!MissileChunkLoader.flightReady(this,motionX,motionZ)
+                || !com.wartec.wartecmod.port.cruise.CruiseNavigation.loadedRay(start,end,
+                    (x,z)->world.isBlockLoaded(new net.minecraft.util.math.BlockPos(x*16,64,z*16)))) return false;
         RayTraceResult hit = world.rayTraceBlocks(start, end,
                 false, true, false);
         Vec3d collisionEnd = hit == null ? end : hit.hitVec;
@@ -232,12 +246,13 @@ public final class EntityWarTechArtilleryProjectile
                 setPosition(hit.hitVec.x, hit.hitVec.y, hit.hitVec.z);
             }
             impact(hit);
-            return;
+            return true;
         }
         moveWithCurrentMotion();
         if (ticksExisted > 1200 || posY < -64.0D) {
             setDead();
         }
+        return true;
     }
 
     private Entity findHitEntity(Vec3d start, Vec3d end) {
@@ -292,7 +307,9 @@ public final class EntityWarTechArtilleryProjectile
             child.motionY = motionY;
             child.motionZ = index == 0 ? motionZ
                     : motionZ + rand.nextGaussian() * 5.0D;
-            if (world.spawnEntity(child)) {
+            double horizontal=Math.hypot(child.motionX,child.motionZ);
+            if(horizontal>55) { child.motionX*=55/horizontal;child.motionZ*=55/horizontal; }
+            if (com.wartec.wartecmod.port.integration.MissileChunkLoader.spawnFlight(child)) {
                 MissileTrackingService.assignProjectileTeam(
                         child, getOwnerTeam());
             }
@@ -301,6 +318,16 @@ public final class EntityWarTechArtilleryProjectile
     }
 
     private void impact(RayTraceResult hit) {
+        try (com.wartec.wartecmod.port.integration.StrikeBlastSafety.Scope ignored =
+                com.wartec.wartecmod.port.integration.StrikeBlastSafety.enter(this)) {
+            impactScoped(hit);
+        }
+    }
+    private void impactScoped(RayTraceResult hit) {
+        if(clusterBlastStrength>0) {
+            HbmExplosionCompat.advancedExplosion(world,posX,posY,posZ,clusterBlastStrength,1,true);
+            setDead();return;
+        }
         int type = getAmmoType();
         if (getProjectileKind() == KIND_HENRY) {
             offsetImpactAgainstMotion();
@@ -414,7 +441,7 @@ public final class EntityWarTechArtilleryProjectile
                 break;
             case HimarsAmmoItem.SMALL_LAVA:
                 HbmExplosionCompat.advancedExplosion(
-                        world, posX, posY, posZ, 20.0F, 3.0F, true);
+                        world, posX, posY, posZ, 8.0F, 1.0F, true);
                 createVolcanicLava();
                 break;
             default:
@@ -556,6 +583,7 @@ public final class EntityWarTechArtilleryProjectile
         compound.setBoolean("ArtilleryShouldWhistle", shouldWhistle);
         compound.setBoolean("ArtilleryClustered", clustered);
         compound.setBoolean("ArtilleryCargoStuck", cargoStuck);
+        compound.setFloat("WarTechClusterStrength",clusterBlastStrength);
         if (!cargo.isEmpty()) {
             compound.setTag("ArtilleryCargo", cargo.writeToNBT(
                     new NBTTagCompound()));
@@ -573,6 +601,8 @@ public final class EntityWarTechArtilleryProjectile
         shouldWhistle = compound.getBoolean("ArtilleryShouldWhistle");
         clustered = compound.getBoolean("ArtilleryClustered");
         cargoStuck = compound.getBoolean("ArtilleryCargoStuck");
+        clusterBlastStrength=MathHelper.clamp(compound.getFloat("WarTechClusterStrength"),0,5);
+        if(clusterBlastStrength>0) { setArmed(false);setSize(.2F,.2F); }
         cargo = compound.hasKey("ArtilleryCargo", 10)
                 ? new ItemStack(compound.getCompoundTag("ArtilleryCargo"))
                 : ItemStack.EMPTY;

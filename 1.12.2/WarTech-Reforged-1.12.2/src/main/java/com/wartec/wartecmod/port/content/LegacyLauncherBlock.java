@@ -187,7 +187,7 @@ public final class LegacyLauncherBlock extends BlockContainer
             return true;
         }
         if (type == Type.GERAN && player.isSneaking() && held.isEmpty()) {
-            if (!world.isRemote) {
+            if (!world.isRemote && hand == EnumHand.MAIN_HAND) {
                 machine.launchGeranRemote(player);
             }
             return true;
@@ -224,7 +224,7 @@ public final class LegacyLauncherBlock extends BlockContainer
         }
         TileEntityWarTechMachine machine = findMachine(world, pos);
         if (machine != null) {
-            machine.launchLoadedMissile(null);
+            machine.launchFromDetonator(null);
         }
     }
 

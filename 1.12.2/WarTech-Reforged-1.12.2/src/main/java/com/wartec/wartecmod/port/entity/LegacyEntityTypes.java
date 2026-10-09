@@ -103,6 +103,9 @@ public final class LegacyEntityTypes {
     public static final class GeranMissile extends FixedMissile {
         public GeranMissile(World world) { super(world, MissileProfile.GERAN_2); }
     }
+    public static final class Geran5Missile extends FixedMissile {
+        public Geran5Missile(World world) { super(world, MissileProfile.GERAN_5); }
+    }
     public static final class AntiRadiationMissile extends FixedMissile {
         public AntiRadiationMissile(World world) { super(world, MissileProfile.ANTI_RADIATION); }
     }

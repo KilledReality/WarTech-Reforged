@@ -3,6 +3,23 @@
 This document records the current origin and license status of material used by
 WarTech Reforged. It is not a license for the project as a whole.
 
+## Current publication candidate — October 9, 2026
+
+The Modular Warfare Update candidate targets Minecraft 1.12.2 with **NTM
+Community Edition 2.6.1.0** and **MixinBooter 10.7**, not the older Extended
+branch described in historical sections. Dependencies remain external.
+On October 9, 2026, the project owner confirmed that all permissions required
+for public distribution of this update, including the original WarTech material
+and supplied models, had already been obtained. This records the owner's
+confirmation; it is not an independent legal verification or a blanket license.
+Existing asset-specific attribution and license conditions remain applicable.
+
+Custom cruise missiles now render their clean base bodies; historical dev55
+accessory descriptions below record earlier derivatives, not a promise of
+current visual modularity. Retained derivative resources still require their
+applicable attribution. Bibliographic details not present in the workspace are
+identified below rather than replaced with guessed authors or license grants.
+
 ## Original WarTech 1.1.1
 
 WarTech Reforged contains restored and modified code and assets originating from
@@ -11,11 +28,10 @@ JAR contains no license file and its `mcmod.info` does not grant redistribution
 or modification rights. The previously referenced source repository is no longer
 publicly available.
 
-**Release blocker:** obtain written permission from the original WarTech author
-or maintainer that explicitly allows modification and public redistribution of a
-fork. Keep a copy of the permission and, where possible, ask the author to publish
-it on a stable public page. Until this is resolved, a public binary release is not
-legally safe.
+**Permission status:** the project owner confirmed permission for modification
+and public redistribution on October 9, 2026. The permission correspondence is
+held by the owner rather than reproduced here. Original authorship is retained;
+the absence of a license inside the old JAR is not represented as a new grant.
 
 ## HBM's Nuclear Tech Mod
 
@@ -32,6 +48,16 @@ WarTech Reforged release package.
 
 ## Verified Model Attribution
 
+### Custom-cruise decorative modules (dev55)
+
+- Original WarTech Reforged game-only accessory geometry: 28 separate OBJ files
+  for optical/thermal/radar nose covers and economy/standard/fast/endurance
+  engine shrouds. Added over credited bodies; no author faces or UVs removed.
+- Surface patches reuse the existing UJ-32 Motor albedo by SpinoCactus,
+  CC BY 4.0, attributed below. No texture artwork was generated/modified in dev55.
+- Author body/wing/booster resources and political-insignia neutralizations remain
+  unchanged from dev54. This decorative adaptation is not real weapon engineering.
+
 ### MIM-104 Patriot
 
 - Creator: Muhamad Mirza Arrafi
@@ -45,6 +71,70 @@ WarTech Reforged release package.
 - Source: https://sketchfab.com/3d-models/storm-shadow-ukraine-d1ad04ce964f46dd9cbac6a64cd19b1b
 - License: Creative Commons Attribution (CC BY)
 - Changes: converted, scaled, optimized, reoriented, and integrated into Minecraft.
+  In the 1.12.2 development resources, national insignia, flag-pattern lettering
+  and handwritten political decoration were removed from bounded albedo regions.
+  Technical warning stencils and neutral missile names were retained. Geometry
+  and UV coordinates of the original mesh are unchanged; the author's attribution
+  remains. Separate derived custom-cruise meshes regroup original faces and
+  continuously vary outboard wing span/folding without removing faces or UVs.
+
+### R-360 "Neptune" anti-ship cruise missile
+
+- Creator: MrZeuglodon
+- Source: https://sketchfab.com/3d-models/r-360-neptune-anti-ship-cruise-missile-a64c109936da417eb7ce4346a801a276
+- License: Creative Commons Attribution 4.0 (CC BY 4.0)
+- License URL: https://creativecommons.org/licenses/by/4.0/
+- Input: user-provided `r-360-neptune-anti-ship-cruise-missile.zip`.
+- Changes: selected one of the two duplicate showcase meshes, centred/reoriented
+  an OBJ export for Minecraft, and exported the existing booster separately.
+  National insignia and manufacturer emblems were removed locally from white
+  and orange albedos; technical names and calibration marks remain. No original
+  mesh detail was replaced by generated geometry. The editable neutral FBX and
+  Blender file use only the neutral albedo materials.
+- Status: integrated as the classic body in the dev50 custom-cruise test build.
+  Runtime variants resize original wing/engine groups and detach the booster.
+
+### UJ-32 Lastvika UAV — adapted light jet-drone airframe (dev53)
+
+- Creator: **SpinoCactus**. Original model:
+  https://sketchfab.com/3d-models/uj-32-lastvika-uav-3f681c071708442c91f54407acdd33aa
+- License: Creative Commons Attribution 4.0 (CC BY 4.0):
+  https://creativecommons.org/licenses/by/4.0/
+- User-supplied archive `uj-32-lastvika-uav.zip`, SHA-256
+  `27F50C733833358D347479B37F90FC08B947290E4A61C7D6D76916FE6EC674BA`.
+- Changes: removed only author propeller (1,700 triangles) and piston motor
+  (1,560 triangles); replaced them with an original decorative recessed game
+  nozzle. Retained all 12,128 other author triangles and UVs, uniformly centered
+  and scaled for the game. Main wing-span variants and three nozzle variants.
+- Two wing roundels were locally inpainted with imagegen; all pixels outside
+  two explicit circular masks, original alpha and native 2048 texture sizes
+  are preserved. Technical numbers/stencils and author attribution retained.
+- This is a fictional game adaptation, not a claim that the original UJ-32
+  has a jet engine. This asset's CC BY license does not relicense the whole mod.
+
+### Tupolev Tu-141 Strizh reconnaissance drone
+
+- Dev52 also reuses the existing mesh at 1.45 game scale for a fictional heavy
+  long-range missile body. It is not a newly acquired Flamingo model; the same
+  attribution and noncommercial/share-alike restrictions apply.
+
+- Creator: æck / aeck2142
+- Source: https://sketchfab.com/3d-models/tupolev-tu-141-strizh-reconnaissance-drone-501d8fa00fd64ad69a3d1b08d2347d5c
+- License: Creative Commons Attribution-NonCommercial-ShareAlike 4.0
+  (CC BY-NC-SA 4.0), https://creativecommons.org/licenses/by-nc-sa/4.0/
+- Input: user-provided `tupolev-tu-141-strizh-reconnaissance-drone.zip`.
+- Changes: original evaluated mesh exported as centred/reoriented, uniformly
+  scaled body/glass OBJ files; 4,750 original triangles and control-surface groups
+  retained. Seven national stars removed locally from the original 4096² albedo;
+  red technical number 05, weathering and author watermark text retained. Original
+  glass texture unchanged. Editable neutral Blend retains the author's controls
+  and packs the clean albedo materials; original archive/Blend preserved separately.
+- Restriction: adapted mesh/texture remains under CC BY-NC-SA 4.0. Noncommercial
+  use, attribution and ShareAlike apply to this material; commercial use requires
+  separate creator permission. No additional restrictions are imposed on it.
+- Status: integrated as the light body in the dev50 custom-cruise test build.
+  Derived meshes regroup original faces and continuously vary wing span/folding,
+  retaining all original faces/UVs. These adaptations remain CC BY-NC-SA 4.0.
 
 ### Geranium-2
 
@@ -151,6 +241,15 @@ WarTech Reforged release package.
 - Changes: converted from glTF, scaled, cached, and integrated as an unguided
   MQ-9 payload.
 
+### Transporter Erector (Rocket Launch Pad and Gantry)
+
+- Creator: 3D Assets
+- Source: https://3dassets.dev/assets/rocket-launch-pad-and-gantry-transporter-erector-33b1921f
+- License: CC0 1.0 Universal
+- Changes: converted from quantized glTF to the legacy OBJ renderer, recolored,
+  extended to an eight-axle strategic TEL silhouette, scaled, and split into
+  fixed chassis and animated erector groups.
+
 ### Tu-95 BEAR
 
 - Creator: meminbiyikli
@@ -168,7 +267,12 @@ WarTech Reforged release package.
 - Changes: converted from glTF, geometry reduced, textures baked into a reduced
   atlas, scaled, cached, and integrated as a Tier 2 cruise missile.
 
-## Restricted or Incomplete Attribution
+## Additional Attribution Records
+
+Public-distribution permissions for the entries in this section were confirmed
+by the project owner on October 9, 2026. Some exact source-page/creator details
+are not recorded in this workspace; do not mistake that absence for a claim
+that the project created those imported models or owns unrestricted rights.
 
 ### Tactical aviation asset set
 
@@ -176,37 +280,50 @@ WarTech Reforged release package.
   `missile-bomb-collection-fighter-jets-free.zip`.
 - Used assets: F-16C, Su-27PU, AGM-114, GBU-12, HJ-10, AGM-65, Kh-29,
   KAB-500L, and JDAM.
-- Required before release: identify the exact creators, permanent source URLs,
-  and licenses. These assets must not be included in a public build until that
-  information is confirmed or the models are replaced.
+- Distribution permission: confirmed by the project owner. Exact creator names,
+  permanent source URLs and individual terms are held in the owner's records
+  and have not been independently transcribed into this document.
 
 ### S-400 Triumf SAM system
 
 - Creator: 42manako
 - License shown on the source page: Creative Commons Attribution-NonCommercial
   (CC BY-NC)
-- Required before release: add the exact permanent source URL to this document.
+- The exact permanent source URL is not recorded here; the recorded creator
+  and NC conditions are preserved.
 - Restriction: commercial use, including platform reward programs, should remain
   disabled unless the creator grants separate permission.
 
 ### S-400 long-range radar
 
 - Local source archive: `s400-trioumf-radar-bonus-free.zip`
-- Required before release: identify the exact creator, permanent source URL, and
-  license. If they cannot be verified, replace the model or remove it.
+- Distribution permission: confirmed by the project owner. Exact creator,
+  permanent source URL and license details are not transcribed here.
 
 ### Ural command vehicle
 
 - Possible source: "Ural 4320" by Brout / davidbroutian under CC BY:
   https://sketchfab.com/3d-models/ural-4320-f953c51a5dbc4a15949f4dcc0905c4e8
-- Required before release: verify that this is the exact downloaded model. Do not
-  treat the possible match as confirmed attribution.
+- Distribution permission: confirmed by the project owner. The possible source
+  above remains a possible match, not independently verified attribution.
 
 ### Geran catapult
 
 - Original WarTech Reforged project asset.
-- License depends on the final project license after the WarTech rights issue is
-  resolved.
+- Original project geometry; no third-party license is granted by this entry.
+
+### User-supplied Geran-5 v2 (local dev76)
+
+- Supplied input: `geran5_minecraft_v2.glb`,
+  explicitly supplied by the user for integration into this local mod.
+- Source SHA-256: `DFFCB12460630EE7AC7DD7AF720883A6639CF87B461A3A294B6E88BC64879E34`.
+- Runtime conversion retains 13,168 triangles, UVs and split normals; axis/scale
+  adaptation only. Embedded albedo is exported without repainting. Legacy OpenGL
+  uses the albedo, not the source PBR metallic/roughness shaders.
+- A separate original WarTech rail-slide cradle supports the unchanged model.
+- Public redistribution permission: explicitly confirmed by the project owner
+  on October 9, 2026. External creator/source/license details were not independently
+  established in this workspace; no invented attribution or blanket license is added.
 
 ## Monetization Warning
 

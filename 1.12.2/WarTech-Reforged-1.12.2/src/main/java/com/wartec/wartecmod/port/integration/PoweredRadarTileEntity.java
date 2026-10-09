@@ -44,7 +44,7 @@ public abstract class PoweredRadarTileEntity extends HbmPoweredTileEntity implem
                     public boolean accept(Entity entity, IRadarDetectable.RadarTargetType targetType) {
                         return isValidRadarTarget(entity, targetType);
                     }
-                }
+                },getRadarSensorOffset()
             );
             onRadarContactsUpdated(contacts);
         }
@@ -101,6 +101,7 @@ public abstract class PoweredRadarTileEntity extends HbmPoweredTileEntity implem
     protected int getRadarContactLimit() {
         return 64;
     }
+    protected double getRadarSensorOffset() { return 2.5; }
 
     protected boolean excludeFriendlyContacts() {
         return true;

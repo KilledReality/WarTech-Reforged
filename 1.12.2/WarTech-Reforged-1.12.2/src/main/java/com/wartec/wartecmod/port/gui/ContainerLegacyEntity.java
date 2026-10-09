@@ -17,19 +17,14 @@ public final class ContainerLegacyEntity extends Container {
         COMMAND,
         AIR_DEFENSE,
         ARTILLERY,
+        STRATEGIC,
         AIRCRAFT
     }
 
     private final EntityWarTechBase target;
     private final Layout layout;
-    private int lastPower = Integer.MIN_VALUE;
-    private int lastState = Integer.MIN_VALUE;
-    private int lastContacts = Integer.MIN_VALUE;
-    private int lastFireMode = Integer.MIN_VALUE;
-    private int lastFlags = Integer.MIN_VALUE;
-    private int lastPayload = Integer.MIN_VALUE;
-    private int lastHardpoint = Integer.MIN_VALUE;
-    private final int[] lastBlips = new int[16];
+    private final WindowPropertySync propertySync = new WindowPropertySync(40);
+    private final int[] properties = new int[40];
 
     public ContainerLegacyEntity(InventoryPlayer playerInventory,
             EntityWarTechBase target, Layout layout) {
@@ -62,13 +57,15 @@ public final class ContainerLegacyEntity extends Container {
             }
             addSlotToContainer(new BatterySlot(target, 10, 152, 99));
             addPlayerSlots(playerInventory, 8, 140, 198);
+        } else if (layout == Layout.STRATEGIC) {
+            addPlayerSlots(playerInventory, 47, 122, 180);
         } else {
             for (int slot = 0; slot < 6; ++slot) {
-                addSlotToContainer(new PayloadSlot(target, slot, 44 + slot * 21, 57));
+                addSlotToContainer(new PayloadSlot(target, slot, 76 + slot * 21, 83));
             }
-            addSlotToContainer(new BatterySlot(target, 6, 205, 57));
-            addSlotToContainer(new FlaresSlot(target, 7, 178, 57));
-            addPlayerSlots(playerInventory, 24, 139, 197);
+            addSlotToContainer(new BatterySlot(target, 6, 237, 83));
+            addSlotToContainer(new FlaresSlot(target, 7, 210, 83));
+            addPlayerSlots(playerInventory, 68, 176, 234);
         }
     }
 
@@ -87,60 +84,33 @@ public final class ContainerLegacyEntity extends Container {
     @Override
     public void addListener(IContainerListener listener) {
         super.addListener(listener);
-        sendProperties(listener);
+        readProperties();
+        propertySync.send(properties, (id,value) -> listener.sendWindowProperty(this,id,value), true);
     }
 
     @Override
     public void detectAndSendChanges() {
         super.detectAndSendChanges();
-        int power = target.getLegacyPower();
-        int state = target.getLegacyState();
-        int contacts = target.getLegacyContacts();
-        int fireMode = target.getLegacyFireMode();
-        int flags = target.getLegacyFlags();
-        int payload = target.getLegacySelectedPayload();
-        int hardpoint = target.getLegacySelectedHardpoint();
-        boolean blipsChanged = false;
-        for (int index = 0; index < lastBlips.length; ++index) {
-            if (lastBlips[index] != target.getLegacyBlip(index)) {
-                blipsChanged = true;
-                break;
-            }
-        }
-        if (power != lastPower || state != lastState || contacts != lastContacts
-                || fireMode != lastFireMode || flags != lastFlags
-                || payload != lastPayload || hardpoint != lastHardpoint
-                || blipsChanged) {
-            for (IContainerListener listener : listeners) {
-                sendProperties(listener);
-            }
-            lastPower = power;
-            lastState = state;
-            lastContacts = contacts;
-            lastFireMode = fireMode;
-            lastFlags = flags;
-            lastPayload = payload;
-            lastHardpoint = hardpoint;
-            for (int index = 0; index < lastBlips.length; ++index) {
-                lastBlips[index] = target.getLegacyBlip(index);
-            }
-        }
+        readProperties();
+        for (IContainerListener listener : listeners)
+            propertySync.send(properties, (id,value) -> listener.sendWindowProperty(this,id,value), false);
+        propertySync.remember(properties);
     }
 
-    private void sendProperties(IContainerListener listener) {
+    private void readProperties() {
         int power = target.getLegacyPower();
-        listener.sendWindowProperty(this, 0, power & 65535);
-        listener.sendWindowProperty(this, 1, power >>> 16);
-        listener.sendWindowProperty(this, 2, target.getLegacyState());
-        listener.sendWindowProperty(this, 3, target.getLegacyContacts());
-        listener.sendWindowProperty(this, 4, target.getLegacyFireMode());
-        listener.sendWindowProperty(this, 5, target.getLegacyFlags());
-        listener.sendWindowProperty(this, 6, target.getLegacySelectedPayload());
-        listener.sendWindowProperty(this, 7, target.getLegacySelectedHardpoint());
+        properties[0]=power & 65535;
+        properties[1]=power >>> 16;
+        properties[2]=target.getLegacyState();
+        properties[3]=target.getLegacyContacts();
+        properties[4]=target.getLegacyFireMode();
+        properties[5]=target.getLegacyFlags();
+        properties[6]=target.getLegacySelectedPayload();
+        properties[7]=target.getLegacySelectedHardpoint();
         for (int index = 0; index < 16; ++index) {
             int packed = target.getLegacyBlip(index);
-            listener.sendWindowProperty(this, 8 + index * 2, packed & 65535);
-            listener.sendWindowProperty(this, 9 + index * 2, packed >>> 16);
+            properties[8+index*2]=packed & 65535;
+            properties[9+index*2]=packed >>> 16;
         }
     }
 
@@ -202,6 +172,7 @@ public final class ContainerLegacyEntity extends Container {
     }
 
     private int machineSlotCount() {
+        if (layout == Layout.STRATEGIC) return 0;
         if (layout == Layout.RADAR || layout == Layout.COMMAND) return 1;
         if (layout == Layout.AIR_DEFENSE) return 14;
         if (layout == Layout.ARTILLERY) return 11;
@@ -266,7 +237,12 @@ public final class ContainerLegacyEntity extends Container {
         }
         @Override public boolean isItemValid(ItemStack stack) {
             return target.isPayloadSlotAvailable(hardpoint) && !stack.isEmpty()
-                    && target.isPayloadCompatible(stack);
+                    && target.isPayloadCompatible(stack)
+                    && target.isItemValidForSlot(hardpoint,stack);
+        }
+        @Override public boolean canTakeStack(EntityPlayer player) {
+            return !(target instanceof com.wartec.wartecmod.port.entity.EntityCustomUav)
+                || target.getLegacyState()==0;
         }
         @Override public int getSlotStackLimit() { return 1; }
     }
@@ -287,11 +263,14 @@ public final class ContainerLegacyEntity extends Container {
     }
 
     private static final class FlaresSlot extends Slot {
+        private final EntityWarTechBase target;
         FlaresSlot(EntityWarTechBase inventory, int index, int x, int y) {
             super(inventory, index, x, y);
+            target = inventory;
         }
         @Override public boolean isItemValid(ItemStack stack) {
-            return !stack.isEmpty() && stack.getItem() == WarTechContent.MQ9_FLARES;
+            return !stack.isEmpty() && stack.getItem() == WarTechContent.MQ9_FLARES
+                    && target.isItemValidForSlot(getSlotIndex(), stack);
         }
         @Override public int getSlotStackLimit() { return 16; }
     }

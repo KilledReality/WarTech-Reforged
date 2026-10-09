@@ -39,3 +39,6 @@ Thumbs.db
 # Maintainer-only release notes (kept locally, never published)
 /RELEASE_CHECKLIST.md
 /PUBLISHING_GUIDE.md
+
+# Local publication candidates, checksums and private QA manifests
+/publication-private/

@@ -6,6 +6,7 @@ import com.wartec.wartecmod.port.content.MissileProfile;
 import com.wartec.wartecmod.port.content.PantsirAmmoBeltItem;
 import com.wartec.wartecmod.port.gui.WarTechGuiHandler;
 import com.wartec.wartecmod.port.integration.ElectronicWarfareService;
+import com.wartec.wartecmod.port.integration.ITeamOwned;
 import com.wartec.wartecmod.port.integration.MissileChunkLoader;
 import com.wartec.wartecmod.port.integration.NetworkTeamHelper;
 import com.wartec.wartecmod.port.integration.OwnerTeamNbt;
@@ -42,8 +43,9 @@ import net.minecraft.util.math.AxisAlignedBB;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.world.World;
 
-public abstract class EntityWarTechBase extends Entity implements IRadarDetectable, IInventory {
-    private static final int HEALTH_SCHEMA = 2;
+public abstract class EntityWarTechBase extends Entity
+        implements IRadarDetectable, IInventory, ITeamOwned {
+    private static final int HEALTH_SCHEMA = 3;
     private static final DataParameter<Integer> PROFILE =
             EntityDataManager.createKey(EntityWarTechBase.class, DataSerializers.VARINT);
     private static final DataParameter<Float> HEALTH =
@@ -130,18 +132,23 @@ public abstract class EntityWarTechBase extends Entity implements IRadarDetectab
             return;
         }
 
+        if (com.wartec.wartecmod.port.integration.MissileChunkLoader.needsFlight(this)
+                && !com.wartec.wartecmod.port.integration.MissileChunkLoader.flightReady(this)) return;
         this.operationalAge++;
+        if(ticksExisted%40==0) com.wartec.wartecmod.port.integration.OperationalChunks.register(this);
         tickLegacySystems();
         this.serverTick(getProfile());
         this.velocityChanged = true;
 
-        int lifetime = getProfile().getMaxLifetime();
+        int lifetime = flightLifetime();
         if (lifetime > 0 && this.operationalAge >= lifetime) {
             onLifetimeExpired();
         }
     }
 
     protected abstract void serverTick(WarTechEntityProfile profile);
+
+    protected int flightLifetime() { return getProfile().getMaxLifetime(); }
 
     protected void onLifetimeExpired() {
         if (isArmed() && getProfile().getExplosionStrength() > 0.0F) {
@@ -153,6 +160,15 @@ public abstract class EntityWarTechBase extends Entity implements IRadarDetectab
 
     public WarTechEntityProfile getProfile() {
         return WarTechEntityProfile.byOrdinal(this.dataManager.get(PROFILE), this.defaultProfile);
+    }
+    @Override
+    public void notifyDataManagerChange(DataParameter<?> key) {
+        super.notifyDataManagerChange(key);
+        if(PROFILE.equals(key)) setSize(getProfile().getWidth(),getProfile().getHeight());
+        if(VISUAL_VARIANT.equals(key) && getProfile()==WarTechEntityProfile.ELECTRONIC_WARFARE) {
+            int mode=getVisualVariant();float scale=VehicleDimensions.scale(getProfile());
+            setSize((mode==2?1.4F:2.4F)*scale,(mode==1?4:mode==2?2:3.2F)*scale);
+        }
     }
 
     public final void setProfile(WarTechEntityProfile profile) {
@@ -172,7 +188,43 @@ public abstract class EntityWarTechBase extends Entity implements IRadarDetectab
 
     protected void setHealthValue(float value) {
         this.dataManager.set(HEALTH, MathHelper.clamp(value, 0.0F,
-                getProfile().getMaxHealth()));
+                getMaximumHealthValue()));
+    }
+
+    protected float getMaximumHealthValue() {
+        return getProfile().getMaxHealth();
+    }
+
+    public float getHealthCapacity() { return getMaximumHealthValue(); }
+    public int getDefenseEngagementRange() {
+        int range=isTor()?220:100;
+        return getHealthValue()<getHealthCapacity()*.5F?(int)Math.round(range*.72):range;
+    }
+
+    public boolean isDefenseVehicle() {
+        WarTechEntityProfile p=getProfile();
+        return p==WarTechEntityProfile.MOBILE_AIR_DEFENSE || p==WarTechEntityProfile.RADAR_TRUCK
+            || p==WarTechEntityProfile.S400_RADAR || p==WarTechEntityProfile.COMMAND_TRUCK;
+    }
+
+    /** Temporary field maintenance: one ingot repairs 10%, never repairs enemies or consumes at full HP. */
+    public boolean tryRepairDefense(EntityPlayer player, ItemStack held) {
+        if(!isDefenseVehicle() || held.isEmpty() || held.getItem()!=net.minecraft.init.Items.IRON_INGOT) return false;
+        if(world.isRemote) return true;
+        String key="wartec.repair.done";
+        if(isDead || getHealthValue()<=0 || !isUsableByPlayer(player)
+                || !(player.getUniqueID().equals(getOwnerUuid())
+                    || NetworkTeamHelper.areFriendly(getOwnerTeam(),NetworkTeamHelper.getPlayerTeam(player))
+                    || getOwnerUuid()==null && getOwnerTeam().isEmpty())) key="wartec.repair.denied";
+        else if(getHealthValue()>=getHealthCapacity()-.01F) key="wartec.repair.full";
+        else {
+            setHealthValue(Math.min(getHealthCapacity(),getHealthValue()+Math.max(20,getHealthCapacity()*.1F)));
+            if(!player.capabilities.isCreativeMode) held.shrink(1);
+            playLegacySound("minecraft:block.anvil.use",SoundEvents.BLOCK_ANVIL_USE,.5F,1.3F);
+        }
+        player.sendMessage(new net.minecraft.util.text.TextComponentTranslation(key,
+            Math.round(getHealthValue()),Math.round(getHealthCapacity())));
+        return true;
     }
 
     public void setOwner(EntityPlayer player) {
@@ -180,8 +232,7 @@ public abstract class EntityWarTechBase extends Entity implements IRadarDetectab
             setOwnerIdentity(null, "");
             return;
         }
-        Team team = player.getTeam();
-        setOwnerIdentity(player.getUniqueID(), team == null ? "" : team.getName());
+        setOwnerIdentity(player.getUniqueID(), NetworkTeamHelper.getPlayerTeam(player));
     }
 
     public void setOwnerIdentity(UUID ownerUuid, String team) {
@@ -254,8 +305,9 @@ public abstract class EntityWarTechBase extends Entity implements IRadarDetectab
         this.dataManager.set(VISUAL_VARIANT, Math.max(0, variant));
         if (getProfile() == WarTechEntityProfile.ELECTRONIC_WARFARE) {
             int mode = Math.max(0, variant);
-            setSize(mode == 2 ? 1.4F : 2.4F,
-                    mode == 1 ? 4.0F : mode == 2 ? 2.0F : 3.2F);
+            float scale=VehicleDimensions.scale(getProfile());
+            setSize((mode == 2 ? 1.4F : 2.4F)*scale,
+                    (mode == 1 ? 4.0F : mode == 2 ? 2.0F : 3.2F)*scale);
         }
     }
 
@@ -331,6 +383,11 @@ public abstract class EntityWarTechBase extends Entity implements IRadarDetectab
     }
 
     protected boolean isFriendlyOrOwner(Entity entity) {
+        if(entity==null) return false;
+        String otherTeam=NetworkTeamHelper.getEntityTeam(entity);
+        // Team snapshots on deployed vehicles/ordnance take precedence over the
+        // placing player's UUID after that player joins the opposing faction.
+        if(!getOwnerTeam().isEmpty() && !otherTeam.isEmpty()) return getOwnerTeam().equals(otherTeam);
         UUID ownerUuid = getOwnerUuid();
         if (ownerUuid != null && ownerUuid.equals(entity.getUniqueID())) {
             return true;
@@ -357,6 +414,7 @@ public abstract class EntityWarTechBase extends Entity implements IRadarDetectab
 
     @Override
     public boolean attackEntityFrom(DamageSource source, float amount) {
+        if (com.wartec.wartecmod.port.integration.StrikeBlastSafety.ignores(this, source)) return false;
         if (this.world.isRemote || this.isDead || this.isEntityInvulnerable(source)) {
             return false;
         }
@@ -390,6 +448,7 @@ public abstract class EntityWarTechBase extends Entity implements IRadarDetectab
         if (hand != EnumHand.MAIN_HAND) return true;
         if (!world.isRemote) {
             ItemStack held = player.getHeldItem(hand);
+            if (tryRepairDefense(player,held)) return true;
             if (trySalvage(player, held, true)) {
                 return true;
             }
@@ -590,6 +649,22 @@ public abstract class EntityWarTechBase extends Entity implements IRadarDetectab
                 return new ItemStack(
                         WarTechContent.MOBILE_ARTILLERY,
                         1, getVisualVariant());
+            case STRATEGIC_TOPOL_M:
+            case STRATEGIC_YARS:
+            case STRATEGIC_ORESHNIK:
+                ItemStack strategic = new ItemStack(
+                        getProfile() == WarTechEntityProfile.STRATEGIC_TOPOL_M
+                                ? WarTechContent.TOPOL_M_TEL
+                                : getProfile() == WarTechEntityProfile.STRATEGIC_YARS
+                                        ? WarTechContent.YARS_TEL
+                                        : WarTechContent.ORESHNIK_TEL);
+                if (this instanceof EntityStrategicTel) {
+                    strategic.setTagInfo("StrategicLoaded",
+                            new net.minecraft.nbt.NBTTagByte(
+                                    (byte) (((EntityStrategicTel) this)
+                                            .isMissileLoaded() ? 1 : 0)));
+                }
+                return strategic;
             default:
                 return ItemStack.EMPTY;
         }
@@ -666,7 +741,8 @@ public abstract class EntityWarTechBase extends Entity implements IRadarDetectab
         if (compound.hasKey("WarTechHealth", 5)) {
             float health = compound.getFloat("WarTechHealth");
             if (compound.getInteger("WarTechHealthSchema") < HEALTH_SCHEMA) {
-                float oldMaximum = legacyPortMaximumHealth(loaded);
+                float oldMaximum = compound.getInteger("WarTechHealthSchema")<2
+                    ? legacyPortMaximumHealth(loaded) : previousDefenseMaximumHealth(loaded);
                 if (oldMaximum > 0.0F) {
                     health *= loaded.getMaxHealth() / oldMaximum;
                 }
@@ -721,6 +797,16 @@ public abstract class EntityWarTechBase extends Entity implements IRadarDetectab
                 return 120.0F;
             default:
                 return profile.getMaxHealth();
+        }
+    }
+
+    private static float previousDefenseMaximumHealth(WarTechEntityProfile profile) {
+        switch(profile) {
+            case MOBILE_AIR_DEFENSE:return 500;
+            case RADAR_TRUCK:return 300;
+            case S400_RADAR:return 600;
+            case COMMAND_TRUCK:return 720;
+            default:return profile.getMaxHealth();
         }
     }
 
@@ -819,6 +905,7 @@ public abstract class EntityWarTechBase extends Entity implements IRadarDetectab
     @Override
     public void setDead() {
         if (world != null && !world.isRemote) {
+            com.wartec.wartecmod.port.integration.OperationalChunks.forget(this);
             ElectronicWarfareService.removeNode(world, getEntityId());
             MissileTrackingService.removeRadar(world, getEntityId());
             MissileTrackingService.removeCommandPost(world, getEntityId());
@@ -847,7 +934,7 @@ public abstract class EntityWarTechBase extends Entity implements IRadarDetectab
                         ? (isTor() ? 180 : 220) : 100;
         if (!isLegacyEnabled() || getLegacyPower() < use
                 || getProfile() == WarTechEntityProfile.MOBILE_AIR_DEFENSE
-                        && getHealthValue() <= 100.0F) {
+                        && getHealthValue() <= getHealthCapacity()*.20F) {
             setLegacyContacts(0);
             setLegacyOperational(false);
             MissileTrackingService.removeRadar(world, getEntityId());
@@ -889,10 +976,7 @@ public abstract class EntityWarTechBase extends Entity implements IRadarDetectab
             setLegacyContacts(count);
         }
         if (getProfile() == WarTechEntityProfile.MOBILE_AIR_DEFENSE) {
-            int engagementRange = isTor() ? 220 : 100;
-            if (getHealthValue() < 250.0F) {
-                engagementRange = (int) Math.round(engagementRange * 0.72D);
-            }
+            int engagementRange = getDefenseEngagementRange();
             if (getLegacyFireMode() != 0
                     && legacyLaunchCooldown == 0 && getLegacyPower() >= 50000) {
                 Entity target = MissileTrackingService.findThreat(world,
@@ -934,7 +1018,7 @@ public abstract class EntityWarTechBase extends Entity implements IRadarDetectab
         missile.setVisual("missile/anti_air_tier_" + (isTor() ? "2" : "1"), 0);
         boolean malfunction = VlsInterceptorGuidance.configureMobileLaunch(
                 missile, target, isTor() ? 2 : 1, isTor());
-        if (world.spawnEntity(missile)) {
+        if (com.wartec.wartecmod.port.integration.MissileChunkLoader.spawnFlight(missile)) {
             if (malfunction) {
                 MissileTrackingService.releaseReservation(world,
                         target.getEntityId(), launcherKey);
@@ -995,7 +1079,7 @@ public abstract class EntityWarTechBase extends Entity implements IRadarDetectab
             missile.motionY = motionY;
             missile.motionZ = motionZ;
             missile.configureAirLaunch(rotationYaw, motionX, motionY, motionZ);
-            if (!world.spawnEntity(missile)) return false;
+            if (!com.wartec.wartecmod.port.integration.MissileChunkLoader.spawnFlight(missile)) return false;
         } else {
         EntityWarTechOrdnance ordnance = code == 11 || code == 12
                 ? LegacyEntityFactory.strategicBomb(world,
@@ -1013,7 +1097,7 @@ public abstract class EntityWarTechBase extends Entity implements IRadarDetectab
         ordnance.motionX = motionX;
         ordnance.motionY = Math.min(-0.2D, motionY);
         ordnance.motionZ = motionZ;
-        if (!world.spawnEntity(ordnance)) return false;
+        if (!com.wartec.wartecmod.port.integration.MissileChunkLoader.spawnFlight(ordnance)) return false;
         }
         payload.shrink(1);
         if (payload.isEmpty()) {
@@ -1048,7 +1132,10 @@ public abstract class EntityWarTechBase extends Entity implements IRadarDetectab
         }
         if (profile == WarTechEntityProfile.MOBILE_AIR_DEFENSE) {
             if (action == 0) setLegacyFireMode((getLegacyFireMode() + 1) % 3);
-            else if (action == 1) setLegacyEnabled(!isLegacyEnabled());
+            else if (action == 1) {
+                if(!isDeployed()) { setDeployed(true);setLegacyEnabled(true);motionX=motionY=motionZ=0; }
+                else setLegacyEnabled(!isLegacyEnabled());
+            }
             else if (action == 2 && !isTor()) setLegacyFlags(getLegacyFlags() ^ 4);
             else return false;
             return true;
@@ -1177,6 +1264,13 @@ public abstract class EntityWarTechBase extends Entity implements IRadarDetectab
     }
     public boolean isPayloadCompatible(ItemStack stack) {
         if (stack.isEmpty()) return false;
+        if (stack.getItem() == WarTechContent.ASSEMBLED_CRUISE) {
+            com.wartec.wartecmod.port.cruise.CruiseBuild build=com.wartec.wartecmod.port.cruise.CruiseBuild.fromStack(stack);
+            return (getProfile()==WarTechEntityProfile.F_16C || getProfile()==WarTechEntityProfile.SU_27 || getProfile()==WarTechEntityProfile.TU_95)
+                && (build.getAirframe()!=com.wartec.wartecmod.port.cruise.CruisePartDefinition.BODY_LONG_RANGE || getProfile()==WarTechEntityProfile.TU_95)
+                && build.calculateStats().isValid()
+                && build.get(com.wartec.wartecmod.port.cruise.CruiseSlot.LAUNCH)==com.wartec.wartecmod.port.cruise.CruisePartDefinition.LAUNCH_AIR;
+        }
         if (getProfile() == WarTechEntityProfile.TU_95) {
             return stack.getItem() == WarTechContent.KH555_MISSILE
                     || stack.getItem() == WarTechContent.STRATEGIC_BOMB;
@@ -1311,6 +1405,11 @@ public abstract class EntityWarTechBase extends Entity implements IRadarDetectab
 
     private static int payloadCode(ItemStack stack) {
         if (stack.isEmpty()) return 0;
+        if (stack.getItem() == WarTechContent.ASSEMBLED_CRUISE) {
+            com.wartec.wartecmod.port.cruise.CruisePartDefinition body=com.wartec.wartecmod.port.cruise.CruiseBuild.fromStack(stack).getAirframe();
+            return body==com.wartec.wartecmod.port.cruise.CruisePartDefinition.BODY_LIGHT?13
+                :body==com.wartec.wartecmod.port.cruise.CruisePartDefinition.BODY_CLASSIC?14:15;
+        }
         if (stack.getItem() == WarTechContent.MQ9_PAYLOAD) {
             return MathHelper.clamp(stack.getMetadata(), 0, 8) + 1;
         }

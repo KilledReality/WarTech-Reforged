@@ -13,15 +13,15 @@ public final class GuiLegacyIffTeamSelector extends GuiScreen {
     public void initGui() {
         buttonList.clear();
         int left = width / 2 - 106;
-        int top = height / 2 - 54;
+        int top = height / 2 - 24;
         for (int index = 0; index < TEAMS.length; ++index) {
             int x = left + index % 2 * 108;
             int y = top + index / 2 * 24;
-            buttonList.add(new GuiButton(index, x, y, 104, 20,
+            buttonList.add(new WarTechGuiButton(index, x, y, 104, 20,
                     TEAMS[index].toUpperCase()));
         }
-        buttonList.add(new GuiButton(4, left, top + 52, 104, 20, "PERSONAL"));
-        buttonList.add(new GuiButton(5, left + 108, top + 52, 104, 20, "STATUS"));
+        buttonList.add(new WarTechGuiButton(4, left, top + 52, 104, 20, GuiTheme.tr("iff.personal")));
+        buttonList.add(new WarTechGuiButton(5, left + 108, top + 52, 104, 20, GuiTheme.tr("iff.status")));
     }
 
     @Override
@@ -41,12 +41,10 @@ public final class GuiLegacyIffTeamSelector extends GuiScreen {
     public void drawScreen(int mouseX, int mouseY, float partialTicks) {
         drawDefaultBackground();
         int left = width / 2 - 116;
-        int top = height / 2 - 82;
-        Gui.drawRect(left, top, left + 232, top + 112, 0xE0181E1B);
-        Gui.drawRect(left + 3, top + 3, left + 229, top + 109, 0xE02F3832);
-        fontRenderer.drawString("WARTECH IFF NETWORK", left + 54, top + 10, 0x7CFF91);
-        fontRenderer.drawString("Select a persistent friendly network",
-                left + 21, top + 24, 0xE8E8E0);
+        int top = height / 2 - 72;
+        GuiTheme.frame(left,top,232,128);
+        drawCenteredString(fontRenderer,GuiTheme.clip(fontRenderer,GuiTheme.tr("iff.title"),212),width/2,top+8,GuiTheme.TEXT);
+        drawCenteredString(fontRenderer,GuiTheme.clip(fontRenderer,GuiTheme.tr("iff.subtitle"),212),width/2,top+30,GuiTheme.MUTED);
         super.drawScreen(mouseX, mouseY, partialTicks);
     }
 

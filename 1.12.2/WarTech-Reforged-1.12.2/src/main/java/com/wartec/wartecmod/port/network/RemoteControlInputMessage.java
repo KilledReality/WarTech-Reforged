@@ -2,6 +2,7 @@ package com.wartec.wartecmod.port.network;
 
 import com.wartec.wartecmod.port.entity.EntityWarTechAircraft;
 import com.wartec.wartecmod.port.entity.EntityWarTechMissile;
+import com.wartec.wartecmod.port.entity.EntityCustomUav;
 import io.netty.buffer.ByteBuf;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.EntityPlayerMP;
@@ -60,6 +61,7 @@ public final class RemoteControlInputMessage implements IMessage {
         @Override
         public IMessage onMessage(RemoteControlInputMessage message,
                 MessageContext context) {
+            if (!message.hasFiniteControls()) return null;
             EntityPlayerMP player = context.getServerHandler().player;
             player.getServerWorld().addScheduledTask(() -> {
                 Entity entity = player.world.getEntityByID(message.entityId);
@@ -72,9 +74,19 @@ public final class RemoteControlInputMessage implements IMessage {
                     ((EntityWarTechMissile) entity).handleRemoteInput(
                             player, message.flightYaw, message.flightPitch,
                             message.throttle, message.flags);
+                } else if (entity instanceof EntityCustomUav) {
+                    ((EntityCustomUav) entity).handleRemoteInput(
+                            player, message.flightYaw, message.flightPitch,
+                            message.aimYaw, message.aimPitch,
+                            message.throttle, message.flags);
                 }
             });
             return null;
         }
+    }
+
+    public boolean hasFiniteControls() {
+        return Float.isFinite(flightYaw) && Float.isFinite(flightPitch)
+                && Float.isFinite(aimYaw) && Float.isFinite(aimPitch) && Float.isFinite(throttle);
     }
 }

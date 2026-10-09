@@ -18,11 +18,18 @@ import com.wartec.wartecmod.port.integration.ElectronicWarfareService;
 import com.wartec.wartecmod.port.integration.ITeamOwned;
 import com.wartec.wartecmod.port.integration.MissileChunkLoader;
 import com.wartec.wartecmod.port.integration.NetworkTeamHelper;
+import com.wartec.wartecmod.port.integration.AirDefenseVisibility;
+import com.wartec.wartecmod.port.entity.EntityCustomCruise;
+import com.wartec.wartecmod.port.entity.EntityCustomUav;
+import com.wartec.wartecmod.port.cruise.CruiseCombatProfile;
+import com.wartec.wartecmod.port.cruise.CruisePartDefinition;
 
 import com.wartec.wartecmod.port.entity.EntityWarTechAircraft;
 import com.wartec.wartecmod.port.entity.EntityWarTechArtilleryProjectile;
 import com.wartec.wartecmod.port.entity.EntityWarTechBase;
 import com.wartec.wartecmod.port.entity.EntityWarTechMissile;
+import com.wartec.wartecmod.port.entity.EntityStrategicMissile;
+import com.wartec.wartecmod.port.content.StrategicFeature;
 import com.wartec.wartecmod.port.entity.LegacyMissileSpecification.FlightFamily;
 import com.wartec.wartecmod.port.entity.WarTechEntityProfile;
 import com.wartec.wartecmod.port.entity.WarTechEntityType;
@@ -86,6 +93,24 @@ public final class MissileTrackingService {
     private MissileTrackingService() {
     }
 
+    public static void reportReconContact(World world, String team,
+            Entity entity, float quality) {
+        if (StrategicFeature.isDisabledEntity(entity)) return;
+        String normalizedTeam = MissileTrackingService.normalizeTeam(team);
+        if (world == null || world.isRemote || entity == null || entity.isDead
+                || normalizedTeam.length() == 0) {
+            return;
+        }
+        WorldTracks worldTracks = MissileTrackingService.getWorldTracks(world);
+        long time = world.getTotalWorldTime();
+        Track track = MissileTrackingService.getOrCreateTrack(
+                worldTracks, entity, time);
+        MissileTrackingService.updateTrackFromEntity(track, entity, time);
+        track.reconSeen.put(normalizedTeam, time);
+        track.reconQuality.put(normalizedTeam,
+                Math.max(0.0F, Math.min(1.0F, quality)));
+    }
+
     public static void registerLaunch(Entity entity, double d, double d2, double d3, int n, int n2) {
         MissileTrackingService.registerLaunch(entity, d, d2, d3, n, n2, "");
     }
@@ -105,6 +130,7 @@ public final class MissileTrackingService {
         track.originKnown = true;
         track.targetKnown = true;
         track.explicitLaunch = true;
+        if(entity instanceof EntityCustomCruise) MissileTrackingService.readCoordinates(track,entity);
         String string2 = MissileTrackingService.normalizeTeam(string);
         if (string2.length() == 0) {
             string2 = NetworkTeamHelper.getEntityTeam(entity);
@@ -158,7 +184,12 @@ public final class MissileTrackingService {
         Entity selected = null;
         double d5 = Double.MAX_VALUE;
         double d6 = d4 * d4;
-        for (Object e : world.loadedEntityList) {
+        List<Entity> localContacts=new ArrayList<>();
+        for(Entity candidate:world.loadedEntityList)
+            if(getTargetTier(candidate)>0 && candidate.getDistanceSq(d,d2,d3)<=d6) localContacts.add(candidate);
+        localContacts.sort(java.util.Comparator.comparingDouble(e->e.getDistanceSq(d,d2,d3)));
+        int sightChecks=0;
+        for (Object e : localContacts) {
             double d7;
             double d8;
             double d9;
@@ -168,6 +199,8 @@ public final class MissileTrackingService {
             int n = MissileTrackingService.getTargetTier(entity);
             Track track = worldTracks.tracks.get(entity.getEntityId());
             if (n == 0 || entity.isDead || NetworkTeamHelper.isFriendly(string2, entity) || MissileTrackingService.isFriendlyTrack(string2, track) || (d10 = (d9 = entity.posX - d) * d9 + (d8 = entity.posY - d2) * d8 + (d7 = entity.posZ - d3) * d7) > d6) continue;
+            if(sightChecks++>=AirDefenseVisibility.MAX_CONTACT_CHECKS) break;
+            if(!AirDefenseVisibility.visible(world,new Vec3d(d,d2+3.22,d3),entity)) continue;
             double d11 = d9 * entity.motionX + d8 * entity.motionY + d7 * entity.motionZ;
             double d12 = d10 + (double)n * d6 * 0.12;
             if (d11 < 0.0) {
@@ -228,12 +261,20 @@ public final class MissileTrackingService {
         return entity;
     }
 
-    private static boolean isAirInterceptable(Entity entity) {
+    public static boolean isAirInterceptable(Entity entity) {
         if (entity == null || MissileTrackingService.isBallisticTarget(entity)) {
             return false;
         }
         if (entity instanceof EntityWarTechAircraft) {
             return isFlyingAircraft((EntityWarTechAircraft) entity);
+        }
+        if(entity instanceof EntityCustomCruise || entity instanceof EntityCustomUav)
+            return getTargetTier(entity)>0;
+        if(entity instanceof EntityWarTechMissile) {
+            if(((EntityWarTechMissile)entity).getHealthValue()<=0) return false;
+            FlightFamily family=((EntityWarTechMissile)entity).getMissileSpecification().getFlightFamily();
+            return family==FlightFamily.SUBSONIC || family==FlightFamily.SUPERSONIC || family==FlightFamily.HYPERSONIC
+                || family==FlightFamily.GERAN || family==FlightFamily.ANTI_RADIATION || family==FlightFamily.KH555;
         }
         String string = entity.getClass().getName();
         return string.endsWith(".EntityGeran") || string.contains("CruiseMissile") || string.endsWith(".EntityKh555");
@@ -288,7 +329,7 @@ public final class MissileTrackingService {
                 continue;
             }
             boolean bl3 = bl2 = commandStation != null ? MissileTrackingService.hasCommandRadarContact(track, worldTracks, commandStation, l2) : MissileTrackingService.hasLinkedRadarContact(track, worldTracks, d, d2, d3, l2, string2);
-            if (!bl2 && d11 > 12100.0) {
+            if (!bl2 && (d11 > 12100.0 || !AirDefenseVisibility.visible(world,new Vec3d(d,d2+3,d3),entity2))) {
                 MissileTrackingService.clearThreatState(track, l);
                 continue;
             }
@@ -368,7 +409,10 @@ public final class MissileTrackingService {
         int n4 = 0;
         double d6 = d4 * d4;
         Integer n5 = n;
-        for (Track track : worldTracks.tracks.values()) {
+        List<Track> sweepContacts=new ArrayList<>(worldTracks.tracks.values());
+        sweepContacts.sort(java.util.Comparator.comparingDouble(t->t.entity==null?Double.MAX_VALUE:t.entity.getDistanceSq(d,d2,d3)));
+        int sightChecks=0;
+        for (Track track : sweepContacts) {
             boolean bl2;
             Entity entity = track.entity;
             if (entity == null || entity.isDead || MissileTrackingService.getTargetTier(entity) == 0 || bl && !MissileTrackingService.isStrategicRadarTarget(entity)) continue;
@@ -376,12 +420,14 @@ public final class MissileTrackingService {
             double d8 = entity.posY - d2;
             double d9 = entity.posZ - d3;
             boolean bl3 = d7 * d7 + d9 * d9 <= d6 && d8 >= -64.0 && d8 <= d5;
+            boolean visible=bl3 && sightChecks++<AirDefenseVisibility.MAX_CONTACT_CHECKS
+                && AirDefenseVisibility.visible(world,new Vec3d(d,d2,d3),entity);
             Float f = track.radarQuality.get(n5);
             double d10 = f == null ? 0.0 : (double)f.floatValue();
-            boolean bl4 = bl2 = bl3 && (jammingResult.noise < 0.05 || world.rand.nextDouble() >= jammingResult.noise * 0.78);
+            boolean bl4 = bl2 = visible && (jammingResult.noise < 0.05 || world.rand.nextDouble() >= jammingResult.noise * 0.78);
             d10 = bl2 ? Math.min(1.0, d10 + 0.22 + (1.0 - jammingResult.noise) * 0.36) : Math.max(0.0, d10 - (bl3 ? 0.16 : 0.35));
             track.radarQuality.put(n5, Float.valueOf((float)d10));
-            if (n4 < n2 && d10 >= 0.34) {
+            if (bl2 && n4 < n2 && d10 >= 0.34) {
                 track.radarSeen.put(n5, l);
                 ++n4;
                 continue;
@@ -394,9 +440,12 @@ public final class MissileTrackingService {
     }
 
     public static boolean isStrategicRadarTarget(Entity entity) {
+        if (StrategicFeature.isDisabledEntity(entity)) return false;
         if (entity == null || entity.isDead) {
             return false;
         }
+        if(entity instanceof EntityCustomCruise || entity instanceof EntityCustomUav)
+            return getTargetTier(entity)>0 && !isDroneTarget(entity);
         if (MissileTrackingService.isHbmArtilleryShell(entity)) {
             return false;
         }
@@ -527,6 +576,14 @@ public final class MissileTrackingService {
                 Float f2 = track.radarQuality.get(radarEntry.getKey());
                 if (f2 == null || !(f2.floatValue() > f)) continue;
                 f = f2.floatValue();
+            }
+            Long reconTime = track.reconSeen.get(string2);
+            if (reconTime != null && l - reconTime <= 40L) {
+                ++n;
+                Float reconQuality = track.reconQuality.get(string2);
+                if (reconQuality != null && reconQuality.floatValue() > f) {
+                    f = reconQuality.floatValue();
+                }
             }
             if (n == 0) continue;
             boolean bl = MissileTrackingService.isFriendlyTrack(string2, track);
@@ -826,6 +883,7 @@ public final class MissileTrackingService {
             double d7;
             RadarStation radarStation;
             if (l - entry.getValue() > 30L || (radarStation = worldTracks.radars.get(entry.getKey())) == null || l - radarStation.lastUpdate > 30L || !((d7 = radarStation.x - d) * d7 + (d6 = radarStation.y - d2) * d6 + (d5 = radarStation.z - d3) * d5 <= d4) && !MissileTrackingService.endpointsConnected(worldTracks, d, d2, d3, radarStation.x, radarStation.y, radarStation.z, string, l, 800.0)) continue;
+            if(!NetworkTeamHelper.canShareNetwork(string,radarStation.team)) continue;
             return true;
         }
         return false;
@@ -864,10 +922,14 @@ public final class MissileTrackingService {
     }
 
     public static boolean isBallisticTarget(Entity entity) {
+        if (StrategicFeature.isDisabledEntity(entity)) return false;
         if (entity == null) {
             return false;
         }
         if (MissileTrackingService.isHbmArtilleryTarget(entity)) {
+            return true;
+        }
+        if (entity instanceof EntityStrategicMissile) {
             return true;
         }
         if (entity instanceof EntityWarTechMissile) {
@@ -973,6 +1035,9 @@ public final class MissileTrackingService {
         if (entity == null) {
             return false;
         }
+        if(entity instanceof EntityCustomUav) return getTargetTier(entity)>0;
+        if(entity instanceof EntityCustomCruise) return getTargetTier(entity)>0
+            && ((EntityCustomCruise)entity).getBuild().getAirframe()==CruisePartDefinition.BODY_LIGHT;
         if (entity instanceof EntityWarTechAircraft) {
             EntityWarTechAircraft aircraft = (EntityWarTechAircraft) entity;
             return aircraft.getProfile() == WarTechEntityProfile.MQ_9_REAPER
@@ -1048,7 +1113,7 @@ public final class MissileTrackingService {
 
     private static void deferTarget(World world, WorldTracks worldTracks, Integer n) {
         long l = world.getTotalWorldTime();
-        long l2 = 100L + (long)world.rand.nextInt(41);
+        long l2 = 40L + (long)world.rand.nextInt(21);
         Long l3 = worldTracks.blockedUntil.get(n);
         long l4 = l + l2;
         if (l3 == null || l3 < l4) {
@@ -1066,6 +1131,10 @@ public final class MissileTrackingService {
         double d5 = entity.posX - d;
         double d6 = entity.posZ - d2;
         double d7 = Math.sqrt(d5 * d5 + d6 * d6);
+        // IFF was checked by the caller. A hostile launch next to this battery is
+        // not a friendly outbound weapon, even if it is temporarily flying away.
+        if (track.explicitLaunch && !track.team.isEmpty() && d7 <= 110.0)
+            return new Threat(true,true,0.0,d7);
         double d8 = 36864.0;
         if (track.targetKnown && (d4 = (double)track.targetX - d) * d4 + (d3 = (double)track.targetZ - d2) * d3 <= d8) {
             return new Threat(true, true, 0.0, 0.0);
@@ -1078,9 +1147,6 @@ public final class MissileTrackingService {
         }
         double d10 = d5 * d4 + d6 * d3;
         boolean bl2 = bl = d10 >= 0.0;
-        if (MissileTrackingService.isLocalOutbound(track, d, d2, bl, l)) {
-            return Threat.NONE;
-        }
         double d11 = -(d5 * d4 + d6 * d3) / d9;
         if (d11 < 0.0) {
             d11 = 0.0;
@@ -1204,12 +1270,18 @@ public final class MissileTrackingService {
         if (string.length() > 0) {
             track.team = string;
         }
-        if (!track.originKnown || !track.targetKnown) {
+        if (entity instanceof EntityCustomCruise || !track.originKnown || !track.targetKnown) {
             MissileTrackingService.readCoordinates(track, entity);
         }
     }
 
     private static void readCoordinates(Track track, Entity entity) {
+        if(entity instanceof EntityCustomCruise) {
+            Vec3d strike=((EntityCustomCruise)entity).getTrackedStrikeTarget();
+            track.targetKnown=strike!=null;
+            if(strike!=null) { track.targetX=(int)Math.floor(strike.x);track.targetZ=(int)Math.floor(strike.z); }
+            return;
+        }
         CoordinateFields coordinateFields = MissileTrackingService.getCoordinateFields(entity.getClass());
         try {
             Object object;
@@ -1281,11 +1353,15 @@ public final class MissileTrackingService {
     }
 
     private static int getTargetTier(Entity entity) {
+        if (StrategicFeature.isDisabledEntity(entity)) return 0;
         int n;
         String string;
         if (entity == null || entity.isDead) {
             return 0;
         }
+        if(entity instanceof EntityWarTechBase && ((EntityWarTechBase)entity).getHealthValue()<=0) return 0;
+        if(entity instanceof EntityCustomCruise) return ((EntityCustomCruise)entity).isDefenseTarget()
+            ?CruiseCombatProfile.threatTier(((EntityCustomCruise)entity).getBuild()):0;
         if (entity instanceof EntityWarTechAircraft
                 && !isFlyingAircraft((EntityWarTechAircraft) entity)) {
             return 0;
@@ -1299,6 +1375,7 @@ public final class MissileTrackingService {
             if (family == FlightFamily.HYPERSONIC) {
                 return MissileTrackingService.applyRadarActivationEnvelope(entity, 3);
             }
+            if(((EntityWarTechMissile)entity).getMissileProfile()==com.wartec.wartecmod.port.content.MissileProfile.GERAN_5) return 2;
             if (family == FlightFamily.SUPERSONIC || family == FlightFamily.KH555) {
                 return 2;
             }
@@ -1480,7 +1557,7 @@ public final class MissileTrackingService {
             if (!expired && !bl2 && !bl3) continue;
             iterator.remove();
             if (bl2 || !expired && !bl3) continue;
-            long l2 = 100L + (long)world.rand.nextInt(41);
+            long l2 = 40L + (long)world.rand.nextInt(21);
             worldTracks.blockedUntil.put(entry.getKey(), l + l2);
             System.out.println("[WarTec PVO] Lost interceptor; retry for target "
                     + entry.getKey() + " delayed by " + l2 + " ticks");
@@ -1532,6 +1609,8 @@ public final class MissileTrackingService {
         final Map<Long, ThreatState> threatStates = new HashMap<Long, ThreatState>();
         final Map<Integer, Long> radarSeen = new HashMap<Integer, Long>();
         final Map<Integer, Float> radarQuality = new HashMap<Integer, Float>();
+        final Map<String, Long> reconSeen = new HashMap<String, Long>();
+        final Map<String, Float> reconQuality = new HashMap<String, Float>();
 
         Track(Entity entity, long l) {
             this.entity = entity;

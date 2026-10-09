@@ -2,7 +2,6 @@ package com.wartec.wartecmod.port.entity;
 
 import api.hbm.entity.IRadarDetectable.RadarTargetType;
 import com.hbm.blocks.ModBlocks;
-import com.hbm.entity.logic.EntityEMP;
 import com.hbm.explosion.ExplosionLarge;
 import com.hbm.items.ModItems;
 import com.hbm.saveddata.satellites.SatelliteSavedData;
@@ -13,14 +12,17 @@ import com.wartec.wartecmod.port.entity.LegacyMissileSpecification.FlightFamily;
 import com.wartec.wartecmod.port.entity.LegacyMissileSpecification.Payload;
 import com.wartec.wartecmod.port.integration.ElectronicWarfareService;
 import com.wartec.wartecmod.port.integration.HbmExplosionCompat;
+import com.wartec.wartecmod.port.integration.MissileChunkLoader;
 import com.wartec.wartecmod.port.integration.MissileRouteCompat;
 import com.wartec.wartecmod.port.integration.NetworkTeamHelper;
+import com.wartec.wartecmod.port.integration.RemotePresenceChunkPolicy;
 import com.wartec.wartecmod.port.integration.VlsInterceptorGuidance;
 import com.wartec.wartecmod.port.network.MissileTrackingService;
 import com.wartec.wartecmod.port.network.RemoteControlNetwork;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import net.minecraft.block.Block;
 import net.minecraft.block.material.Material;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.entity.Entity;
@@ -53,6 +55,14 @@ import net.minecraft.world.World;
  * specification restores the original per-item flight and warhead behavior.
  */
 public class EntityWarTechMissile extends EntityWarTechBase {
+    private static final double GERAN_MODEL_BOTTOM_OFFSET = 0.20D*VehicleDimensions.scale(WarTechEntityProfile.GERAN_2);
+    private static final double GERAN_MAXIMUM_TURN_RATE = 4.2D;
+    private static final double GERAN_YAW_ERROR_GAIN = 0.20D;
+    private static final double GERAN_TURN_DECAY = 0.30D;
+    private static final double GERAN_TURN_RESPONSE = 0.48D;
+    private static final double GERAN_PITCH_RESPONSE = 0.16D;
+    private static final double GERAN_HORIZONTAL_RESPONSE = 0.28D;
+    private static final double GERAN_VERTICAL_RESPONSE = 0.18D;
     private static final DataParameter<Integer> MISSILE_SPECIFICATION =
             EntityDataManager.createKey(EntityWarTechMissile.class, DataSerializers.VARINT);
     private static final DataParameter<Integer> FLIGHT_STAGE =
@@ -72,6 +82,7 @@ public class EntityWarTechMissile extends EntityWarTechBase {
     private int vlsExhaustY;
     private int vlsExhaustZ;
     private int velocity = 1;
+    private boolean flightStepPending;
     private double range;
     private double transformationPointVector;
     private double startSonicSpeed;
@@ -80,6 +91,8 @@ public class EntityWarTechMissile extends EntityWarTechBase {
     private double separationVector;
     private double startMach15;
     private int legacyHealth;
+    private boolean combatCrashing,crashResolved;
+    private int combatCrashTicks,combatCrashOutcome,combatAirburstTick=-1;
 
     private double plannedCruiseY = Double.NaN;
     private int targetGroundY;
@@ -93,6 +106,8 @@ public class EntityWarTechMissile extends EntityWarTechBase {
     private double remoteTurnRate;
     private int remoteSteering;
     private int remoteLastInputTick;
+    private int remoteControlStartTick;
+    private boolean remoteLaunchSafetyActive;
     private boolean remotePresenceActive;
     private double remoteAnchorX;
     private double remoteAnchorY;
@@ -106,6 +121,7 @@ public class EntityWarTechMissile extends EntityWarTechBase {
     private boolean remoteAnchorFlying;
     private String remoteRestorePlayer = "";
     private int remoteRestoreTicks;
+    private BlockPos lastImpactBlock;
 
     private boolean airLaunched;
     private double airStartX;
@@ -129,6 +145,8 @@ public class EntityWarTechMissile extends EntityWarTechBase {
     private double asatAcceleration;
     private int satelliteId = -1;
     private int nuclearInterceptorActivation;
+    private double flightDistance;
+    private Vec3d previousFlightPosition;
 
     public EntityWarTechMissile(World world) {
         super(world, WarTechEntityProfile.STORM_SHADOW);
@@ -167,6 +185,13 @@ public class EntityWarTechMissile extends EntityWarTechBase {
             world.spawnParticle(EnumParticleTypes.SMOKE_NORMAL,
                     posX, posY, posZ,
                     -motionX * 0.04D, -motionY * 0.04D, -motionZ * 0.04D);
+        } else if (getMissileProfile()==MissileProfile.GERAN_5) {
+            if (isGeranJetRunning() && (ticksExisted & 3)==0) {
+                Vec3d outlet=Geran5Geometry.exhaustOffset(rotationYaw,rotationPitch);
+                world.spawnParticle(EnumParticleTypes.SMOKE_NORMAL,
+                    posX+outlet.x,posY+outlet.y,posZ+outlet.z,
+                    -motionX*.03,-motionY*.03,-motionZ*.03);
+            }
         } else if (family == FlightFamily.GERAN && (ticksExisted & 3) == 0) {
             world.spawnParticle(EnumParticleTypes.SMOKE_NORMAL,
                     posX, posY, posZ, 0.0D, 0.01D, 0.0D);
@@ -185,6 +210,17 @@ public class EntityWarTechMissile extends EntityWarTechBase {
         this.legacyHealth = specification.getHealth();
         this.flightInitialized = false;
         this.dataManager.set(FLIGHT_STAGE, 1);
+        refreshMissileDimensions();
+    }
+    private void refreshMissileDimensions() {
+        MissileProfile p=getMissileProfile();float scale=VehicleDimensions.missileScale(p.getIntentPath());
+        float width=p==MissileProfile.GERAN_5?1.65F:p==MissileProfile.GERAN_2?1.15F:p==MissileProfile.KH555?.85F:p==MissileProfile.ANTI_RADIATION?.55F:.65F;
+        float height=p==MissileProfile.GERAN_5?.95F:p==MissileProfile.GERAN_2?.40F:p==MissileProfile.KH555?.45F:p==MissileProfile.ANTI_RADIATION?.28F:.35F;
+        setSize(width*scale,height*scale);
+    }
+    @Override public void notifyDataManagerChange(DataParameter<?> key) {
+        super.notifyDataManagerChange(key);
+        if(MISSILE_SPECIFICATION.equals(key)) refreshMissileDimensions();
     }
 
     public MissileProfile getMissileProfile() {
@@ -209,11 +245,20 @@ public class EntityWarTechMissile extends EntityWarTechBase {
 
     @Override
     public RadarTargetType getTargetType() {
-        return getMissileSpecification().getRadarTargetType();
+        return combatCrashing?RadarTargetType.PLAYER:
+                com.wartec.wartecmod.port.integration.WeaponBalance.radarType(getMissileSpecification());
     }
 
     @Override
     protected void serverTick(WarTechEntityProfile ignored) {
+        if(combatCrashing) { tickCombatCrash();return; }
+        if(previousFlightPosition!=null) flightDistance+=Math.max(.05,Math.hypot(posX-previousFlightPosition.x,posZ-previousFlightPosition.z));
+        previousFlightPosition=getPositionVector();
+        double budget=com.wartec.wartecmod.port.integration.WeaponBalance.missileRange(getMissileSpecification().getProfile());
+        if(getMissileSpecification().getFlightFamily()==FlightFamily.INTERCEPTOR) budget=budget*2+80;
+        if(budget>0 && flightDistance>=budget) {
+            combatCrashing=true;combatCrashOutcome=0;setArmed(false);tickCombatCrash();return;
+        }
         if (getMissileSpecification() == LegacyMissileSpecification.INVALID) {
             if (WarTechReforged.logger != null) {
                 WarTechReforged.logger.error(
@@ -273,11 +318,6 @@ public class EntityWarTechMissile extends EntityWarTechBase {
             default:
                 break;
         }
-    }
-
-    @Override
-    protected void onLifetimeExpired() {
-        // The dev66 missile bases do not use EntityWarTechProfile lifetimes.
     }
 
     private void initializeFlightPlan() {
@@ -346,12 +386,12 @@ public class EntityWarTechMissile extends EntityWarTechBase {
                 motionY = 0.25D;
             }
         } else if (family == FlightFamily.GERAN) {
-            targetGroundY = world.getHeight(targetX, targetZ);
+            targetGroundY = loadedHeight(targetX, targetZ);
             updateGeranFlightPlan(targetX + 0.5D - posX,
                     targetZ + 0.5D - posZ,
                     Math.sqrt(square(targetX + 0.5D - posX)
                             + square(targetZ + 0.5D - posZ)),
-                    world.getHeight((int) Math.floor(posX), (int) Math.floor(posZ)));
+                    loadedHeight((int) Math.floor(posX), (int) Math.floor(posZ)));
         }
         if (family == FlightFamily.ANTI_RADIATION) {
             initializeAntiRadiationRoute();
@@ -380,6 +420,7 @@ public class EntityWarTechMissile extends EntityWarTechBase {
                     posX + motionX * velocity,
                     posY + motionY * velocity,
                     posZ + motionZ * velocity);
+            if(flightStepPending) return;
             updateLegacyRotation();
             motionY -= decelY * velocity;
             applyLegacyHorizontalAcceleration();
@@ -426,6 +467,7 @@ public class EntityWarTechMissile extends EntityWarTechBase {
                     posX + motionX * velocity,
                     posY + motionY * velocity,
                     posZ + motionZ * velocity);
+            if(flightStepPending) return;
             updateLegacyRotation();
             motionY -= decelY * velocity;
             applyLegacyHorizontalAcceleration();
@@ -464,6 +506,7 @@ public class EntityWarTechMissile extends EntityWarTechBase {
                     posX + motionX * velocity,
                     posY + motionY * velocity,
                     posZ + motionZ * velocity);
+            if(flightStepPending) return;
             updateLegacyRotation();
             motionY -= decelY * velocity;
             applyLegacyHorizontalAcceleration();
@@ -528,12 +571,15 @@ public class EntityWarTechMissile extends EntityWarTechBase {
     }
 
     private void tickGeran() {
+        double speedFactor=getGeranSpeedFactor();
+        Vec3d previousMotion=new Vec3d(motionX,motionY,motionZ);
         double deltaX = targetX + 0.5D - posX;
         double deltaZ = targetZ + 0.5D - posZ;
         double distance = Math.sqrt(deltaX * deltaX + deltaZ * deltaZ);
-        int groundY = world.getHeight(
+        int groundY = loadedHeight(
                 (int) Math.floor(posX), (int) Math.floor(posZ));
-        if (ticksExisted == 1 || ticksExisted % 8 == 0) {
+        // Resuming autopilot or waiting for chunks need not happen on a scan tick.
+        if (!Double.isFinite(plannedCruiseY) || ticksExisted == 1 || ticksExisted % 8 == 0) {
             updateGeranFlightPlan(deltaX, deltaZ, distance, groundY);
         }
         if (!remoteMission && distance <= 3.5D
@@ -542,22 +588,17 @@ public class EntityWarTechMissile extends EntityWarTechBase {
             setDead();
             return;
         }
-        if (ticksExisted > 30 && posY <= groundY + 0.25D) {
-            detonatePayload();
-            setDead();
-            return;
-        }
-        if (ticksExisted > 1600) {
-            setDead();
+        if (getOperationalAge() > 20000) {
+            combatCrashing=true;combatCrashOutcome=0;
             return;
         }
 
-        double speed = Math.min(1.15D, 0.3D + ticksExisted * 0.045D);
+        double speed = Math.min(1.15D, 0.3D + ticksExisted * 0.045D)*speedFactor;
         if (!approachCommitted && posY < plannedCruiseY - 1.0D) {
             speed *= 0.72D;
         }
         if (distance < 8.0D && posY > targetGroundY + 3.0D) {
-            speed = Math.min(speed, 0.12D + distance * 0.035D);
+            speed = Math.min(speed, (0.12D + distance * 0.035D)*speedFactor);
         }
         if (distance > 0.05D) {
             motionX = deltaX / distance * speed;
@@ -590,25 +631,29 @@ public class EntityWarTechMissile extends EntityWarTechBase {
             double localClearance = clamp(distance * 0.06D, targetHeight, 7.0D);
             desiredY = Math.max(descentY, groundY + localClearance);
         }
-        double maximumDescent = approachCommitted ? 0.34D : 0.12D;
+        double maximumDescent = (approachCommitted ? 0.34D : 0.12D)*speedFactor;
         motionY = clamp((desiredY - posY) * 0.22D,
-                -maximumDescent, 0.38D);
+                -maximumDescent, 0.38D*speedFactor);
+        if (!approachCommitted && distance > 72.0D) {
+            double horizontal=Math.max(.1,Math.hypot(motionX,motionZ));
+            Vec3d next=FixedWingFlight.steer(previousMotion,rotationYaw,
+                new Vec3d(motionX/horizontal*128,desiredY-posY,motionZ/horizontal*128),
+                horizontal,2.8,.12,horizontal*.22,.055);
+            motionX=next.x;motionY=next.y;motionZ=next.z;
+        }
 
         double nextX = posX + motionX;
         double nextY = posY + motionY;
         double nextZ = posZ + motionZ;
-        boolean entityContact = hasEntityContact(nextX, nextY, nextZ);
+        Entity entityContact = findEntityContact(nextX, nextY, nextZ);
         boolean blockImpact = ticksExisted > 30
                 && moveToWithImpact(nextX, nextY, nextZ);
-        if (ticksExisted > 30
-                && (blockImpact || nextY <= world.getHeight(
-                        (int) Math.floor(nextX), (int) Math.floor(nextZ)) + 0.25D
-                    || entityContact)) {
-            int nextGround = world.getHeight(
-                    (int) Math.floor(nextX), (int) Math.floor(nextZ));
+        if(flightStepPending) return;
+        if (ticksExisted > 30 && (blockImpact || entityContact != null)) {
             if (!blockImpact) {
-                setPosition(nextX, Math.max(nextY, nextGround + 0.15D), nextZ);
+                setPosition(nextX, nextY, nextZ);
             }
+            logGeranImpact(blockImpact, entityContact);
             detonatePayload();
             setDead();
             return;
@@ -631,17 +676,17 @@ public class EntityWarTechMissile extends EntityWarTechBase {
             setOwnerTeam(playerTeam);
         }
         if (!NetworkTeamHelper.areFriendly(getOwnerTeam(), playerTeam)) {
-            tell(player, "IFF denied: this Geran-2 belongs to another team.");
+            tell(player, "IFF denied: this Geran belongs to another team.");
             RemoteControlNetwork.sendControlState(
-                    player, getEntityId(), false, 1, "");
+                    player, getEntityId(), false, getRemoteVehicleType(), "");
             return false;
         }
         if (!remoteController.isEmpty()
                 && !remoteController.equals(player.getName())) {
-            tell(player, "Geran-2 is already controlled by "
+            tell(player, "Geran is already controlled by "
                     + remoteController + ".");
             RemoteControlNetwork.sendControlState(
-                    player, getEntityId(), false, 1, "");
+                    player, getEntityId(), false, getRemoteVehicleType(), "");
             return false;
         }
         double horizontalSpeed = Math.sqrt(
@@ -663,12 +708,15 @@ public class EntityWarTechMissile extends EntityWarTechBase {
         remoteTurnRate = 0.0D;
         remoteSteering = 0;
         remoteLastInputTick = ticksExisted;
+        remoteControlStartTick = ticksExisted;
+        remoteLaunchSafetyActive = true;
         remoteMission = true;
         remoteController = player.getName();
         beginRemotePresence(player);
+        MissileChunkLoader.untrack(this);
         RemoteControlNetwork.sendControlState(player, getEntityId(),
-                true, 1,
-                "Geran-2 remote link established. Impact fuse armed.");
+                true, getRemoteVehicleType(),
+                "Geran remote link established. Impact fuse armed.");
         sendRemoteTelemetry();
         return true;
     }
@@ -678,13 +726,13 @@ public class EntityWarTechMissile extends EntityWarTechBase {
         if (player == null || !isRemoteControlled()
                 || !remoteController.equals(player.getName())) {
             RemoteControlNetwork.sendControlState(player, getEntityId(),
-                    false, 1, "Geran-2 remote link is not active.");
+                    false, getRemoteVehicleType(), "Geran remote link is not active.");
             return;
         }
         if (!NetworkTeamHelper.areFriendly(getOwnerTeam(),
                 NetworkTeamHelper.getPlayerTeam(player))) {
             endRemoteControl(
-                    "IFF changed. Geran-2 autopilot resumed.", true);
+                    "IFF changed. Geran autopilot resumed.", true);
             return;
         }
         remoteDesiredYaw = normalizeAngle(flightYaw);
@@ -697,7 +745,7 @@ public class EntityWarTechMissile extends EntityWarTechBase {
         remoteLastInputTick = ticksExisted;
         if ((flags & 0x02) != 0) {
             endRemoteControl(
-                    "Remote control released. Geran-2 autopilot resumed.",
+                    "Remote control released. Geran autopilot resumed.",
                     true);
         }
     }
@@ -711,6 +759,14 @@ public class EntityWarTechMissile extends EntityWarTechBase {
     public float getRemoteThrottle() {
         return remoteThrottle;
     }
+
+    public double getGeranSpeedFactor() { return getMissileProfile()==MissileProfile.GERAN_5?1.85D/1.15D:1.0D; }
+    public float getGeranWarheadStrength() { return getMissileProfile()==MissileProfile.GERAN_5?12.0F:6.0F; }
+    public boolean isGeranJetRunning() {
+        return getMissileProfile()==MissileProfile.GERAN_5 && isArmed()
+                && !isDead && !combatCrashing && ticksExisted>0;
+    }
+    public int getRemoteVehicleType() { return getMissileProfile()==MissileProfile.GERAN_5?8:1; }
 
     public int getDistanceFromLaunch() {
         double deltaX = posX - (startX + 0.5D);
@@ -733,7 +789,7 @@ public class EntityWarTechMissile extends EntityWarTechBase {
         EntityPlayer player = findRemoteController();
         if (player == null || player.isDead) {
             endRemoteControl(
-                    "Geran-2 control link lost. Autopilot resumed.", true);
+                    "Geran control link lost. Autopilot resumed.", true);
             return;
         }
         maintainRemotePresence(player);
@@ -742,54 +798,66 @@ public class EntityWarTechMissile extends EntityWarTechBase {
         }
         if (getDistanceFromLaunch() >= 998) {
             endRemoteControl(
-                    "Geran-2 control radius 1000 reached. Autopilot resumed.",
+                    "Geran control radius 1000 reached. Autopilot resumed.",
                     true);
             return;
         }
         float yawError = normalizeAngle(remoteDesiredYaw - rotationYaw);
-        double maximumTurn = 2.55D;
+        double maximumTurn = getMissileProfile()==MissileProfile.GERAN_5?3.4D:GERAN_MAXIMUM_TURN_RATE;
         double desiredTurn = remoteSteering == 0
-                ? clamp(yawError * 0.13D, -maximumTurn, maximumTurn)
+                ? clamp(yawError * GERAN_YAW_ERROR_GAIN,
+                        -maximumTurn, maximumTurn)
                 : remoteSteering * maximumTurn;
         remoteTurnRate = blend(remoteTurnRate, desiredTurn,
-                remoteSteering == 0 ? 0.23D : 0.34D);
+                remoteSteering == 0
+                        ? GERAN_TURN_DECAY : GERAN_TURN_RESPONSE);
         if (remoteSteering == 0
                 && Math.abs(remoteTurnRate) > Math.abs(yawError)) {
             remoteTurnRate = yawError;
         }
         float yaw = normalizeAngle(rotationYaw + (float) remoteTurnRate);
         float desiredPitch = remoteDesiredPitch;
-        if (ticksExisted < 30 || posY < startY + 7.0D) {
+        int remoteControlTicks = ticksExisted - remoteControlStartTick;
+        if (remoteLaunchSafetyActive
+                && (remoteControlTicks >= 60
+                    || remoteControlTicks >= 30
+                        && posY >= startY + 7.0D)) {
+            remoteLaunchSafetyActive = false;
+        }
+        if (remoteLaunchSafetyActive) {
             desiredPitch = Math.min(desiredPitch, -16.0F);
         }
         float pitch = (float) blend(rotationPitch,
-                clamp(desiredPitch, -35.0D, 32.0D), 0.1D);
-        double speed = 0.32D + remoteThrottle * 0.83D;
+                clamp(desiredPitch, -35.0D, 32.0D),
+                GERAN_PITCH_RESPONSE);
+        double speed = (0.32D + remoteThrottle * 0.83D)*getGeranSpeedFactor();
         double yawRadians = Math.toRadians(yaw);
         double pitchRadians = Math.toRadians(pitch);
         double pitchCosine = Math.cos(pitchRadians);
         double desiredX = -Math.sin(yawRadians) * pitchCosine * speed;
         double desiredY = -Math.sin(pitchRadians) * speed;
         double desiredZ = Math.cos(yawRadians) * pitchCosine * speed;
-        int ground = world.getHeight(
+        int ground = loadedHeight(
                 (int) Math.floor(posX + desiredX * 5.0D),
                 (int) Math.floor(posZ + desiredZ * 5.0D));
-        if (ticksExisted < 30
+        if (remoteLaunchSafetyActive
                 && posY + desiredY * 5.0D < ground + 7.0D) {
             desiredY = Math.max(0.24D, desiredY);
         }
-        motionX = blend(motionX, desiredX, 0.2D);
-        motionY = blend(motionY, desiredY, 0.13D);
-        motionZ = blend(motionZ, desiredZ, 0.2D);
+        motionX = blend(motionX, desiredX, GERAN_HORIZONTAL_RESPONSE);
+        motionY = blend(motionY, desiredY, GERAN_VERTICAL_RESPONSE);
+        motionZ = blend(motionZ, desiredZ, GERAN_HORIZONTAL_RESPONSE);
         updateGeranRotation();
         double nextX = posX + motionX;
         double nextY = posY + motionY;
         double nextZ = posZ + motionZ;
-        boolean entityContact = hasEntityContact(nextX, nextY, nextZ);
+        Entity entityContact = findEntityContact(nextX, nextY, nextZ);
         boolean blockImpact = ticksExisted > 30
                 && moveToWithImpact(nextX, nextY, nextZ);
-        if (ticksExisted > 30 && (blockImpact || entityContact)) {
-            endRemoteControl("Geran-2 impact confirmed.", false);
+        if(flightStepPending) return;
+        if (ticksExisted > 30 && (blockImpact || entityContact != null)) {
+            logGeranImpact(blockImpact, entityContact);
+            endRemoteControl("Geran impact confirmed.", false);
             detonatePayload();
             setDead();
             return;
@@ -803,15 +871,23 @@ public class EntityWarTechMissile extends EntityWarTechBase {
     private void endRemoteControl(String message, boolean resumeAutopilot) {
         EntityPlayer player = findRemoteController();
         RemoteControlNetwork.sendControlState(
-                player, getEntityId(), false, 1, message);
-        restoreRemotePresence(player);
+                player, getEntityId(), false, getRemoteVehicleType(), message);
         remoteController = "";
         remoteSteering = 0;
         remoteTurnRate = 0.0D;
+        remoteLaunchSafetyActive = false;
         if (resumeAutopilot) {
+            // Manual impact-only guidance must not persist into a coordinate strike:
+            // its positive ground clearance can otherwise leave a live drone hovering.
+            remoteMission = false;
             plannedCruiseY = Double.NaN;
             approachCommitted = false;
+            // Transfer the loaded window back to the projectile BEFORE the pilot
+            // returns home. Waiting for the next entity tick can unload its chunk
+            // first, so that next tick never happens.
+            MissileChunkLoader.track(this);
         }
+        restoreRemotePresence(player);
     }
 
     private EntityPlayer findRemoteController() {
@@ -853,8 +929,11 @@ public class EntityWarTechMissile extends EntityWarTechBase {
         player.capabilities.disableDamage = true;
         player.capabilities.allowFlying = true;
         player.capabilities.isFlying = true;
-        ((EntityPlayerMP) player).sendPlayerAbilities();
-        teleportRemotePresence((EntityPlayerMP) player);
+        EntityPlayerMP serverPlayer = (EntityPlayerMP) player;
+        serverPlayer.sendPlayerAbilities();
+        RemotePresenceChunkPolicy.begin(serverPlayer);
+        RemoteControlNetwork.sendOperatorVisibility(serverPlayer, true);
+        teleportRemotePresence(serverPlayer);
     }
 
     private void maintainRemotePresence(EntityPlayer player) {
@@ -863,8 +942,13 @@ public class EntityWarTechMissile extends EntityWarTechBase {
         }
         EntityPlayerMP serverPlayer = (EntityPlayerMP) player;
         double x = posX;
-        double y = posY + 2.4D;
+        double y = RemotePresenceChunkPolicy.concealedY(world, posX, posZ);
         double z = posZ;
+        player.noClip = true;
+        player.setInvisible(true);
+        player.capabilities.disableDamage = true;
+        player.capabilities.allowFlying = true;
+        player.capabilities.isFlying = true;
         player.motionX = 0.0D;
         player.motionY = 0.0D;
         player.motionZ = 0.0D;
@@ -874,11 +958,14 @@ public class EntityWarTechMissile extends EntityWarTechBase {
             serverPlayer.connection.setPlayerLocation(
                     x, y, z, remoteAnchorYaw, remoteAnchorPitch);
         }
+        if (ticksExisted % 20 == 0) {
+            RemoteControlNetwork.sendOperatorVisibility(serverPlayer, true);
+        }
     }
 
     private void teleportRemotePresence(EntityPlayerMP player) {
         double x = posX;
-        double y = posY + 2.4D;
+        double y = RemotePresenceChunkPolicy.concealedY(world, posX, posZ);
         double z = posZ;
         player.setPosition(x, y, z);
         if (player.connection != null) {
@@ -904,7 +991,9 @@ public class EntityWarTechMissile extends EntityWarTechBase {
         player.capabilities.allowFlying = remoteAnchorAllowFlying;
         player.capabilities.isFlying = remoteAnchorFlying;
         serverPlayer.sendPlayerAbilities();
+        RemoteControlNetwork.sendOperatorVisibility(serverPlayer, false);
         forceRestoreLocation(serverPlayer, true);
+        RemotePresenceChunkPolicy.end(serverPlayer);
     }
 
     private void tickRemoteRestore() {
@@ -951,7 +1040,7 @@ public class EntityWarTechMissile extends EntityWarTechBase {
 
     private void updateGeranFlightPlan(double deltaX, double deltaZ,
             double distance, int currentGroundY) {
-        targetGroundY = world.getHeight(targetX, targetZ);
+        targetGroundY = loadedHeight(targetX, targetZ);
         double lookAhead = Math.min(distance, 220.0D);
         int samples = Math.max(4, Math.min(14,
                 (int) Math.ceil(lookAhead / 16.0D)));
@@ -961,7 +1050,7 @@ public class EntityWarTechMissile extends EntityWarTechBase {
                 double offset = lookAhead * sample / samples;
                 int x = (int) Math.floor(posX + deltaX / distance * offset);
                 int z = (int) Math.floor(posZ + deltaZ / distance * offset);
-                highest = Math.max(highest, world.getHeight(x, z));
+                if(world.isBlockLoaded(new BlockPos(x,0,z))) highest = Math.max(highest, loadedHeight(x, z));
             }
         }
         double requiredY = highest + 10.0D;
@@ -982,7 +1071,8 @@ public class EntityWarTechMissile extends EntityWarTechBase {
             double remaining = distance * (1.0D - progress);
             int x = (int) Math.floor(posX + deltaX * progress);
             int z = (int) Math.floor(posZ + deltaZ * progress);
-            int ground = world.getHeight(x, z);
+            if(!world.isBlockLoaded(new BlockPos(x,0,z))) return false;
+            int ground = loadedHeight(x, z);
             double targetHeight = remoteMission ? 0.1D : 1.2D;
             double pathY = targetGroundY + targetHeight + remaining * 0.27D;
             double clearance = clamp(remaining * 0.05D, targetHeight, 5.0D);
@@ -993,20 +1083,47 @@ public class EntityWarTechMissile extends EntityWarTechBase {
         return true;
     }
 
-    private boolean hasEntityContact(double x, double y, double z) {
-        AxisAlignedBB box = getEntityBoundingBox()
+    private Entity findEntityContact(double x, double y, double z) {
+        AxisAlignedBB missileBounds = getEntityBoundingBox();
+        AxisAlignedBB searchBox = missileBounds
                 .expand(x - posX, y - posY, z - posZ)
                 .grow(0.06D);
-        for (Entity entity : world.getEntitiesWithinAABBExcludingEntity(this, box)) {
-            if (isValidGeranImpactEntity(entity)) {
-                return true;
+        double halfWidthX = (missileBounds.maxX - missileBounds.minX) * 0.5D
+                + 0.06D;
+        double halfHeight = (missileBounds.maxY - missileBounds.minY) * 0.5D
+                + 0.06D;
+        double halfWidthZ = (missileBounds.maxZ - missileBounds.minZ) * 0.5D
+                + 0.06D;
+        Vec3d start = new Vec3d(posX, posY, posZ);
+        Vec3d end = new Vec3d(x, y, z);
+        for (Entity entity : world.getEntitiesWithinAABBExcludingEntity(
+                this, searchBox)) {
+            if (!isValidGeranImpactEntity(entity)) {
+                continue;
+            }
+            AxisAlignedBB collisionBounds = entity.getCollisionBoundingBox();
+            if (collisionBounds == null) {
+                continue;
+            }
+            AxisAlignedBB impactBounds = collisionBounds.grow(
+                    halfWidthX, halfHeight, halfWidthZ);
+            boolean startInside = impactBounds.contains(start);
+            boolean endInside = impactBounds.contains(end);
+            if (startInside && !endInside) {
+                continue;
+            }
+            if (endInside
+                    || !startInside
+                    && impactBounds.calculateIntercept(start, end) != null) {
+                return entity;
             }
         }
-        return false;
+        return null;
     }
 
     private boolean isValidGeranImpactEntity(Entity entity) {
-        if (entity == null || entity.isDead || !entity.canBeCollidedWith()
+        if (entity == null || entity.isDead || entity.noClip
+                || entity.isInvisible() || !entity.canBeCollidedWith()
                 || isRemoteControllerEntity(entity)
                 || isFriendlyOrOwner(entity)) {
             return false;
@@ -1015,6 +1132,25 @@ public class EntityWarTechMissile extends EntityWarTechBase {
                 && !(entity instanceof EntityXPOrb)
                 && !(entity instanceof EntityArrow)
                 && !(entity instanceof IProjectile);
+    }
+
+    private void logGeranImpact(boolean blockImpact, Entity entityContact) {
+        if (WarTechReforged.logger == null) {
+            return;
+        }
+        if (entityContact != null) {
+            WarTechReforged.logger.info(
+                    "Geran-2 {} impact fuse: entity {} id={} at [{}, {}, {}]",
+                    getEntityId(), entityContact.getClass().getName(),
+                    entityContact.getEntityId(), entityContact.posX,
+                    entityContact.posY, entityContact.posZ);
+        } else if (blockImpact) {
+            WarTechReforged.logger.info(
+                    "Geran-2 {} impact fuse: block {} at {}",
+                    getEntityId(), lastImpactBlock == null
+                            ? "unknown" : world.getBlockState(lastImpactBlock),
+                    lastImpactBlock);
+        }
     }
 
     private boolean isRemoteControllerEntity(Entity entity) {
@@ -1051,7 +1187,7 @@ public class EntityWarTechMissile extends EntityWarTechBase {
         airLaunched = true;
         flightInitialized = false;
         initializeFlightPlan();
-        targetY = world.getHeight(targetX, targetZ);
+        targetY = loadedHeight(targetX, targetZ);
         airStartX = posX;
         airStartZ = posZ;
         double deltaX = targetX + 0.5D - airStartX;
@@ -1078,7 +1214,7 @@ public class EntityWarTechMissile extends EntityWarTechBase {
         double deltaZ = aimZ - posZ;
         double distance = Math.sqrt(deltaX * deltaX + deltaZ * deltaZ);
         double deltaY = targetY + 0.8D - posY;
-        int groundY = world.getHeight(
+        int groundY = loadedHeight(
                 (int) Math.floor(posX), (int) Math.floor(posZ));
         if (kh555ShouldDetonate(distance, deltaY, motionLength())
                 || ticksExisted > 10 && posY <= groundY + 0.75D) {
@@ -1086,8 +1222,8 @@ public class EntityWarTechMissile extends EntityWarTechBase {
             setDead();
             return;
         }
-        if (ticksExisted > 2600) {
-            setDead();
+        if (getOperationalAge() > 20000) {
+            combatCrashing=true;combatCrashOutcome=0;
             return;
         }
         double[] routeAim = calculateKh555RouteAim(distance, aimX, aimZ);
@@ -1118,6 +1254,7 @@ public class EntityWarTechMissile extends EntityWarTechBase {
             setDead();
             return;
         }
+        if(flightStepPending) return;
         updateKh555Rotation();
     }
 
@@ -1215,6 +1352,7 @@ public class EntityWarTechMissile extends EntityWarTechBase {
                     posX + motionX * velocity,
                     posY + motionY * velocity,
                     posZ + motionZ * velocity);
+            if(flightStepPending) return;
             updateLegacyRotation();
             motionY -= decelY * velocity;
             applyLegacyHorizontalAcceleration();
@@ -1304,7 +1442,7 @@ public class EntityWarTechMissile extends EntityWarTechBase {
             return;
         }
         double targetHeight = targetY > 0 ? targetY
-                : world.getHeight(targetX, targetZ) + 1.0D;
+                : loadedHeight(targetX, targetZ) + 1.0D;
         double desiredY;
         if (ticksExisted < 24) {
             desiredY = Math.max(startY + 34.0D, targetHeight + 26.0D);
@@ -1430,6 +1568,11 @@ public class EntityWarTechMissile extends EntityWarTechBase {
         }
     }
 
+    private int loadedHeight(int x,int z) {
+        BlockPos column=new BlockPos(x,0,z);
+        return world.isBlockLoaded(column)?world.getHeight(column).getY():MathHelper.clamp(targetY,1,248);
+    }
+
     private void removeSatellite() {
         if (satelliteId < 0) {
             return;
@@ -1448,24 +1591,30 @@ public class EntityWarTechMissile extends EntityWarTechBase {
     }
 
     private void detonatePayload() {
+        try (com.wartec.wartecmod.port.integration.StrikeBlastSafety.Scope ignored =
+                com.wartec.wartecmod.port.integration.StrikeBlastSafety.enter(this)) {
+            detonatePayloadScoped();
+        }
+    }
+    private void detonatePayloadScoped() {
         Payload payload = getMissileSpecification().getPayload();
         switch (payload) {
             case HE_20:
                 HbmExplosionCompat.advancedExplosion(
-                        world, posX, posY, posZ, 20.0F, 2.0F, true);
+                        world, posX, posY, posZ, 8.0F, 1.0F, true);
                 break;
             case HE_25:
                 HbmExplosionCompat.advancedExplosion(
-                        world, posX, posY, posZ, 25.0F, 2.0F, true);
+                        world, posX, posY, posZ, 10.0F, 1.0F, true);
                 break;
             case FRAGMENTATION:
                 HbmExplosionCompat.advancedExplosion(
-                        world, posX, posY, posZ, 20.0F, 2.0F, false);
+                        world, posX, posY, posZ, 5.0F, 2.0F, false);
                 break;
             case CLUSTER:
-                world.newExplosion(this, posX, posY, posZ, 25.0F, false, true);
+                world.newExplosion(this, posX, posY, posZ, 2.0F, false, true);
                 HbmExplosionCompat.cluster(
-                        world, (int) posX, (int) posY, (int) posZ, 166, 100);
+                        world, (int) posX, (int) posY, (int) posZ, 12, 4);
                 break;
             case BUSTER:
                 ExplosionLarge.spawnShock(world, posX, posY, posZ,
@@ -1473,25 +1622,23 @@ public class EntityWarTechMissile extends EntityWarTechBase {
                 ExplosionLarge.spawnParticles(world, posX, posY, posZ, 5);
                 ExplosionLarge.spawnShrapnelShower(
                         world, posX, posY, posZ, 5.0D, 5.0D, 5.0D, 15, 5.0D);
-                for (int index = 0; index < 20; ++index) {
+                for (int index = 0; index < 4; ++index) {
                     world.newExplosion(this,
                             posX, posY + 1.0D - index, posZ,
                             0.5F, false, true);
                 }
                 HbmExplosionCompat.advancedExplosion(
-                        world, posX, posY - 15.0D, posZ, 20.0F, 2.0F, true);
+                        world, posX, Math.max(0,posY - 2.0D), posZ, 8.0F, 1.0F, true);
                 break;
             case EMP:
-                EntityEMP emp = new EntityEMP(world);
-                emp.setPosition(posX, posY, posZ);
-                world.spawnEntity(emp);
+                HbmExplosionCompat.empPulse(world,posX,posY,posZ,48);
                 break;
             case THERMOBARIC:
                 HbmExplosionCompat.thermobaricExplosion(
-                        world, posX, posY, posZ, 50.0F, 12.0F, true);
+                        world, posX, posY, posZ, 12.0F, 1.5F, true);
                 ExplosionLarge.spawnShrapnels(world, posX, posY, posZ, 30);
                 HbmExplosionCompat.standardMush(
-                        world, posX, posY, posZ, 35.0F);
+                        world, posX, posY, posZ, 2.0F);
                 break;
             case NUCLEAR_50:
                 HbmExplosionCompat.nuclear(
@@ -1510,11 +1657,11 @@ public class EntityWarTechMissile extends EntityWarTechBase {
                         world, posX, posY, posZ, 10.0F, true, true, true);
                 ExplosionLarge.explodeFire(
                         world, posX + 0.5D, posY + 0.5D, posZ + 0.5D,
-                        75.0F, true, true, true);
+                        12.0F, true, true, true);
                 HbmExplosionCompat.burn(
                         world, (int) posX, (int) posY, (int) posZ, 20);
                 HbmExplosionCompat.flameDeath(
-                        world, (int) posX, (int) posY, (int) posZ, 65);
+                        world, (int) posX, (int) posY, (int) posZ, 24);
                 break;
             case SLBM:
                 HbmExplosionCompat.nuclear(
@@ -1537,11 +1684,11 @@ public class EntityWarTechMissile extends EntityWarTechBase {
                 break;
             case ISKANDER:
                 ExplosionLarge.explode(
-                        world, posX, posY, posZ, 40.0F, true, true, true);
+                        world, posX, posY, posZ, 14.0F, true, true, true);
                 break;
             case GERAN:
                 HbmExplosionCompat.advancedExplosion(
-                        world, posX, posY, posZ, 10.0F, 2.0F, true);
+                        world, posX, posY, posZ, getGeranWarheadStrength(), 1.0F, true);
                 if (world.rand.nextFloat() < 0.3F) {
                     igniteGeranImpactArea();
                 }
@@ -1559,7 +1706,8 @@ public class EntityWarTechMissile extends EntityWarTechBase {
         for (int index = 0; index < 12; ++index) {
             int x = centerX + world.rand.nextInt(9) - 4;
             int z = centerZ + world.rand.nextInt(9) - 4;
-            int y = world.getHeight(x, z);
+            if(!world.isBlockLoaded(new BlockPos(x,0,z))) continue;
+            int y = loadedHeight(x, z);
             BlockPos fire = new BlockPos(x, y, z);
             if (world.isAirBlock(fire) && !world.isAirBlock(fire.down())) {
                 world.setBlockState(fire, Blocks.FIRE.getDefaultState(), 3);
@@ -1568,31 +1716,95 @@ public class EntityWarTechMissile extends EntityWarTechBase {
     }
 
     private boolean isImpactBlock() {
-        IBlockState state = world.getBlockState(
-                new BlockPos(Math.floor(posX), Math.floor(posY), Math.floor(posZ)));
-        Material material = state.getMaterial();
-        return material != Material.AIR && material != Material.WATER;
+        return isSolidImpactBlock(new BlockPos(
+                Math.floor(posX), Math.floor(posY), Math.floor(posZ)));
     }
 
     private boolean moveToWithImpact(double nextX, double nextY, double nextZ) {
+        flightStepPending=false;
+        double horizontal=Math.hypot(nextX-posX,nextZ-posZ);
+        // Preserve legacy trajectory and total displacement, but load/test a bounded sweep.
+        if(horizontal>48) {
+            Vec3d from=getPositionVector(),goal=new Vec3d(nextX,nextY,nextZ);
+            int segments=(int)Math.ceil(horizontal/48);
+            if(segments>128) { combatCrashing=true;setArmed(false);flightStepPending=true;return false; }
+            for(int i=1;i<=segments;i++) {
+                Vec3d point=from.add(goal.subtract(from).scale(i/(double)segments));
+                if(moveToWithImpact(point.x,point.y,point.z)) return true;
+                if(flightStepPending) return false;
+            }
+            return false;
+        }
+        if(!MissileChunkLoader.flightReady(this,nextX-posX,nextZ-posZ)) { flightStepPending=true;return false; }
+        lastImpactBlock = null;
         Vec3d start = new Vec3d(posX, posY, posZ);
         Vec3d end = new Vec3d(nextX, nextY, nextZ);
+        if(!com.wartec.wartecmod.port.cruise.CruiseNavigation.loadedRay(start,end,
+                (x,z)->world.isBlockLoaded(new BlockPos(x*16,64,z*16)))) { flightStepPending=true;return false; }
         if (ticksExisted > 2) {
             RayTraceResult hit = world.rayTraceBlocks(
                     start, end, false, true, false);
-            if (hit != null && hit.typeOfHit == RayTraceResult.Type.BLOCK
-                    && hit.getBlockPos() != null) {
-                IBlockState state = world.getBlockState(hit.getBlockPos());
-                Material material = state.getMaterial();
-                if (material != Material.AIR && material != Material.WATER) {
-                    Vec3d point = hit.hitVec == null ? start : hit.hitVec;
-                    setPosition(point.x, point.y, point.z);
-                    return true;
+            double hitVerticalOffset = 0.0D;
+            if (getMissileSpecification().getFlightFamily()
+                    == FlightFamily.GERAN) {
+                Vec3d lowerStart = start.addVector(
+                        0.0D, -GERAN_MODEL_BOTTOM_OFFSET, 0.0D);
+                Vec3d lowerEnd = end.addVector(
+                        0.0D, -GERAN_MODEL_BOTTOM_OFFSET, 0.0D);
+                RayTraceResult lowerHit = world.rayTraceBlocks(
+                        lowerStart, lowerEnd, false, true, false);
+                if (isSolidBlockHit(lowerHit)
+                        && (!isSolidBlockHit(hit)
+                            || impactDistanceSq(lowerHit, lowerStart)
+                                < impactDistanceSq(hit, start))) {
+                    hit = lowerHit;
+                    hitVerticalOffset = -GERAN_MODEL_BOTTOM_OFFSET;
                 }
+            }
+            if (isSolidBlockHit(hit)) {
+                lastImpactBlock = hit.getBlockPos();
+                Vec3d point = hit.hitVec == null ? start : hit.hitVec;
+                setPosition(point.x, point.y - hitVerticalOffset, point.z);
+                return true;
             }
         }
         setPosition(nextX, nextY, nextZ);
-        return isImpactBlock();
+        if (getMissileSpecification().getFlightFamily()
+                == FlightFamily.GERAN) {
+            BlockPos lower = new BlockPos(Math.floor(posX),
+                    Math.floor(posY - GERAN_MODEL_BOTTOM_OFFSET),
+                    Math.floor(posZ));
+            if (isSolidImpactBlock(lower)) {
+                lastImpactBlock = lower;
+                return true;
+            }
+        }
+        if (isImpactBlock()) {
+            lastImpactBlock = new BlockPos(
+                    Math.floor(posX), Math.floor(posY), Math.floor(posZ));
+            return true;
+        }
+        return false;
+    }
+
+    private boolean isSolidBlockHit(RayTraceResult hit) {
+        return hit != null && hit.typeOfHit == RayTraceResult.Type.BLOCK
+                && hit.getBlockPos() != null
+                && isSolidImpactBlock(hit.getBlockPos());
+    }
+
+    private double impactDistanceSq(RayTraceResult hit, Vec3d start) {
+        return hit == null || hit.hitVec == null
+                ? Double.POSITIVE_INFINITY
+                : hit.hitVec.squareDistanceTo(start);
+    }
+
+    private boolean isSolidImpactBlock(BlockPos position) {
+        IBlockState state = world.getBlockState(position);
+        Material material = state.getMaterial();
+        AxisAlignedBB collision = state.getCollisionBoundingBox(world, position);
+        return material != Material.AIR && material != Material.WATER
+                && collision != null && collision != Block.NULL_AABB;
     }
 
     private void updateLegacyRotation() {
@@ -1617,7 +1829,8 @@ public class EntityWarTechMissile extends EntityWarTechBase {
 
     @Override
     public boolean attackEntityFrom(DamageSource source, float damage) {
-        if (world.isRemote || isDead || isEntityInvulnerable(source)) {
+        if (com.wartec.wartecmod.port.integration.StrikeBlastSafety.ignores(this, source)) return false;
+        if (world.isRemote || isDead || combatCrashing || isEntityInvulnerable(source)) {
             return false;
         }
         Entity attacker = source.getTrueSource();
@@ -1628,6 +1841,7 @@ public class EntityWarTechMissile extends EntityWarTechBase {
         }
         legacyHealth -= Math.max(0, MathHelper.ceil(damage));
         if (legacyHealth <= 0) {
+            if(beginCombatCrash()) return true;
             ExplosionLarge.explode(
                     world, posX, posY, posZ, 5.0F, true, false, true);
             ExplosionLarge.spawnShrapnelShower(
@@ -1640,6 +1854,68 @@ public class EntityWarTechMissile extends EntityWarTechBase {
             setDead();
         }
         return true;
+    }
+    public boolean beginCombatCrash() {
+        FlightFamily family=getMissileSpecification().getFlightFamily();
+        if(isDead || combatCrashing || world!=null && world.isRemote
+                || !(family==FlightFamily.SUBSONIC || family==FlightFamily.SUPERSONIC
+                || family==FlightFamily.HYPERSONIC || family==FlightFamily.GERAN
+                || family==FlightFamily.ANTI_RADIATION || family==FlightFamily.KH555)) return false;
+        combatCrashing=true;legacyHealth=0;setHealthValue(0);setArmed(false);
+        dataManager.set(FLIGHT_STAGE,3);
+        double air=getMissileSpecification().getPayload()==Payload.THERMOBARIC?.25:.10;
+        double roll=world==null?.95:world.rand.nextDouble();
+        combatCrashOutcome=roll<air?3:roll<air+.30?2:roll<air+.48?1:0;
+        combatAirburstTick=combatCrashOutcome==3?6+world.rand.nextInt(19):-1;
+        endRemoteControl("Geran shot down.",false);
+        return true;
+    }
+    @Override protected int flightLifetime() {
+        return com.wartec.wartecmod.port.integration.WeaponBalance.missileRange(getMissileSpecification().getProfile())>0
+                ? 20000 : super.flightLifetime();
+    }
+    @Override protected void onLifetimeExpired() {
+        if(com.wartec.wartecmod.port.integration.WeaponBalance.missileRange(getMissileSpecification().getProfile())<=0) {
+            return; // Special vertical ASAT/AB modes retain their own legacy termination.
+        }
+        if(!combatCrashing) { combatCrashing=true;combatCrashOutcome=0;setArmed(false); }
+    }
+
+    private void tickCombatCrash() {
+        if(crashResolved) { setDead();return; }
+        MissileChunkLoader.track(this);setArmed(false);++combatCrashTicks;
+        motionX*=.994;motionZ*=.994;motionY=Math.max(-2.5,motionY-.045);
+        Vec3d from=getPositionVector(),next=from.addVector(motionX,motionY,motionZ);
+        rotationYaw=(float)Math.toDegrees(Math.atan2(-motionX,motionZ));
+        rotationPitch=(float)-Math.toDegrees(Math.atan2(motionY,Math.hypot(motionX,motionZ)));
+        if(combatAirburstTick>=0 && combatCrashTicks>=combatAirburstTick) { finishCombatCrash(null);return; }
+        if(next.y<0 || combatCrashTicks>1200) { finishCombatCrash(null);return; }
+        if(!com.wartec.wartecmod.port.cruise.CruiseNavigation.loadedRay(from,next,
+                (x,z)->world.isBlockLoaded(new BlockPos(x*16,64,z*16)))) return;
+        RayTraceResult hit=world.rayTraceBlocks(from,next,false,true,false);
+        double nearest=hit==null?Double.POSITIVE_INFINITY:from.squareDistanceTo(hit.hitVec);
+        for(Entity entity:world.getEntitiesWithinAABBExcludingEntity(this,getEntityBoundingBox().expand(motionX,motionY,motionZ).grow(.4))) {
+            if(entity.isDead || !entity.canBeCollidedWith() || isFriendlyOrOwner(entity)) continue;
+            RayTraceResult contact=entity.getEntityBoundingBox().grow(.2).calculateIntercept(from,next);
+            if(contact!=null && from.squareDistanceTo(contact.hitVec)<nearest) { nearest=from.squareDistanceTo(contact.hitVec);hit=new RayTraceResult(entity,contact.hitVec); }
+        }
+        if(hit!=null) { setPosition(hit.hitVec.x,hit.hitVec.y,hit.hitVec.z);finishCombatCrash(hit.entityHit);return; }
+        setPosition(next.x,next.y,next.z);
+        if(world instanceof net.minecraft.world.WorldServer && combatCrashTicks%4==0)
+            ((net.minecraft.world.WorldServer)world).spawnParticle(EnumParticleTypes.SMOKE_LARGE,posX,posY,posZ,2,.12,.12,.12,.01);
+    }
+    private void finishCombatCrash(Entity contact) {
+        if(crashResolved || isDead) return;
+        crashResolved=true;
+        if(combatCrashOutcome>=2) detonatePayload();
+        else if(combatCrashOutcome==0) world.createExplosion(this,posX,posY,posZ,3,true);
+        else {
+            if(contact!=null) contact.attackEntityFrom(new DamageSource("wartec.cruise.wreck"),
+                (float)Math.min(30,Math.max(2,Math.sqrt(motionX*motionX+motionY*motionY+motionZ*motionZ)*10)));
+            world.createExplosion(this,posX,posY,posZ,1,false);
+        }
+        ExplosionLarge.spawnMissileDebris(world,posX,posY,posZ,motionX,motionY,motionZ,.25,getLegacyDebris(),getLegacyRareDrop());
+        setDead();
     }
 
     private List<ItemStack> getLegacyDebris() {
@@ -1663,6 +1939,7 @@ public class EntityWarTechMissile extends EntityWarTechBase {
                 return ballisticDebris();
             case ASAT:
             case GERAN_2:
+            case GERAN_5:
             case ANTI_AIR_TIER_1:
             case ANTI_AIR_TIER_2:
             case ANTI_AIR_TIER_3:
@@ -1714,6 +1991,8 @@ public class EntityWarTechMissile extends EntityWarTechBase {
                 return new ItemStack(ModItems.warhead_generic_large);
             case GERAN_2:
                 return new ItemStack(WarTechContent.GERAN_DRONE);
+            case GERAN_5:
+                return new ItemStack(WarTechContent.GERAN_5_DRONE);
             default:
                 return ItemStack.EMPTY;
         }
@@ -1759,7 +2038,7 @@ public class EntityWarTechMissile extends EntityWarTechBase {
     @Override
     public void setDead() {
         if (world != null && !world.isRemote && isRemoteControlled()) {
-            endRemoteControl("Geran-2 link terminated.", false);
+            endRemoteControl("Geran link terminated.", false);
         }
         super.setDead();
     }
@@ -1784,6 +2063,7 @@ public class EntityWarTechMissile extends EntityWarTechBase {
         compound.setInteger("WarTechVlsExhaustZ", vlsExhaustZ);
         compound.setInteger("veloc", velocity);
         compound.setDouble("range", range);
+        compound.setDouble("WarTechFlightDistance", flightDistance);
         compound.setDouble("transform", transformationPointVector);
         compound.setDouble("sonic", startSonicSpeed);
         compound.setDouble("decel", decelY);
@@ -1791,6 +2071,9 @@ public class EntityWarTechMissile extends EntityWarTechBase {
         compound.setDouble("separation", separationVector);
         compound.setDouble("mach15", startMach15);
         compound.setInteger("LegacyMissileHealth", legacyHealth);
+        compound.setBoolean("CombatCrashing",combatCrashing);compound.setBoolean("CombatCrashResolved",crashResolved);
+        compound.setInteger("CombatCrashTicks",combatCrashTicks);compound.setInteger("CombatCrashOutcome",combatCrashOutcome);
+        compound.setInteger("CombatAirburstTick",combatAirburstTick);
         compound.setDouble("GeranCruiseY", plannedCruiseY);
         compound.setInteger("GeranTargetGround", targetGroundY);
         compound.setBoolean("GeranApproach", approachCommitted);
@@ -1822,6 +2105,11 @@ public class EntityWarTechMissile extends EntityWarTechBase {
     @Override
     protected void readEntityFromNBT(NBTTagCompound compound) {
         super.readEntityFromNBT(compound);
+        combatCrashing=compound.getBoolean("CombatCrashing");crashResolved=compound.getBoolean("CombatCrashResolved");
+        combatCrashTicks=MathHelper.clamp(compound.getInteger("CombatCrashTicks"),0,1200);
+        combatCrashOutcome=MathHelper.clamp(compound.getInteger("CombatCrashOutcome"),0,3);
+        combatAirburstTick=combatCrashOutcome==3?MathHelper.clamp(compound.getInteger("CombatAirburstTick"),6,24):-1;
+        if(combatCrashing) setHealthValue(0);
         LegacyMissileSpecification specification =
                 LegacyMissileSpecification.byOrdinal(
                         compound.getInteger("WarTechMissileSpec"));
@@ -1844,6 +2132,8 @@ public class EntityWarTechMissile extends EntityWarTechBase {
         vlsExhaustZ = compound.getInteger("WarTechVlsExhaustZ");
         velocity = Math.max(1, compound.getInteger("veloc"));
         range = compound.getDouble("range");
+        flightDistance = Math.max(0,compound.getDouble("WarTechFlightDistance"));
+        previousFlightPosition = null;
         transformationPointVector = compound.getDouble("transform");
         startSonicSpeed = compound.getDouble("sonic");
         decelY = compound.getDouble("decel");
@@ -1884,6 +2174,7 @@ public class EntityWarTechMissile extends EntityWarTechBase {
         nuclearInterceptorActivation =
                 compound.getInteger("NuclearInterceptorActivation");
         trackingRegistered = false;
+        refreshMissileDimensions();
     }
 
     private static MissileProfile legacyProfile(WarTechEntityProfile profile) {

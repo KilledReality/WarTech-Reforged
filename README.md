@@ -1,8 +1,44 @@
 # WarTech Reforged
 
-DISCORD: https://discord.gg/jZAfCe8Z2w
+## Current 1.12.2 Community Edition update
 
-Documentation: [Release notes 1.6.0](docs/RELEASE_NOTES_1.6.0.md) | [1.12.2 experimental notes](docs/RELEASE_NOTES_1.6.0_EXPERIMENTAL_1.12.2.md) | [Controls guide](docs/CONTROLS.md) | [Electronic warfare](docs/ELECTRONIC_WARFARE.md)
+The **Modular Warfare Update** targets Minecraft **1.12.2**, Forge
+**14.23.5.2860**, HBM NTM **Community Edition 2.6.1.0** and **MixinBooter 10.7**.
+It is experimental. Do not use the CE JAR with NTM Extended or Minecraft 1.7.10.
+
+**Актуальные документы / Current player documents:**
+[обзор / index](docs/modular-warfare/README.md) ·
+[изменения RU](docs/modular-warfare/CHANGELOG.ru.md) ·
+[changes EN](docs/modular-warfare/CHANGELOG.en.md) ·
+[руководство RU](docs/modular-warfare/GUIDE.ru.md) ·
+[guide EN](docs/modular-warfare/GUIDE.en.md) ·
+[Discord RU](docs/modular-warfare/DISCORD.ru.md) ·
+[Discord EN](docs/modular-warfare/DISCORD.en.md).
+
+Four modular missile bodies, 13 warheads, custom UAVs, carrier integration,
+downloadable reconnaissance and Geran-5 are documented there. Back up worlds
+and use matching versions on clients and servers. New-content survival recipes
+are not finalized. New Topol-M/Yars/Oreshnik systems remain disabled.
+
+Владелец проекта подтвердил необходимые разрешения на распространение
+9 октября 2026 года. Авторство и условия моделей сохранены в
+[third-party notices](THIRD_PARTY_NOTICES.md).
+The project owner confirmed the necessary distribution permissions on
+October 9, 2026. Asset credits and conditions remain in the
+[third-party notices](THIRD_PARTY_NOTICES.md).
+
+## Historical releases and project overview
+
+The sections below describe earlier releases and development branches. Their
+dependency lists, backport claims and feature counts are not instructions for
+the current CE build. Use the guides above for that build.
+
+Разделы ниже сохранены как описание старых релизов и веток. Их зависимости,
+сведения о backport и количества деталей не относятся к текущей CE-сборке.
+
+DISCORD: https://discord.gg/c46gwVfnea
+
+Documentation: [Current changelog](docs/modular-warfare/CHANGELOG.en.md) | [Release notes 1.6.0](docs/RELEASE_NOTES_1.6.0.md) | [1.12.2 experimental notes](docs/RELEASE_NOTES_1.6.0_EXPERIMENTAL_1.12.2.md) | [Controls guide](docs/CONTROLS.md) | [Electronic warfare](docs/ELECTRONIC_WARFARE.md) | [Current UAV guide](docs/modular-warfare/GUIDE.en.md)
 
 WarTech Reforged is an unofficial restoration and expansion of the abandoned
 WarTech 1.1.1 addon for Minecraft 1.7.10 and HBM's Nuclear Tech Mod.
@@ -16,6 +52,8 @@ new cruise missiles, and mobile artillery platforms.
 
 - **Stable 1.7.10:** `WarTech-Reforged-1.6.0-universal-hbm.jar` for Forge
   `10.13.4.1614` with HBM NTM `1.0.27 X5751` or HBM NTM Space `X5758 H261`.
+- **1.7.10 Custom UAV backport test build:** adds the complete modular UAV
+  system to the stable 1.7.10 codebase without replacing legacy registry IDs.
 - **Experimental 1.12.2:** `WarTech-Reforged-1.12.2-NTM-Extended-1.6.0-experimental.jar`
   for Forge `14.23.5.2860` with NTM Extended `3.0.3`.
 
@@ -38,6 +76,10 @@ versions listed above. Never load an irreplaceable world without a backup.
 
 ### New missiles and drones
 
+- **UAV Constructor** (1.12.2 and its 1.7.10 backport) with three modular
+  airframes, 27 interchangeable parts, reusable NBT blueprints, calculated flight and
+  mission statistics, autonomous and Remote Pilot modes, modular payloads,
+  countermeasures, server-side validation, and persistent recovery.
 - **Storm Shadow** cruise missile, implemented as a new long-range guided weapon.
 - **Geran-2** attack drone with a dedicated rail catapult.
 - Reusable **MQ-9 Reaper** strike UAV with six persistent hardpoints, an HBM
@@ -227,7 +269,7 @@ requirements. Full attribution and unresolved release requirements are listed in
 
 # WarTech Reforged на русском
 
-Документация: [Описание версии 1.6.0](docs/RELEASE_NOTES_1.6.0.md) | [Experimental-версия 1.12.2](docs/RELEASE_NOTES_1.6.0_EXPERIMENTAL_1.12.2.md) | [Полное управление](docs/CONTROLS.md) | [Радиоэлектронная борьба](docs/ELECTRONIC_WARFARE.md)
+Документация: [История изменений](CHANGELOG.md) | [Описание версии 1.6.0](docs/RELEASE_NOTES_1.6.0.md) | [Пост для Discord](docs/DISCORD_DEV_BLOG_1.6.0.md) | [Experimental-версия 1.12.2](docs/RELEASE_NOTES_1.6.0_EXPERIMENTAL_1.12.2.md) | [Полное управление](docs/CONTROLS.md) | [Радиоэлектронная борьба](docs/ELECTRONIC_WARFARE.md)
 
 DISCORD: https://discord.gg/jZAfCe8Z2w
 
@@ -244,6 +286,8 @@ NTM `1.0.27 X5751` и HBM NTM Space `X5758 H261` и превращает его 
 - **Стабильная версия 1.7.10:** `WarTech-Reforged-1.6.0-universal-hbm.jar`
   для Forge `10.13.4.1614` с HBM NTM `1.0.27 X5751` или HBM NTM Space
   `X5758 H261`.
+- **Тестовая сборка backport Custom UAV для 1.7.10:** добавляет всю модульную
+  систему БПЛА в стабильную кодовую базу без замены старых registry ID.
 - **Экспериментальная версия 1.12.2:**
   `WarTech-Reforged-1.12.2-NTM-Extended-1.6.0-experimental.jar` для Forge
   `14.23.5.2860` с NTM Extended `3.0.3`.
@@ -267,6 +311,9 @@ NTM `1.0.27 X5751` и HBM NTM Space `X5758 H261` и превращает его 
 
 ### Новые ракеты и беспилотники
 
+- **Конструктор БПЛА** для 1.12.2 и его полный backport на 1.7.10: три
+  планера, 27 модулей, чертежи NBT, редактор миссий, Fleet, Recon Report,
+  Remote Pilot, возврат, посадка, ремонт, обломки и демонтаж.
 - Добавлена крылатая ракета **Storm Shadow**.
 - Добавлен ударный БПЛА **Герань-2** с отдельной рельсовой катапультой.
 - Многоразовый ударный БПЛА **MQ-9 Reaper** с шестью узлами подвески,
@@ -386,5 +433,5 @@ WarTech Reforged основан на WarTech 1.1.1 и не является оф
 
 HBM's Nuclear Tech Mod является внешней обязательной зависимостью и не входит в
 архив WarTech Reforged. Все импортированные модели используются на условиях их
-собственных лицензий. Полная атрибуция и незакрытые требования перед релизом
+собственных лицензий и полученных разрешений. Записи об авторстве и условиях
 перечислены в [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).

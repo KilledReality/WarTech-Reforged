@@ -2,7 +2,7 @@
 {
   "modid": "wartecmod",
   "name": "WarTech Reforged",
-  "description": "WarTech Reforged port for Minecraft 1.12.2 and NTM Extended.",
+  "description": "WarTech Reforged Modular Warfare Update for Minecraft 1.12.2 and HBM NTM ${ntmEdition}. Custom cruise missiles, UAVs, aviation and air defense.",
   "version": "${version}",
   "mcversion": "${mcversion}",
   "url": "https://github.com/KilledReality/WarTech-Reforged",
