@@ -14,6 +14,6 @@ Build a weapon for the mission—not a mission for the weapon.
 
 Refreshed icons, interfaces, Creative tabs and vehicle sizes. Custom missiles use clean base-body models without external module overlays.
 
-⚠️ **Minecraft 1.12.2 / Forge 14.23.5.2860 / NTM Community Edition 2.6.1.0 / MixinBooter 10.7.** Experimental branch: back up your world. Not for NTM Extended or 1.7.10. New-content recipes come later; Topol-M, Yars and Oreshnik remain disabled.
+⚠️ **Minecraft 1.12.2 / Forge 14.23.5.2860 / NTM Community Edition 2.6.1.0 / MixinBooter 10.7.** Experimental branch: back up your world. Not for NTM Extended or 1.7.10. New-content recipes come later.
 
 📖 Full RU/EN release notes and guides accompany the update on GitHub: https://github.com/KilledReality/WarTech-Reforged/releases

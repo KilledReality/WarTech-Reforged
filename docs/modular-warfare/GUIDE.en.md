@@ -606,8 +606,7 @@ distances without reserve or launcher validation.
 Nuclear effects depend on HBM and world settings and cannot be compared to HE
 using a single number. Test hazardous ammunition only in a disposable world.
 ASAT and nuclear missile defense are separate special systems, not ordinary
-custom cruise modules. The newly developed mobile **Topol-M, Yars and Oreshnik
-systems are disabled** and are not available as part of this update.
+custom cruise modules.
 
 ASAT uses a compatible legacy ballistic launcher: instead of surface coordinates,
 it needs an HBM satellite chip linked to the intended satellite ID and at least

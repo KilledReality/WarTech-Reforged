@@ -82,7 +82,6 @@ defense—not just the ammunition you select.
 Requires Forge 14.23.5.2860, NTM Community Edition 2.6.1.0 and MixinBooter 10.7.
 This build is not for NTM Extended or Minecraft 1.7.10. Back up your world and
 use matching versions on the server and every client. New-content recipes and
-full survival progression are not finalized. The new Topol-M, Yars and
-Oreshnik systems remain disabled.
+full survival progression are not finalized.
 
 Practical instructions: [full player guide](GUIDE.en.md).

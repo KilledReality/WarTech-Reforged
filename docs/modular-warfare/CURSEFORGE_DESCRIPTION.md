@@ -79,8 +79,8 @@ Check the individual file's edition and changelog before downloading.
 Install only one matching WarTech JAR; do not combine CE with Extended or
 install original WarTech alongside Reforged. Match server/client versions.
 The CE line is experimental: back up worlds and test your modpack first.
-New-content survival recipes are not final. New Topol-M/Yars/Oreshnik systems
-remain disabled. Large battles can still affect server performance.
+New-content survival recipes are not final. Large battles can still affect
+server performance.
 
 ## Русский
 
@@ -157,8 +157,8 @@ NTM Extended 3.0.3 и не содержит это обновление. Ста�
 Устанавливай один совместимый JAR WarTech. Нельзя смешивать CE и Extended
 или ставить оригинальный WarTech рядом с Reforged. Версии сервера и клиентов
 должны совпадать. CE-линия экспериментальная: сделай бэкап мира и проверь
-свой модпак. Рецепты нового контента ещё не финальны; новые «Тополь-М»,
-«Ярс» и «Орешник» отключены. Крупные бои всё ещё могут нагружать сервер.
+свой модпак. Рецепты нового контента ещё не финальны.
+Крупные бои всё ещё могут нагружать сервер.
 
 ## Credits / Авторы
 

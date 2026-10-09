@@ -21,11 +21,11 @@ Open the JAR as a ZIP archive to read these files. / Откройте JAR как
 - [Ченджлог RU](docs/modular-warfare/CHANGELOG.ru.md)
 - [Credits and conditions / Авторство и условия](THIRD_PARTY_NOTICES.md)
 
-New-content survival recipes are not final. Topol-M/Yars/Oreshnik systems
-remain disabled. A running server is required for autonomous remote missions.
+New-content survival recipes are not final. A running server is required
+for autonomous remote missions.
 
-Рецепты нового контента ещё не финальны. «Тополь-М», «Ярс» и «Орешник»
-отключены. Для удалённых автономных заданий нужен работающий сервер.
+Рецепты нового контента ещё не финальны. Для удалённых автономных заданий
+нужен работающий сервер.
 
 [GitHub](https://github.com/KilledReality/WarTech-Reforged) ·
 [Discord](https://discord.gg/c46gwVfnea)

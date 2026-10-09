@@ -18,7 +18,7 @@ It is experimental. Do not use the CE JAR with NTM Extended or Minecraft 1.7.10.
 Four modular missile bodies, 13 warheads, custom UAVs, carrier integration,
 downloadable reconnaissance and Geran-5 are documented there. Back up worlds
 and use matching versions on clients and servers. New-content survival recipes
-are not finalized. New Topol-M/Yars/Oreshnik systems remain disabled.
+are not finalized.
 
 Владелец проекта подтвердил необходимые разрешения на распространение
 9 октября 2026 года. Авторство и условия моделей сохранены в

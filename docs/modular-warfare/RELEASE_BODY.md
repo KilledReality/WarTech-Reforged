@@ -18,8 +18,7 @@
 **Совместимость:** Minecraft 1.12.2, Forge 14.23.5.2860,
 NTM Community Edition 2.6.1.0, MixinBooter 10.7. Не для Extended или 1.7.10.
 Экспериментальная линия: сделайте бэкап, используйте одинаковые версии на
-сервере и клиентах. Рецепты нового контента ещё не финальны;
-«Тополь-М», «Ярс» и «Орешник» отключены.
+сервере и клиентах. Рецепты нового контента ещё не финальны.
 
 В архиве документации: `CHANGELOG.ru.md` и `GUIDE.ru.md` в
 `docs/modular-warfare/`. Распакуйте архив целиком для рабочих ссылок.
@@ -42,7 +41,7 @@ capabilities and connected operations with aviation and air defense.
 **Compatibility:** Minecraft 1.12.2, Forge 14.23.5.2860,
 NTM Community Edition 2.6.1.0, MixinBooter 10.7. Not for Extended or 1.7.10.
 Experimental branch: back up your world and match client/server versions.
-New-content recipes are not final; Topol-M, Yars and Oreshnik remain disabled.
+New-content recipes are not final.
 
 The documentation archive contains `CHANGELOG.en.md` and `GUIDE.en.md` under
 `docs/modular-warfare/`. Extract the whole archive to preserve working links.
