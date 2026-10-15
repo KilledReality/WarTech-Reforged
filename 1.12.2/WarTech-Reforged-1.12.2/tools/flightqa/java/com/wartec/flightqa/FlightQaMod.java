@@ -56,6 +56,7 @@ public final class FlightQaMod {
         if(Boolean.getBoolean("wartech.commandauditqa")){new CommandAuditQa().started();return;}
         if(Boolean.getBoolean("wartech.commandcenterqa")){new CommandCenterQa().started();return;}
         if(Boolean.getBoolean("wartech.siloabmrestartqa")) { new SiloAbmRestartQa().started();return; }
+        if(Boolean.getBoolean("wartech.tubeplanningqa")){new TubePlanningQa().started();return;}
         if(Boolean.getBoolean("wartech.tubeqa")){new TubeArtilleryQa().started();return;}
         if(Boolean.getBoolean("wartech.siloabmqa")) { new SiloAbmQa().started();return; }
         if(Boolean.getBoolean("wartech.silorestartqa")) { new SiloRestartQa().started();return; }

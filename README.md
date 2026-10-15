@@ -18,6 +18,7 @@ WarTech Reforged объединяет конструкторы КР/БПЛА, а
 - [Руководство RU](docs/modular-warfare/GUIDE.ru.md) · [Manual EN](docs/modular-warfare/GUIDE.en.md)
 - [Изменения RU](docs/modular-warfare/CHANGELOG.ru.md) · [Changes EN](docs/modular-warfare/CHANGELOG.en.md)
 - [Recipes / Рецепты](docs/recipes/CATALOG.ru.md) · [Validation / Проверки](docs/modular-warfare/VALIDATION.md)
+- [D-30/CAESAR crafting and terminal recheck / Повторная проверка](docs/verification/ARTILLERY_2.0.0.md)
 - [Source build](1.12.2/README_CE.md) · [Credits and conditions](THIRD_PARTY_NOTICES.md)
 - [Discord](https://discord.gg/c46gwVfnea)
 

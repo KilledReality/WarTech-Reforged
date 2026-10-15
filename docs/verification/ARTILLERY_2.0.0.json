@@ -1,0 +1,446 @@
+{
+  "complete": true,
+  "date": "2026-10-15",
+  "version": "2.0.0",
+  "release_commit": "d90fa820c36ea90e98f052ed0e1d2486df908ae7",
+  "runtime_unchanged": true,
+  "runtime_sha256": "5BD888F13C329115805BC184C58DE6AB4D9FCC4EA2938A01ED037959CB25C6DE",
+  "isolated_forge_world": true,
+  "production_recheck": {
+    "checks": 2609,
+    "failures": 0
+  },
+  "terminal_workflow": {
+    "checks": 76,
+    "restart_checks": 11,
+    "failures": 0,
+    "uses_actual_hbm_processing": true,
+    "uses_crafted_item_placement": true,
+    "uses_server_terminal_session_and_wizard": true,
+    "uses_physical_projectiles_and_impacts": true,
+    "uses_real_dedicated_world_restart": true
+  },
+  "recipes": [
+    {
+      "output": "wartecmod:d30@0",
+      "machine": "assembly",
+      "duration_ticks": 600,
+      "power_per_tick": 500,
+      "energy_total": 300000,
+      "ingredients": [
+        {
+          "ref": "plan:chassis_trailer",
+          "count": 1
+        },
+        {
+          "ref": "plan:gun_mount",
+          "count": 1
+        },
+        {
+          "ref": "plan:fire_control_t1",
+          "count": 1
+        },
+        {
+          "ref": "plan:power_unit",
+          "count": 1
+        },
+        {
+          "ref": "ore:plateSteel",
+          "count": 16
+        }
+      ]
+    },
+    {
+      "output": "wartecmod:caesar@0",
+      "machine": "assembly",
+      "duration_ticks": 1000,
+      "power_per_tick": 500,
+      "energy_total": 500000,
+      "ingredients": [
+        {
+          "ref": "plan:chassis_medium",
+          "count": 1
+        },
+        {
+          "ref": "plan:vehicle_cab",
+          "count": 1
+        },
+        {
+          "ref": "plan:gun_mount",
+          "count": 1
+        },
+        {
+          "ref": "plan:fire_control_t2",
+          "count": 1
+        },
+        {
+          "ref": "plan:power_unit",
+          "count": 1
+        },
+        {
+          "ref": "plan:servo_pack",
+          "count": 2
+        },
+        {
+          "ref": "ore:plateSteel",
+          "count": 24
+        }
+      ]
+    }
+  ],
+  "checks": [
+    {
+      "kind": "registered_recipe_D30",
+      "success": true
+    },
+    {
+      "kind": "no_free_craft_D30",
+      "success": true
+    },
+    {
+      "kind": "real_hbm_product_D30",
+      "success": true
+    },
+    {
+      "kind": "paid_energy_D30",
+      "success": true
+    },
+    {
+      "kind": "paid_materials_D30",
+      "success": true
+    },
+    {
+      "kind": "crafted_item_places_D30",
+      "success": true
+    },
+    {
+      "kind": "crafted_gun_empty_D30",
+      "success": true
+    },
+    {
+      "kind": "registered_recipe_CAESAR",
+      "success": true
+    },
+    {
+      "kind": "no_free_craft_CAESAR",
+      "success": true
+    },
+    {
+      "kind": "real_hbm_product_CAESAR",
+      "success": true
+    },
+    {
+      "kind": "paid_energy_CAESAR",
+      "success": true
+    },
+    {
+      "kind": "paid_materials_CAESAR",
+      "success": true
+    },
+    {
+      "kind": "crafted_item_places_CAESAR",
+      "success": true
+    },
+    {
+      "kind": "crafted_gun_empty_CAESAR",
+      "success": true
+    },
+    {
+      "kind": "terminal_session",
+      "success": true
+    },
+    {
+      "kind": "foreign_terminal_denied",
+      "success": true
+    },
+    {
+      "kind": "attack_terminal_lists_0",
+      "success": true
+    },
+    {
+      "kind": "wizard_actual_shells_30_0",
+      "success": true
+    },
+    {
+      "kind": "wizard_excludes_designator_30_0",
+      "success": true
+    },
+    {
+      "kind": "wizard_explicit_slot_30_0",
+      "success": true
+    },
+    {
+      "kind": "minimum_range_gate_0",
+      "success": true
+    },
+    {
+      "kind": "maximum_range_gate_0",
+      "success": true
+    },
+    {
+      "kind": "wizard_preflight_0",
+      "success": true
+    },
+    {
+      "kind": "wizard_reserves_two_shells_0",
+      "success": true
+    },
+    {
+      "kind": "attack_terminal_lists_1",
+      "success": true
+    },
+    {
+      "kind": "wizard_actual_shells_30_1",
+      "success": true
+    },
+    {
+      "kind": "wizard_excludes_designator_30_1",
+      "success": true
+    },
+    {
+      "kind": "wizard_explicit_slot_30_1",
+      "success": true
+    },
+    {
+      "kind": "minimum_range_gate_1",
+      "success": true
+    },
+    {
+      "kind": "maximum_range_gate_1",
+      "success": true
+    },
+    {
+      "kind": "wizard_preflight_1",
+      "success": true
+    },
+    {
+      "kind": "wizard_reserves_two_shells_1",
+      "success": true
+    },
+    {
+      "kind": "save_terminal_40",
+      "success": true
+    },
+    {
+      "kind": "save_terminal_45",
+      "success": true
+    },
+    {
+      "kind": "start_terminal_50",
+      "success": true
+    },
+    {
+      "kind": "start_terminal_55",
+      "success": true
+    },
+    {
+      "kind": "physical_planned_shell_4727a850-ed50-4408-b70d-160b3e3711c6",
+      "success": true
+    },
+    {
+      "kind": "physical_planned_shell_485bfc3a-744c-4428-8220-7d62e64a6ddf",
+      "success": true
+    },
+    {
+      "kind": "physical_planned_shell_b6f7f1fd-7294-448d-93e3-b005a55faf61",
+      "success": true
+    },
+    {
+      "kind": "physical_planned_shell_e90060ea-f337-43b9-b205-308a1c4757cf",
+      "success": true
+    },
+    {
+      "kind": "physical_impact_4727a850-ed50-4408-b70d-160b3e3711c6",
+      "success": true
+    },
+    {
+      "kind": "physical_impact_485bfc3a-744c-4428-8220-7d62e64a6ddf",
+      "success": true
+    },
+    {
+      "kind": "physical_impact_b6f7f1fd-7294-448d-93e3-b005a55faf61",
+      "success": true
+    },
+    {
+      "kind": "physical_impact_e90060ea-f337-43b9-b205-308a1c4757cf",
+      "success": true
+    },
+    {
+      "kind": "two_native_releases_0",
+      "success": true
+    },
+    {
+      "kind": "exact_selected_stock_and_energy_0",
+      "success": true
+    },
+    {
+      "kind": "two_native_releases_1",
+      "success": true
+    },
+    {
+      "kind": "exact_selected_stock_and_energy_1",
+      "success": true
+    },
+    {
+      "kind": "wizard_actual_shells_493_0",
+      "success": true
+    },
+    {
+      "kind": "wizard_excludes_designator_493_0",
+      "success": true
+    },
+    {
+      "kind": "wizard_explicit_slot_493_0",
+      "success": true
+    },
+    {
+      "kind": "save_terminal_493",
+      "success": true
+    },
+    {
+      "kind": "wizard_actual_shells_498_1",
+      "success": true
+    },
+    {
+      "kind": "wizard_excludes_designator_498_1",
+      "success": true
+    },
+    {
+      "kind": "wizard_explicit_slot_498_1",
+      "success": true
+    },
+    {
+      "kind": "save_terminal_498",
+      "success": true
+    },
+    {
+      "kind": "start_terminal_503",
+      "success": true
+    },
+    {
+      "kind": "start_terminal_508",
+      "success": true
+    },
+    {
+      "kind": "pending_before_cancel_0",
+      "success": true
+    },
+    {
+      "kind": "pending_before_cancel_1",
+      "success": true
+    },
+    {
+      "kind": "cancel_terminal_0",
+      "success": true
+    },
+    {
+      "kind": "cancel_terminal_1",
+      "success": true
+    },
+    {
+      "kind": "cancel_no_expenditure_0",
+      "success": true
+    },
+    {
+      "kind": "cancel_no_expenditure_1",
+      "success": true
+    },
+    {
+      "kind": "wizard_actual_shells_573_0",
+      "success": true
+    },
+    {
+      "kind": "wizard_excludes_designator_573_0",
+      "success": true
+    },
+    {
+      "kind": "wizard_explicit_slot_573_0",
+      "success": true
+    },
+    {
+      "kind": "save_terminal_573",
+      "success": true
+    },
+    {
+      "kind": "wizard_actual_shells_578_1",
+      "success": true
+    },
+    {
+      "kind": "wizard_excludes_designator_578_1",
+      "success": true
+    },
+    {
+      "kind": "wizard_explicit_slot_578_1",
+      "success": true
+    },
+    {
+      "kind": "save_terminal_578",
+      "success": true
+    },
+    {
+      "kind": "start_terminal_583",
+      "success": true
+    },
+    {
+      "kind": "start_terminal_588",
+      "success": true
+    },
+    {
+      "kind": "pending_for_real_restart_0",
+      "success": true
+    },
+    {
+      "kind": "pending_for_real_restart_1",
+      "success": true
+    },
+    {
+      "kind": "pending_terminal_order_restored_D30",
+      "success": true
+    },
+    {
+      "kind": "pending_terminal_order_restored_CAESAR",
+      "success": true
+    },
+    {
+      "kind": "terminal_session",
+      "success": true
+    },
+    {
+      "kind": "physical_planned_shell_8fa43c66-c260-4adc-80c6-4f89e19bc703",
+      "success": true
+    },
+    {
+      "kind": "physical_planned_shell_25968414-189c-4642-9eed-bcc622b61a2f",
+      "success": true
+    },
+    {
+      "kind": "physical_impact_8fa43c66-c260-4adc-80c6-4f89e19bc703",
+      "success": true
+    },
+    {
+      "kind": "physical_impact_25968414-189c-4642-9eed-bcc622b61a2f",
+      "success": true
+    },
+    {
+      "kind": "restart_one_release_0",
+      "success": true
+    },
+    {
+      "kind": "restart_exact_expenditure_0",
+      "success": true
+    },
+    {
+      "kind": "restart_one_release_1",
+      "success": true
+    },
+    {
+      "kind": "restart_exact_expenditure_1",
+      "success": true
+    }
+  ],
+  "source_report_sha256": {
+    "production": "CB9E71350C319D6EA93A6E0426F8C9BF0F4104EC7B454E203085E7B7F10EAD31",
+    "terminal": "CDCF778ADCCB29C6ADE16E105A56BCB069E58C5EE334929D131A7A349E83AAB5",
+    "terminal_restart": "1DFDF8C9D1DD08FE956163F2CEFCB3A332963C1436835B82C4549DCEA2935BFF"
+  }
+}
