@@ -15,6 +15,7 @@ public final class CruiseCombatProfile {
         return brain==CruisePartDefinition.NAV_TERRAIN?3:brain==CruisePartDefinition.NAV_ROUTE?2:1;
     }
     public static int threatTier(CruiseBuild build) {
+        if(build.isS8000()) return 1;
         CruiseStats stats=build.calculateStats();
         if(!stats.isValid()) return 0;
         // Difficulty, not a claimed Mach number: silhouette, terrain avoidance and speed.
@@ -32,6 +33,7 @@ public final class CruiseCombatProfile {
     }
     /** Radius containing 50% of commanded aim points; blocks, not real-world metres. */
     public static double cep(CruiseBuild build,double distance,boolean confirmedSeeker) {
+        if(build.isS8000()) return 5*Math.max(.25,Math.min(1,distance/4000));
         int tier=navigationTier(build);
         double base=tier==3?2.5:tier==2?6:14;
         CruisePartDefinition seeker=build.get(CruiseSlot.SEEKER);

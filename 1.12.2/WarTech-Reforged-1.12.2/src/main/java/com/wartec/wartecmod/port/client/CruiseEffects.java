@@ -40,11 +40,14 @@ public final class CruiseEffects {
         return camera!=null && camera.getPositionVector().squareDistanceTo(p)<=range*range;
     }
     private static void puff(Vec3d at,Vec3d velocity,float size,int life,float r,float g,float b,boolean hot,Random random) {
+        puff(at,velocity,size,life,r,g,b,hot,random,false);
+    }
+    private static void puff(Vec3d at,Vec3d velocity,float size,int life,float r,float g,float b,boolean hot,Random random,boolean strategic) {
         Minecraft mc=Minecraft.getMinecraft();
         if(currentWorld==null || !nearby(at,192) || spawned>=MAX_SPAWNS_PER_TICK || liveParticles>=MAX_PARTICLES) return;
         int density=mc.gameSettings.particleSetting;
         if(density==1 && random.nextBoolean() || density==2 && random.nextInt(4)!=0) return;
-        ParticleCruisePuff particle=new ParticleCruisePuff(currentWorld,at,velocity,size,life,r,g,b,hot,epoch);
+        ParticleCruisePuff particle=new ParticleCruisePuff(currentWorld,at,velocity,size,life,r,g,b,hot,epoch,strategic);
         particles.add(new ParticleTicket(particle,currentWorld.getTotalWorldTime()+life+2));
         mc.effectRenderer.addEffect(particle);liveParticles++;spawned++;
     }
@@ -84,6 +87,36 @@ public final class CruiseEffects {
                 sound(message.position,SoundEvents.ENTITY_BLAZE_SHOOT,.8F,.85F);
         }
     }
+    static void coldEjectionCloud(Entity source,Vec3d mouth) {
+        context();if(currentWorld!=source.world || !nearby(mouth,192)) return;
+        Random random=currentWorld.rand;
+        for(int i=0;i<24;i++) {
+            double angle=random.nextDouble()*Math.PI*2,speed=.12+random.nextDouble()*.23;
+            Vec3d radial=new Vec3d(Math.cos(angle),0,Math.sin(angle));
+            puff(mouth.add(radial.scale(random.nextDouble()*1.5)).addVector(0,(random.nextDouble()-.5)*.8,0),
+                radial.scale(speed).addVector(0,.06+random.nextDouble()*.12,0),9+random.nextFloat()*4,45+random.nextInt(20),.97F,.98F,1F,false,random,true);
+        }
+    }
+    static void heavyRocketSmoke(Entity source,Vec3d nozzle,Vec3d direction,float size,boolean ground) {
+        context();if(currentWorld!=source.world || !nearby(nozzle,192)) return;
+        Random random=currentWorld.rand;
+        for(int i=0;i<8;i++) {
+            double distance=1+random.nextDouble()*8;
+            Vec3d point=nozzle.subtract(direction.scale(distance)).addVector((random.nextDouble()-.5)*size*.35,0,(random.nextDouble()-.5)*size*.35);
+            puff(point,direction.scale(-.15).addVector(0,.035,0),size,65+random.nextInt(25),.76F,.73F,.68F,false,random,true);
+        }
+        for(int i=0;i<4;i++) puff(nozzle.subtract(direction.scale(random.nextDouble()*3)),direction.scale(-.3),size*.45F,15,1,.60F,.16F,true,random,true);
+        if(ground) for(int i=0;i<8;i++) {
+            double angle=random.nextDouble()*Math.PI*2;
+            Vec3d radial=new Vec3d(Math.cos(angle),0,Math.sin(angle));
+            Vec3d base=new Vec3d(nozzle.x,source.posY+.25,nozzle.z);
+            puff(base.add(radial.scale(1+random.nextDouble()*3)),radial.scale(.18+random.nextDouble()*.22).addVector(0,.025,0),size*1.4F,80,.68F,.65F,.59F,false,random,true);
+        }
+    }
+    @SubscribeEvent public void stitch(net.minecraftforge.client.event.TextureStitchEvent.Pre event) {
+        if(event.getMap()==Minecraft.getMinecraft().getTextureMapBlocks())
+            event.getMap().registerSprite(new net.minecraft.util.ResourceLocation("wartecmod","particle/strategic_smoke"));
+    }
     private static void sound(Vec3d p,net.minecraft.util.SoundEvent sound,float volume,float pitch) {
         currentWorld.playSound(p.x,p.y,p.z,sound,SoundCategory.BLOCKS,volume,pitch,false);
     }
@@ -91,6 +124,7 @@ public final class CruiseEffects {
         if(event.phase!=TickEvent.Phase.END) return;
         context();if(currentWorld==null || Minecraft.getMinecraft().isGamePaused()) return;
         if(lastUpdateTick==currentWorld.getTotalWorldTime()) return;lastUpdateTick=currentWorld.getTotalWorldTime();
+        StrategicLaunchEffects.tick(currentWorld);
         // Vanilla may evict particles without updating them; timeout still releases our budget.
         for(Iterator<ParticleTicket> it=particles.iterator();it.hasNext();) {
             ParticleTicket ticket=it.next();

@@ -53,8 +53,8 @@ public final class CruiseAircraftLoadout {
         // The native swept wing is BEHIND the old +.55 mount. Include fins, not just the cylinder.
         double attach=attachY(carrier,build,slot);
         double top=storeEnvelopeTop(build);
-        double gap=count==3 && slot==2 && su?.32:.12;
-        double clearance=su?(count==3?(slot==2?.27:.11):count==2?.29:.35):0;
+        double gap=build.isS8000()?(su?.09:.13):count==3 && slot==2 && su?.32:.12;
+        double clearance=build.isS8000()?0:su?(count==3?(slot==2?.27:.11):count==2?.29:.35):0;
         double forward=span==0?(su?(count==3?-.3667:-1.5334):.7):(su?-2.0:-1.5);
         return new Vec3d(span*scale,attach-top-gap-clearance,forward*scale);
     }
@@ -66,11 +66,14 @@ public final class CruiseAircraftLoadout {
         return (carrier==WarTechEntityProfile.SU_27?(centre?1.04:1.47):(centre?.33:.995))*scale;
     }
     public static double storeEnvelopeTop(CruiseBuild build) {
+        if(build.isS8000()) return .313;
         return (build.getAirframe()==CruisePartDefinition.BODY_LIGHT?.441:
             build.getAirframe()==CruisePartDefinition.BODY_CLASSIC?.535:
             build.getAirframe()==CruisePartDefinition.BODY_LONG_RANGE?.6135:.383)*CruiseAirframes.modelScale(build.getAirframe());
     }
     public static double storeBodyTop(CruiseBuild build) {
+        // The fin envelope is .313; the actual skin at the central ejector is .118.
+        if(build.isS8000()) return .118;
         return (build.getAirframe()==CruisePartDefinition.BODY_LIGHT?.106:
             build.getAirframe()==CruisePartDefinition.BODY_CLASSIC?.266:
             build.getAirframe()==CruisePartDefinition.BODY_LONG_RANGE?.3124:.2865)*CruiseAirframes.modelScale(build.getAirframe());
@@ -88,7 +91,7 @@ public final class CruiseAircraftLoadout {
     }
     /** Carrier approach goal only. Search regions are not expanded into carrier transit points. */
     public static Vec3d programmedTarget(net.minecraft.item.ItemStack store,int dimension) {
-        if(store.isEmpty() || store.getItem()!=com.wartec.wartecmod.port.content.WarTechContent.ASSEMBLED_CRUISE) return null;
+        if(store.isEmpty() || !com.wartec.wartecmod.port.cruise.CruiseBuild.isStore(store)) return null;
         CruiseBuild build=CruiseBuild.fromStack(store);CruiseMission mission=CruiseMission.fromStack(store);
         return build.calculateStats().isValid() && build.get(CruiseSlot.LAUNCH)==CruisePartDefinition.LAUNCH_AIR
             && mission.isValidFor(build,dimension)?mission.getTargets().get(0):null;

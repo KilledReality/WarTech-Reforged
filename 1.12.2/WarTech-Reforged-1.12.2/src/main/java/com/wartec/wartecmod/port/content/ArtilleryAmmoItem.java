@@ -79,7 +79,7 @@ public final class ArtilleryAmmoItem extends VariantItem {
             default:
                 break;
         }
-        tooltip.add(TextFormatting.BLUE + "Compatible with Greg artillery module");
+        tooltip.add(TextFormatting.BLUE + net.minecraft.client.resources.I18n.format("wartec.tube.ammo_compat"));
     }
 
     private static void strength(List<String> tooltip, int strength,

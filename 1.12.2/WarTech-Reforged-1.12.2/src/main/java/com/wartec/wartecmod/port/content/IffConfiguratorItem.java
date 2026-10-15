@@ -30,8 +30,8 @@ public final class IffConfiguratorItem extends PortIntentItem {
     @Override
     public void addInformation(ItemStack stack, @Nullable World world,
             List<String> tooltip, ITooltipFlag flag) {
-        tooltip.add("RMB: open persistent IFF team selector");
-        tooltip.add("Shift + RMB on a vehicle: bind it to your team");
-        tooltip.add("Chat fallback: !wtteam <name|status|personal>");
+        tooltip.add(net.minecraft.client.resources.I18n.format("wartec.iff.selector"));
+        tooltip.add(net.minecraft.client.resources.I18n.format("wartec.iff.bind_owned"));
+        tooltip.add(net.minecraft.client.resources.I18n.format("wartec.iff.admin_team"));
     }
 }

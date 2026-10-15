@@ -13,10 +13,15 @@ public final class FactionCommandSnapshot {
     public final Sector[] sectors;
     public final Node[] nodes;
     public final Contact[] contacts;
+    public final Terrain terrain;
 
     public FactionCommandSnapshot(String team, int dimension,
             double centerX, double centerZ, long generatedAt,
             Sector[] sectors, Node[] nodes, Contact[] contacts) {
+        this(team,dimension,centerX,centerZ,generatedAt,sectors,nodes,contacts,Terrain.EMPTY);
+    }
+    public FactionCommandSnapshot(String team, int dimension, double centerX, double centerZ, long generatedAt,
+            Sector[] sectors, Node[] nodes, Contact[] contacts, Terrain terrain) {
         this.team = team == null ? "" : team;
         this.dimension = dimension;
         this.centerX = centerX;
@@ -25,6 +30,14 @@ public final class FactionCommandSnapshot {
         this.sectors = sectors == null ? new Sector[0] : sectors;
         this.nodes = nodes == null ? new Node[0] : nodes;
         this.contacts = contacts == null ? new Contact[0] : contacts;
+        this.terrain = terrain == null ? Terrain.EMPTY : terrain;
+    }
+
+    public static final class Terrain {
+        public static final int WIDTH=48, HEIGHT=27;
+        public static final Terrain EMPTY=new Terrain(0,0,256,new int[0]);
+        public final double x,z; public final int radius; public final int[] colors;
+        public Terrain(double x,double z,int radius,int[] colors) { this.x=x;this.z=z;this.radius=radius;this.colors=colors; }
     }
 
     public static final class Sector {
@@ -45,9 +58,14 @@ public final class FactionCommandSnapshot {
         public final double z;
         public final int value;
         public final int band;
+        public final String system;
+        public final int range,ammo,status;
 
         public Node(int type, long id, double x, double y, double z,
                 int value, int band) {
+            this(type,id,x,y,z,value,band,"",0,-1,0);
+        }
+        public Node(int type,long id,double x,double y,double z,int value,int band,String system,int range,int ammo,int status) {
             this.type = type;
             this.id = id;
             this.x = x;
@@ -55,6 +73,7 @@ public final class FactionCommandSnapshot {
             this.z = z;
             this.value = value;
             this.band = band;
+            this.system=system;this.range=range;this.ammo=ammo;this.status=status;
         }
     }
 

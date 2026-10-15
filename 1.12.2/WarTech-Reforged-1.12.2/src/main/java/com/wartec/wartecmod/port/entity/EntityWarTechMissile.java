@@ -35,6 +35,7 @@ import net.minecraft.entity.projectile.EntityArrow;
 import net.minecraft.init.Blocks;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.nbt.NBTTagList;
 import net.minecraft.network.datasync.DataParameter;
 import net.minecraft.network.datasync.DataSerializers;
 import net.minecraft.network.datasync.EntityDataManager;
@@ -54,7 +55,11 @@ import net.minecraft.world.World;
  * The entity registry stays stable for old dev1-dev8 worlds, while the synced
  * specification restores the original per-item flight and warhead behavior.
  */
-public class EntityWarTechMissile extends EntityWarTechBase {
+public class EntityWarTechMissile extends EntityWarTechBase implements TelLaunchOrigin.Rocket,net.minecraftforge.fml.common.registry.IEntityAdditionalSpawnData {
+    private final TelLaunchOrigin telOrigin=new TelLaunchOrigin();
+    @Override public TelLaunchOrigin getTelLaunchOrigin() { return telOrigin; }
+    @Override public void writeSpawnData(io.netty.buffer.ByteBuf buffer) { telOrigin.write(buffer); }
+    @Override public void readSpawnData(io.netty.buffer.ByteBuf buffer) { telOrigin.read(buffer); }
     private static final double GERAN_MODEL_BOTTOM_OFFSET = 0.20D*VehicleDimensions.scale(WarTechEntityProfile.GERAN_2);
     private static final double GERAN_MAXIMUM_TURN_RATE = 4.2D;
     private static final double GERAN_YAW_ERROR_GAIN = 0.20D;
@@ -71,6 +76,9 @@ public class EntityWarTechMissile extends EntityWarTechBase {
     private int trackedEntityId = -1;
     private boolean trackingRegistered;
     private boolean flightInitialized;
+    private boolean telBallisticLaunch;
+    private int telFlightTicks;
+    private Vec3d telFlightStart=Vec3d.ZERO;
     private int startX;
     private int startY;
     private int startZ;
@@ -83,7 +91,12 @@ public class EntityWarTechMissile extends EntityWarTechBase {
     private int vlsExhaustZ;
     private int velocity = 1;
     private boolean flightStepPending;
+    private static final DataParameter<NBTTagCompound> MODERN_VISUAL=EntityDataManager.createKey(EntityWarTechMissile.class,DataSerializers.COMPOUND_TAG);
+    private static final DataParameter<Integer> MODERN_AGE=EntityDataManager.createKey(EntityWarTechMissile.class,DataSerializers.VARINT);
     private double range;
+    private ModernFlightPath modernPath;
+    private Vec3d modernStart,modernDirection;
+    private int modernFlightTicks;
     private double transformationPointVector;
     private double startSonicSpeed;
     private double decelY;
@@ -169,6 +182,8 @@ public class EntityWarTechMissile extends EntityWarTechBase {
         this.dataManager.register(MISSILE_SPECIFICATION,
                 LegacyMissileSpecification.INVALID.ordinal());
         this.dataManager.register(FLIGHT_STAGE, 1);
+        this.dataManager.register(MODERN_VISUAL,new NBTTagCompound());
+        this.dataManager.register(MODERN_AGE,0);
     }
 
     @Override
@@ -218,9 +233,33 @@ public class EntityWarTechMissile extends EntityWarTechBase {
         float height=p==MissileProfile.GERAN_5?.95F:p==MissileProfile.GERAN_2?.40F:p==MissileProfile.KH555?.45F:p==MissileProfile.ANTI_RADIATION?.28F:.35F;
         setSize(width*scale,height*scale);
     }
+    public NBTTagCompound getModernVisual() { return dataManager.get(MODERN_VISUAL); }
+    public boolean hasModernVisual() { return getModernVisual().hasKey("ScaleY"); }
+    public int getModernAge() { return dataManager.get(MODERN_AGE); }
+    public void configureModernVisual(float[] scale,boolean interceptor,Vec3d direction,float clearance) {
+        NBTTagCompound tag=new NBTTagCompound();tag.setFloat("ScaleX",scale[0]);tag.setFloat("ScaleY",scale[1]);tag.setFloat("ScaleZ",scale[2]);
+        tag.setBoolean("Interceptor",interceptor);tag.setDouble("DirectionX",direction.x);tag.setDouble("DirectionY",direction.y);tag.setDouble("DirectionZ",direction.z);
+        tag.setInteger("ExitTicks",Math.max(4,(int)Math.ceil(clearance/1.2)));dataManager.set(MODERN_VISUAL,tag);
+        setSize(Math.max(.15F,scale[0]*(interceptor?.272F:.174F)),Math.max(.15F,scale[0]*(interceptor?.272F:.174F)));
+    }
+    public void configureModernExit(ModernVehicleProfile profile,int slot) {
+        float[] curve=ModernLaunchGeometry.exitCurve(profile,slot);NBTTagCompound tag=getModernVisual().copy();NBTTagList samples=new NBTTagList();
+        for(float value:curve) samples.appendTag(new net.minecraft.nbt.NBTTagFloat(value));
+        tag=tag.copy();tag.setTag("ExitCurve",samples);tag.setInteger("ExitTicks",curve.length-1);
+        NBTTagList unfolds=new NBTTagList();for(float value:ModernLaunchGeometry.unfoldCurve(profile,slot)) unfolds.appendTag(new net.minecraft.nbt.NBTTagFloat(value));
+        tag.setTag("UnfoldCurve",unfolds);dataManager.set(MODERN_VISUAL,tag.copy());
+    }
+    public void configureSamVisual(float[] scale,Vec3d direction,float clearance) {
+        configureModernVisual(scale,true,direction,clearance);
+        NBTTagCompound tag=getModernVisual().copy();tag.setBoolean("SamLaunch",true);dataManager.set(MODERN_VISUAL,tag);
+    }
     @Override public void notifyDataManagerChange(DataParameter<?> key) {
         super.notifyDataManagerChange(key);
         if(MISSILE_SPECIFICATION.equals(key)) refreshMissileDimensions();
+        if(MODERN_VISUAL.equals(key) && hasModernVisual()) {
+            float diameter=getModernVisual().getFloat("ScaleX")*(getModernVisual().getBoolean("Interceptor")?.272F:.174F);
+            setSize(Math.max(.15F,diameter),Math.max(.15F,diameter));
+        }
     }
 
     public MissileProfile getMissileProfile() {
@@ -255,6 +294,8 @@ public class EntityWarTechMissile extends EntityWarTechBase {
         if(previousFlightPosition!=null) flightDistance+=Math.max(.05,Math.hypot(posX-previousFlightPosition.x,posZ-previousFlightPosition.z));
         previousFlightPosition=getPositionVector();
         double budget=com.wartec.wartecmod.port.integration.WeaponBalance.missileRange(getMissileSpecification().getProfile());
+        ModernMissileProfile modern=ModernMissileProfile.of(getMissileProfile());
+        if(modern!=null) budget=modern.pathBudget();
         if(getMissileSpecification().getFlightFamily()==FlightFamily.INTERCEPTOR) budget=budget*2+80;
         if(budget>0 && flightDistance>=budget) {
             combatCrashing=true;combatCrashOutcome=0;setArmed(false);tickCombatCrash();return;
@@ -271,6 +312,19 @@ public class EntityWarTechMissile extends EntityWarTechBase {
         initializeFlightPlan();
         registerTracking();
         setArmed(true);
+
+        if(modern!=null) { tickModernMissile(modern);return; }
+        if(hasModernVisual() && getModernVisual().getBoolean("Interceptor") && getModernAge()<getModernVisual().getInteger("ExitTicks")) {
+            NBTTagCompound tag=getModernVisual();double speed=1.2;
+            NBTTagList curve=tag.getTagList("ExitCurve",5);int age=getModernAge();
+            if(curve.tagCount()>age+1) speed=curve.getFloatAt(age+1)-curve.getFloatAt(age);
+            Vec3d d=new Vec3d(tag.getDouble("DirectionX"),tag.getDouble("DirectionY"),tag.getDouble("DirectionZ")).scale(speed);
+            motionX=d.x;motionY=d.y;motionZ=d.z;
+            boolean impact=moveToWithImpact(posX+d.x,posY+d.y,posZ+d.z);if(flightStepPending) return;
+            dataManager.set(MODERN_AGE,getModernAge()+1);updateLegacyRotation();
+            if(impact) { setArmed(false);setDead(); }return;
+        }
+        if(hasModernVisual()) dataManager.set(MODERN_AGE,getModernAge()+1);
 
         FlightFamily family = getMissileSpecification().getFlightFamily();
         if (family == FlightFamily.GERAN) {
@@ -295,6 +349,7 @@ public class EntityWarTechMissile extends EntityWarTechBase {
             case INTERCEPTOR:
                 VlsInterceptorGuidance.tick(this,
                         getMissileSpecification().getInterceptorTier());
+                if(hasModernVisual()) updateLegacyRotation();
                 break;
             case NUCLEAR_INTERCEPTOR:
                 tickNuclearInterceptor();
@@ -320,6 +375,41 @@ public class EntityWarTechMissile extends EntityWarTechBase {
         }
     }
 
+    private void tickModernMissile(ModernMissileProfile profile) {
+        if(modernPath==null) {
+            if(modernStart==null) {
+                modernStart=getPositionVector();modernDirection=new Vec3d(motionX,motionY,motionZ);
+            }
+            Vec3d aim=ModernAccuracy.aim(profile,modernStart,new Vec3d(getTargetX(),getTargetY(),getTargetZ()),getUniqueID(),getEntityData().getBoolean("ModernExactAim"));
+            if(!world.getWorldBorder().contains(new BlockPos(aim))) aim=new Vec3d(getTargetX(),getTargetY(),getTargetZ());
+            modernPath=new ModernFlightPath(profile,modernStart,aim,modernDirection);
+        }
+        Vec3d next=modernPath.point(modernFlightTicks+1);
+        if(!profile.ballistic && modernFlightTicks>20 && modernFlightTicks<modernPath.duration-80) {
+            BlockPos ground=new BlockPos(next.x,0,next.z);
+            if(world.isBlockLoaded(ground)) next=new Vec3d(next.x,Math.max(next.y,world.getHeight(ground).getY()+18),next.z);
+        }
+        motionX=next.x-posX;motionY=next.y-posY;motionZ=next.z-posZ;
+        boolean impact=moveToWithImpact(next.x,next.y,next.z);
+        if(flightStepPending) return;
+        modernFlightTicks++;updateLegacyRotation();
+        if(hasModernVisual()) dataManager.set(MODERN_AGE,modernFlightTicks);
+        if(modernFlightTicks%3==0) HbmExplosionCompat.spawnLegacyMissileExhaust(world,posX-motionX*.7,posY-motionY*.7,posZ-motionZ*.7,profile==ModernMissileProfile.FP5?3:2,-.3);
+        boolean clusterBurst=profile.isMlrs() && ModernRocketPayload.of(getVisualVariant())==ModernRocketPayload.CLUSTER
+            && motionY<0 && posY<=modernPath.target.y+18;
+        if(impact || clusterBurst || modernFlightTicks>=modernPath.duration) { com.wartec.wartecmod.port.planning.PlanningHooks.impact(this);detonatePayload();setDead(); }
+    }
+
+    /** Forecast the active game's curved flight; never initializes a path or loads terrain. */
+    public Vec3d predictAirDefensePosition(int ticksAhead) {
+        if(modernPath!=null && !combatCrashing) return modernPath.point(modernFlightTicks+Math.max(0,ticksAhead));
+        return getPositionVector().addVector(motionX*ticksAhead,motionY*ticksAhead,motionZ*ticksAhead);
+    }
+
+    public int airDefenseFlightTicksRemaining() {
+        return modernPath!=null && !combatCrashing?Math.max(0,modernPath.duration-modernFlightTicks):Integer.MAX_VALUE;
+    }
+
     private void initializeFlightPlan() {
         if (flightInitialized) {
             return;
@@ -337,6 +427,13 @@ public class EntityWarTechMissile extends EntityWarTechBase {
             int exactTargetY, int exactTargetZ) {
         setGuidanceTarget(exactTargetX, exactTargetY, exactTargetZ);
         configureFlightPlan(exactTargetX, exactTargetY, exactTargetZ);
+    }
+    public void configureTelLaunch(int x,int y,int z) {
+        configureLegacyGroundLaunch(x,y,z);
+        if(getMissileProfile()==MissileProfile.ISKANDER) {
+            telBallisticLaunch=true;telFlightTicks=0;telFlightStart=new Vec3d(posX,posY,posZ);
+            motionX=motionZ=0;motionY=StrategicSystemProfile.ISKANDER.separationSpeed();
+        }
     }
 
     public void configureVlsExhaust(BlockPos exhaust) {
@@ -438,6 +535,7 @@ public class EntityWarTechMissile extends EntityWarTechBase {
                 this.dataManager.set(FLIGHT_STAGE, 2);
             }
             if (impact) {
+                com.wartec.wartecmod.port.planning.PlanningHooks.impact(this);
                 detonatePayload();
                 setDead();
                 return;
@@ -461,6 +559,7 @@ public class EntityWarTechMissile extends EntityWarTechBase {
     }
 
     private void tickBallistic() {
+        if(telBallisticLaunch) { tickTelBallistic();return; }
         updateLegacyVelocity(0);
         for (int index = 0; index < velocity && !isDead; ++index) {
             boolean impact = moveToWithImpact(
@@ -473,10 +572,23 @@ public class EntityWarTechMissile extends EntityWarTechBase {
             applyLegacyHorizontalAcceleration();
             spawnLegacyBallisticExhaust(index);
             if (impact) {
+                com.wartec.wartecmod.port.planning.PlanningHooks.impact(this);
                 detonatePayload();
                 setDead();
                 return;
             }
+        }
+    }
+    private void tickTelBallistic() {
+        Vec3d target=new Vec3d(getTargetX(),getTargetY(),getTargetZ());
+        Vec3d next=TelBallisticTrajectory.point(telFlightStart,target,telFlightTicks+1);
+        motionX=next.x-posX;motionY=next.y-posY;motionZ=next.z-posZ;
+        boolean impact=moveToWithImpact(next.x,next.y,next.z);
+        if(flightStepPending) return;
+        telFlightTicks++;updateLegacyRotation();
+        if(impact || telFlightTicks>=TelBallisticTrajectory.duration(telFlightStart,target)) {
+            com.wartec.wartecmod.port.planning.PlanningHooks.impact(this);
+            detonatePayload();setDead();
         }
     }
 
@@ -519,6 +631,7 @@ public class EntityWarTechMissile extends EntityWarTechBase {
                 this.dataManager.set(FLIGHT_STAGE, 0);
             }
             if (impact) {
+                com.wartec.wartecmod.port.planning.PlanningHooks.impact(this);
                 detonatePayload();
                 setDead();
                 return;
@@ -1135,6 +1248,7 @@ public class EntityWarTechMissile extends EntityWarTechBase {
     }
 
     private void logGeranImpact(boolean blockImpact, Entity entityContact) {
+        com.wartec.wartecmod.port.planning.PlanningHooks.impact(this);
         if (WarTechReforged.logger == null) {
             return;
         }
@@ -1597,6 +1711,13 @@ public class EntityWarTechMissile extends EntityWarTechBase {
         }
     }
     private void detonatePayloadScoped() {
+        ModernMissileProfile modern=ModernMissileProfile.of(getMissileProfile());
+        if(modern!=null) {
+            if(modern.isMlrs()) { ModernRocketPayload.of(getVisualVariant()).impact(this,modern);return; }
+            HbmExplosionCompat.advancedExplosion(world,posX,posY,posZ,modern.strength,1F,true);
+            ExplosionLarge.spawnParticles(world,posX,posY,posZ,modern.strength>=20?14:8);
+            return;
+        }
         Payload payload = getMissileSpecification().getPayload();
         switch (payload) {
             case HE_20:
@@ -1683,8 +1804,7 @@ public class EntityWarTechMissile extends EntityWarTechBase {
                 HbmExplosionCompat.neutronMicroImpact(world, posX, posY, posZ);
                 break;
             case ISKANDER:
-                ExplosionLarge.explode(
-                        world, posX, posY, posZ, 14.0F, true, true, true);
+                HbmExplosionCompat.iskanderImpact(world,this,posX,posY,posZ);
                 break;
             case GERAN:
                 HbmExplosionCompat.advancedExplosion(
@@ -1809,10 +1929,15 @@ public class EntityWarTechMissile extends EntityWarTechBase {
 
     private void updateLegacyRotation() {
         double horizontal = Math.sqrt(motionX * motionX + motionZ * motionZ);
-        rotationYaw = (float) (
-                Math.atan2(motionX, motionZ) * 180.0D / Math.PI);
-        rotationPitch = (float) (
-                Math.atan2(motionY, horizontal) * 180.0D / Math.PI - 90.0D);
+        if(horizontal>1.0E-5) {
+            float desired=(float)Math.toDegrees(Math.atan2(motionX,motionZ));
+            rotationYaw=telBallisticLaunch && telFlightTicks<30?rotationYaw+MathHelper.clamp(MathHelper.wrapDegrees(desired-rotationYaw),-6,6):desired;
+        }
+        // Modern meshes have a forward +Z basis after their source fit. Legacy
+        // rockets use +Y, so their old -90-degree pitch must stay on that path.
+        rotationPitch = ModernMissileProfile.of(getMissileProfile())!=null || hasModernVisual()
+                ? (float)-Math.toDegrees(Math.atan2(motionY,horizontal))
+                : (float)(Math.toDegrees(Math.atan2(motionY,horizontal))-90.0D);
         while (rotationPitch - prevRotationPitch < -180.0F) {
             prevRotationPitch -= 360.0F;
         }
@@ -1842,6 +1967,9 @@ public class EntityWarTechMissile extends EntityWarTechBase {
         legacyHealth -= Math.max(0, MathHelper.ceil(damage));
         if (legacyHealth <= 0) {
             if(beginCombatCrash()) return true;
+            // An explosion can damage this entity again synchronously. Remove it
+            // before blast callbacks so a destroyed interceptor detonates once.
+            setDead();
             ExplosionLarge.explode(
                     world, posX, posY, posZ, 5.0F, true, false, true);
             ExplosionLarge.spawnShrapnelShower(
@@ -1860,12 +1988,14 @@ public class EntityWarTechMissile extends EntityWarTechBase {
         if(isDead || combatCrashing || world!=null && world.isRemote
                 || !(family==FlightFamily.SUBSONIC || family==FlightFamily.SUPERSONIC
                 || family==FlightFamily.HYPERSONIC || family==FlightFamily.GERAN
-                || family==FlightFamily.ANTI_RADIATION || family==FlightFamily.KH555)) return false;
+                || family==FlightFamily.ANTI_RADIATION || family==FlightFamily.KH555
+                || getMissileProfile()==MissileProfile.ISKANDER || ModernMissileProfile.of(getMissileProfile())!=null)) return false;
         combatCrashing=true;legacyHealth=0;setHealthValue(0);setArmed(false);
         dataManager.set(FLIGHT_STAGE,3);
         double air=getMissileSpecification().getPayload()==Payload.THERMOBARIC?.25:.10;
         double roll=world==null?.95:world.rand.nextDouble();
         combatCrashOutcome=roll<air?3:roll<air+.30?2:roll<air+.48?1:0;
+        if(ModernMissileProfile.of(getMissileProfile())!=null) combatCrashOutcome=roll<.35?1:0;
         combatAirburstTick=combatCrashOutcome==3?6+world.rand.nextInt(19):-1;
         endRemoteControl("Geran shot down.",false);
         return true;
@@ -1888,6 +2018,7 @@ public class EntityWarTechMissile extends EntityWarTechBase {
         Vec3d from=getPositionVector(),next=from.addVector(motionX,motionY,motionZ);
         rotationYaw=(float)Math.toDegrees(Math.atan2(-motionX,motionZ));
         rotationPitch=(float)-Math.toDegrees(Math.atan2(motionY,Math.hypot(motionX,motionZ)));
+        if(getMissileProfile()==MissileProfile.ISKANDER || ModernMissileProfile.of(getMissileProfile())!=null) updateLegacyRotation();
         if(combatAirburstTick>=0 && combatCrashTicks>=combatAirburstTick) { finishCombatCrash(null);return; }
         if(next.y<0 || combatCrashTicks>1200) { finishCombatCrash(null);return; }
         if(!com.wartec.wartecmod.port.cruise.CruiseNavigation.loadedRay(from,next,
@@ -2051,6 +2182,8 @@ public class EntityWarTechMissile extends EntityWarTechBase {
         compound.setInteger("WarTechFlightStage", getFlightStage());
         compound.setInteger("WarTechTrackedEntity", trackedEntityId);
         compound.setBoolean("WarTechFlightInitialized", flightInitialized);
+        compound.setBoolean("TelBallisticLaunch",telBallisticLaunch);compound.setInteger("TelFlightTicks",telFlightTicks);
+        compound.setDouble("TelStartX",telFlightStart.x);compound.setDouble("TelStartY",telFlightStart.y);compound.setDouble("TelStartZ",telFlightStart.z);
         compound.setInteger("sX", startX);
         compound.setInteger("sY", startY);
         compound.setInteger("sZ", startZ);
@@ -2063,6 +2196,12 @@ public class EntityWarTechMissile extends EntityWarTechBase {
         compound.setInteger("WarTechVlsExhaustZ", vlsExhaustZ);
         compound.setInteger("veloc", velocity);
         compound.setDouble("range", range);
+        compound.setInteger("ModernFlightTicks",modernFlightTicks);
+        compound.setTag("ModernVisual",getModernVisual().copy());compound.setInteger("ModernAge",getModernAge());
+        if(modernStart!=null) {
+            compound.setDouble("ModernStartX",modernStart.x);compound.setDouble("ModernStartY",modernStart.y);compound.setDouble("ModernStartZ",modernStart.z);
+            compound.setDouble("ModernDirectionX",modernDirection.x);compound.setDouble("ModernDirectionY",modernDirection.y);compound.setDouble("ModernDirectionZ",modernDirection.z);
+        }
         compound.setDouble("WarTechFlightDistance", flightDistance);
         compound.setDouble("transform", transformationPointVector);
         compound.setDouble("sonic", startSonicSpeed);
@@ -2120,6 +2259,8 @@ public class EntityWarTechMissile extends EntityWarTechBase {
         trackedEntityId = compound.hasKey("WarTechTrackedEntity")
                 ? compound.getInteger("WarTechTrackedEntity") : -1;
         flightInitialized = compound.getBoolean("WarTechFlightInitialized");
+        telBallisticLaunch=compound.getBoolean("TelBallisticLaunch");telFlightTicks=Math.max(0,compound.getInteger("TelFlightTicks"));
+        telFlightStart=new Vec3d(compound.getDouble("TelStartX"),compound.getDouble("TelStartY"),compound.getDouble("TelStartZ"));
         startX = compound.getInteger("sX");
         startY = compound.getInteger("sY");
         startZ = compound.getInteger("sZ");
@@ -2132,6 +2273,13 @@ public class EntityWarTechMissile extends EntityWarTechBase {
         vlsExhaustZ = compound.getInteger("WarTechVlsExhaustZ");
         velocity = Math.max(1, compound.getInteger("veloc"));
         range = compound.getDouble("range");
+        modernFlightTicks=Math.max(0,compound.getInteger("ModernFlightTicks"));
+        dataManager.set(MODERN_VISUAL,compound.getCompoundTag("ModernVisual").copy());dataManager.set(MODERN_AGE,Math.max(0,compound.getInteger("ModernAge")));
+        if(compound.hasKey("ModernStartX")) {
+            modernStart=new Vec3d(compound.getDouble("ModernStartX"),compound.getDouble("ModernStartY"),compound.getDouble("ModernStartZ"));
+            modernDirection=new Vec3d(compound.getDouble("ModernDirectionX"),compound.getDouble("ModernDirectionY"),compound.getDouble("ModernDirectionZ"));
+        }
+        modernPath=null;
         flightDistance = Math.max(0,compound.getDouble("WarTechFlightDistance"));
         previousFlightPosition = null;
         transformationPointVector = compound.getDouble("transform");

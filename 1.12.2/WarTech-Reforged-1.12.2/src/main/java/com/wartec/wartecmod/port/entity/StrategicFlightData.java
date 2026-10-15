@@ -15,6 +15,7 @@ import net.minecraftforge.common.util.Constants;
 /** Persistent, chunk-neutral mid-course flight queue. */
 public final class StrategicFlightData extends WorldSavedData {
     private static final String NAME = "wartec_strategic_flights";
+    public static final int MAX_PENDING_WARHEADS=192;
     private final List<Flight> flights = new ArrayList<>();
 
     public StrategicFlightData() { super(NAME); }
@@ -34,23 +35,28 @@ public final class StrategicFlightData extends WorldSavedData {
     public static void schedule(WorldServer world, StrategicSystemProfile system,
             double targetX, double targetY, double targetZ,
             UUID owner, String team, double launchX, double launchZ) {
-        if (!StrategicFeature.isEnabled()) return;
+        trySchedule(world,system,targetX,targetY,targetZ,owner,team,launchX,launchZ);
+    }
+    public static boolean trySchedule(WorldServer world,StrategicSystemProfile system,
+            double targetX,double targetY,double targetZ,UUID owner,String team,double launchX,double launchZ) {
+        return trySchedule(world,system,targetX,targetY,targetZ,owner,team,launchX,launchZ,false);
+    }
+    public static boolean trySchedule(WorldServer world,StrategicSystemProfile system,double targetX,double targetY,double targetZ,UUID owner,String team,double launchX,double launchZ,boolean siloOrigin){
+        if (world==null || system==null || !system.isAvailable() || system.isTactical()) return false;
         double dx = targetX - launchX;
         double dz = targetZ - launchZ;
         double distance = Math.sqrt(dx * dx + dz * dz);
         long arrival = world.getTotalWorldTime() + system.flightTicks(distance);
         StrategicFlightData data = get(world);
         int count = system.getReentryVehicles();
+        if(data.flights.size()+count>MAX_PENDING_WARHEADS) return false;
         for (int index = 0; index < count; ++index) {
-            double angle = Math.PI * 2.0D * index / Math.max(1, count)
-                    + 0.42D;
-            double radius = count == 1 ? 0.0D : system.getSpread()
-                    * (0.78D + 0.18D * (index & 1));
+            net.minecraft.util.math.Vec3d offset=system.warheadOffset(index);
             Flight flight = new Flight();
-            flight.system = system.ordinal();
-            flight.targetX = targetX + Math.cos(angle) * radius;
+            flight.siloOrigin=siloOrigin;flight.system = system.ordinal();
+            flight.targetX = targetX + offset.x;
             flight.targetY = targetY;
-            flight.targetZ = targetZ + Math.sin(angle) * radius;
+            flight.targetZ = targetZ + offset.z;
             flight.owner = owner == null ? "" : owner.toString();
             flight.team = team == null ? "" : team;
             flight.warhead = index;
@@ -58,20 +64,27 @@ public final class StrategicFlightData extends WorldSavedData {
             data.flights.add(flight);
         }
         data.markDirty();
+        return true;
     }
 
     public void tick(WorldServer world) {
-        if (!StrategicFeature.isEnabled()) return;
+        if (world==null) return;
         if (flights.isEmpty()) return;
         long now = world.getTotalWorldTime();
-        boolean changed = false;
         Iterator<Flight> iterator = flights.iterator();
         while (iterator.hasNext()) {
             Flight flight = iterator.next();
             if (flight.arrival > now) continue;
-            int blockX = MathHelper.floor(flight.targetX);
-            int blockZ = MathHelper.floor(flight.targetZ);
-            world.getChunkProvider().provideChunk(blockX >> 4, blockZ >> 4);
+            if(!StrategicSystemProfile.byOrdinal(flight.system).isAvailable()) continue;
+            final Flight ready=flight;
+            com.wartec.wartecmod.port.integration.OperationalChunks.requestUntil(world,
+                new net.minecraft.util.math.BlockPos(flight.targetX,64,flight.targetZ),2,
+                "strategic-arrival:"+flight.id,()->flights.contains(ready),()->spawnReentry(world,ready));
+        }
+    }
+
+    private boolean spawnReentry(WorldServer world,Flight flight) {
+            if(!flights.contains(flight)) return true;
             EntityStrategicMissile reentry = new EntityStrategicMissile(world);
             StrategicSystemProfile system = StrategicSystemProfile.byOrdinal(
                     flight.system);
@@ -84,19 +97,13 @@ public final class StrategicFlightData extends WorldSavedData {
             reentry.configureReentry(system, flight.warhead,
                     flight.targetX, flight.targetY, flight.targetZ,
                     owner, flight.team);
-            double entryY = Math.max(220.0D,
-                    Math.min(252.0D, flight.targetY + 180.0D));
-            reentry.setPosition(flight.targetX - 46.0D,
-                    entryY, flight.targetZ + 31.0D);
-            if (world.spawnEntity(reentry)) {
-                iterator.remove();
-                changed = true;
-            } else {
-                flight.arrival = now + 20L;
-                changed = true;
+            reentry.setSiloOrigin(flight.siloOrigin);
+            double entryY = Math.max(system.isAbmTarget()?900:240.0D,flight.targetY + (system.isAbmTarget()?700:180.0D));
+            reentry.setPosition(flight.targetX - 24.0D,entryY,flight.targetZ + 20.0D);
+            if (com.wartec.wartecmod.port.integration.MissileChunkLoader.spawnFlight(reentry)) {
+                flights.remove(flight);markDirty();return true;
             }
-        }
-        if (changed) markDirty();
+            return false;
     }
 
     @Override
@@ -106,7 +113,8 @@ public final class StrategicFlightData extends WorldSavedData {
         for (int index = 0; index < list.tagCount(); ++index) {
             NBTTagCompound tag = list.getCompoundTagAt(index);
             Flight flight = new Flight();
-            flight.system = tag.getInteger("System");
+            if(tag.hasUniqueId("Id")) flight.id=tag.getUniqueId("Id");
+            flight.siloOrigin=tag.getBoolean("SiloOrigin");flight.system = tag.getInteger("System");
             flight.targetX = tag.getDouble("TargetX");
             flight.targetY = tag.getDouble("TargetY");
             flight.targetZ = tag.getDouble("TargetZ");
@@ -123,7 +131,8 @@ public final class StrategicFlightData extends WorldSavedData {
         NBTTagList list = new NBTTagList();
         for (Flight flight : flights) {
             NBTTagCompound tag = new NBTTagCompound();
-            tag.setInteger("System", flight.system);
+            tag.setUniqueId("Id",flight.id);
+            tag.setBoolean("SiloOrigin",flight.siloOrigin);tag.setInteger("System", flight.system);
             tag.setDouble("TargetX", flight.targetX);
             tag.setDouble("TargetY", flight.targetY);
             tag.setDouble("TargetZ", flight.targetZ);
@@ -138,7 +147,8 @@ public final class StrategicFlightData extends WorldSavedData {
     }
 
     private static final class Flight {
-        int system;
+        UUID id=UUID.randomUUID();
+        boolean siloOrigin;int system;
         double targetX;
         double targetY;
         double targetZ;

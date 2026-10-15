@@ -44,6 +44,12 @@ public final class UavFleetActionMessage implements IMessage {
                 MessageContext context) {
             EntityPlayerMP player = context.getServerHandler().player;
             player.getServerWorld().addScheduledTask(() -> {
+                if (player.isSpectator() || player.isDead) return;
+                if (!(player.openContainer instanceof com.wartec.wartecmod.port.gui.ContainerUavMissionStation)
+                        || !player.openContainer.canInteractWith(player)) return;
+                BlockPos requested=BlockPos.fromLong(message.stationPos);
+                if (!player.world.isBlockLoaded(requested)
+                        || ((com.wartec.wartecmod.port.gui.ContainerUavMissionStation)player.openContainer).getTile().getPos().toLong()!=message.stationPos) return;
                 TileEntity tile = player.world.getTileEntity(
                         BlockPos.fromLong(message.stationPos));
                 if (!(tile instanceof TileEntityUavMissionStation)

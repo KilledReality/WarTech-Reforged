@@ -23,7 +23,7 @@ public final class NtmCompatibilityVerifier {
         require("hazmat contamination",
                 ContaminationUtil.ContaminationType.HAZMAT2.getClass());
         WarTechReforged.logger.info(
-                "Verified gameplay-critical NTM Extended 3.0.3 APIs");
+                "Verified gameplay-critical NTM Community Edition 2.6.1.0 APIs");
     }
 
     private static void require(String capability, Class<?> type) {

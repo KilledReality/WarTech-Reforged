@@ -16,16 +16,39 @@ public final class MissileItem extends PortIntentItem
         super(
             legacyRegistryName,
             tab,
-            1,
+            isMlrs(profile) ? 16 : 1,
             IntentKind.MISSILE,
             "missile/" + profile.getIntentPath(),
-            "default"
+            isMlrs(profile) ? new String[]{"he","phosphorus","cluster","thermobaric","fragmentation"} : new String[]{"default"}
         );
         this.profile = profile;
     }
 
+    private static boolean isMlrs(MissileProfile profile) {
+        return profile==MissileProfile.GRAD_ROCKET || profile==MissileProfile.URAGAN_ROCKET
+            || profile==MissileProfile.SMERCH_ROCKET || profile==MissileProfile.HIMARS_ROCKET;
+    }
+
     public MissileProfile getProfile() {
         return profile;
+    }
+
+    @Override public net.minecraft.util.ActionResult<ItemStack> onItemRightClick(World world,net.minecraft.entity.player.EntityPlayer player,net.minecraft.util.EnumHand hand) {
+        if(profile!=MissileProfile.S8000) return super.onItemRightClick(world,player,hand);
+        if(!world.isRemote) player.openGui(com.wartec.wartecmod.WarTechReforged.instance,
+            com.wartec.wartecmod.port.gui.WarTechGuiHandler.GUI_CRUISE_PROGRAMMER,world,hand==net.minecraft.util.EnumHand.OFF_HAND?40:player.inventory.currentItem,0,0);
+        return new net.minecraft.util.ActionResult<>(net.minecraft.util.EnumActionResult.SUCCESS,player.getHeldItem(hand));
+    }
+
+    @Override public net.minecraft.util.EnumActionResult onItemUse(net.minecraft.entity.player.EntityPlayer player,World world,
+            net.minecraft.util.math.BlockPos pos,net.minecraft.util.EnumHand hand,net.minecraft.util.EnumFacing face,float x,float y,float z) {
+        if(profile==MissileProfile.S8000 && world.getTileEntity(pos) instanceof com.wartec.wartecmod.port.gameplay.TileEntityCruiseLauncher) {
+            if(world.isRemote) return net.minecraft.util.EnumActionResult.SUCCESS;
+            return player.canPlayerEdit(pos,face,player.getHeldItem(hand)) && world.isBlockModifiable(player,pos)
+                && ((com.wartec.wartecmod.port.gameplay.TileEntityCruiseLauncher)world.getTileEntity(pos)).load(player,player.getHeldItem(hand))
+                ?net.minecraft.util.EnumActionResult.SUCCESS:net.minecraft.util.EnumActionResult.FAIL;
+        }
+        return super.onItemUse(player,world,pos,hand,face,x,y,z);
     }
 
     @Override
@@ -46,6 +69,14 @@ public final class MissileItem extends PortIntentItem
             List<String> tooltip, ITooltipFlag flag) {
         double range=com.wartec.wartecmod.port.integration.WeaponBalance.missileRange(profile);
         if(range>0) tooltip.add(net.minecraft.client.resources.I18n.format("flight.tooltip.range",(int)range));
+        com.wartec.wartecmod.port.entity.ModernMissileProfile modern=com.wartec.wartecmod.port.entity.ModernMissileProfile.of(profile);
+        if(modern!=null) {
+            if(modern.isMlrs()) {
+                tooltip.add(net.minecraft.client.resources.I18n.format("wartec.modern.payload."+getVariantName(stack)+".description"));
+                tooltip.add(net.minecraft.client.resources.I18n.format("wartec.modern.missile.stack"));
+            } else tooltip.add(net.minecraft.client.resources.I18n.format("wartec.modern.missile.stats",modern.strength,modern.speed*20));
+            tooltip.add(net.minecraft.client.resources.I18n.format("wartec.modern.missile.launch."+profile.getIntentPath()));return;
+        }
         switch (profile) {
             case GERAN_5:
                 for(String key:new String[]{"speed","warhead","launch","defense","control"})
@@ -87,7 +118,7 @@ public final class MissileItem extends PortIntentItem
                 tooltip.add(TextFormatting.BOLD + "Warhead: "
                         + TextFormatting.YELLOW + "HE");
                 tooltip.add(TextFormatting.BOLD + "Strength: "
-                        + TextFormatting.GRAY + "14.0");
+                        + TextFormatting.GRAY + com.wartec.wartecmod.port.integration.WeaponBalance.ISKANDER_BLAST_STRENGTH);
                 tooltip.add(TextFormatting.BOLD + "Size: "
                         + TextFormatting.GRAY + "7.30m");
                 return;

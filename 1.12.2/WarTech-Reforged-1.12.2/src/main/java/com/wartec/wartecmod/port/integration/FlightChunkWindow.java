@@ -7,7 +7,7 @@ import net.minecraft.util.math.ChunkPos;
 /** Small contiguous moving window. Never load a remote target or an entire route. */
 public final class FlightChunkWindow {
     public static final int DEPTH = 25;
-    public static final int MAX_FLIGHTS = 32;
+    public static final int MAX_FLIGHTS = FlightAdmission.TOTAL_LIMIT;
     public static final int MAX_MODULAR_FLIGHTS = 16;
     public static final int LOADS_PER_WORLD_TICK = 4;
     private FlightChunkWindow() { }

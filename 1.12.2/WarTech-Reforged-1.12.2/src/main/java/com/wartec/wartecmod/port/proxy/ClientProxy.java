@@ -129,12 +129,18 @@ public final class ClientProxy extends CommonProxy {
 
     @Override
     public void preInit() {
+        super.preInit();
         com.wartec.wartecmod.port.client.CruiseEffects cruiseEffects=new com.wartec.wartecmod.port.client.CruiseEffects();
         FMLCommonHandler.instance().bus().register(cruiseEffects);
         MinecraftForge.EVENT_BUS.register(cruiseEffects);
         VehicleInputController vehicleInput = new VehicleInputController();
         FMLCommonHandler.instance().bus().register(vehicleInput);
         MinecraftForge.EVENT_BUS.register(vehicleInput);
+        com.wartec.wartecmod.port.client.VehicleCockpitCamera cockpit=new com.wartec.wartecmod.port.client.VehicleCockpitCamera();
+        FMLCommonHandler.instance().bus().register(cockpit);
+        MinecraftForge.EVENT_BUS.register(cockpit);
+        MinecraftForge.EVENT_BUS.register(new com.wartec.wartecmod.port.client.VehicleHud());
+        FMLCommonHandler.instance().bus().register(new com.wartec.wartecmod.port.client.VehicleDriveEffects());
         RemoteControlClient.register();
         RenderingRegistry.registerEntityRenderingHandler(
             EntityWarTechMissile.class,
@@ -172,7 +178,9 @@ public final class ClientProxy extends CommonProxy {
             EntityStrategicMissile.class,
             RenderLegacyEntity::new
         );
+        RenderingRegistry.registerEntityRenderingHandler(com.wartec.wartecmod.port.entity.EntitySiloInterceptor.class,RenderLegacyEntity::new);
         RenderWarTechTileEntity tileRenderer = new RenderWarTechTileEntity();
+        ClientRegistry.bindTileEntitySpecialRenderer(com.wartec.wartecmod.port.gameplay.TileEntityMissileSilo.class,new com.wartec.wartecmod.port.client.RenderMissileSilo());
         ClientRegistry.bindTileEntitySpecialRenderer(com.wartec.wartecmod.port.gameplay.TileEntityCruiseLauncher.class,new com.wartec.wartecmod.port.client.RenderCruiseLauncher());
         ClientRegistry.bindTileEntitySpecialRenderer(
             TileEntityWarTechMachine.class,
@@ -185,6 +193,10 @@ public final class ClientProxy extends CommonProxy {
     }
 
     @Override
+    public void acceptPlanningSnapshot(net.minecraft.nbt.NBTTagCompound data){
+        net.minecraft.client.gui.GuiScreen gui=net.minecraft.client.Minecraft.getMinecraft().currentScreen;
+        if(gui instanceof com.wartec.wartecmod.port.client.GuiPlanningTerminal)((com.wartec.wartecmod.port.client.GuiPlanningTerminal)gui).accept(data);
+    }
     public Object createControlGui(
         int id,
         EntityPlayer player,
@@ -201,6 +213,12 @@ public final class ClientProxy extends CommonProxy {
                             (TileEntityUavFabricator) tile) : null;
         }
         if(id==WarTechGuiHandler.GUI_CRUISE_PROGRAMMER) return new com.wartec.wartecmod.port.client.GuiCruiseProgrammer(player.inventory,x);
+        if(id==WarTechGuiHandler.GUI_SILO){net.minecraft.tileentity.TileEntity t=world.getTileEntity(new BlockPos(x,y,z));return t instanceof com.wartec.wartecmod.port.gameplay.TileEntityMissileSilo?new com.wartec.wartecmod.port.client.GuiMissileSilo(player.inventory,(com.wartec.wartecmod.port.gameplay.TileEntityMissileSilo)t):null;}
+        if(id==WarTechGuiHandler.GUI_PLANNING_TERMINAL){
+            com.wartec.wartecmod.port.gameplay.TileEntityPlanningTerminal tile=null;com.wartec.wartecmod.port.entity.EntityWarTechBase command=null;
+            if(y==-1)command=WarTechGuiHandler.findEntity(world,x);else {net.minecraft.tileentity.TileEntity t=world.getTileEntity(new BlockPos(x,y,z));if(t instanceof com.wartec.wartecmod.port.gameplay.TileEntityPlanningTerminal)tile=(com.wartec.wartecmod.port.gameplay.TileEntityPlanningTerminal)t;}
+            return tile!=null || command!=null?new com.wartec.wartecmod.port.client.GuiPlanningTerminal(player,tile,command):null;
+        }
         if(id==WarTechGuiHandler.GUI_CRUISE_LAUNCHER) {
             net.minecraft.tileentity.TileEntity tile=world.getTileEntity(new BlockPos(x,y,z));
             return tile instanceof com.wartec.wartecmod.port.gameplay.TileEntityCruiseLauncher?new com.wartec.wartecmod.port.client.GuiCruiseLauncher(player.inventory,(com.wartec.wartecmod.port.gameplay.TileEntityCruiseLauncher)tile):null;
@@ -221,6 +239,10 @@ public final class ClientProxy extends CommonProxy {
         com.wartec.wartecmod.port.entity.EntityWarTechBase entity =
             WarTechGuiHandler.findEntity(world, x);
         if (entity != null && id == WarTechGuiHandler.guiForEntity(entity)) {
+            if(id==WarTechGuiHandler.GUI_TUBE_ARTILLERY && entity instanceof com.wartec.wartecmod.port.entity.EntityTubeArtillery)return new com.wartec.wartecmod.port.client.GuiTubeArtillery(player.inventory,(com.wartec.wartecmod.port.entity.EntityTubeArtillery)entity);
+            if(id==WarTechGuiHandler.GUI_MODERN_VEHICLE && entity instanceof com.wartec.wartecmod.port.entity.EntityModernVehicle)
+                return new com.wartec.wartecmod.port.client.GuiModernVehicle(player.inventory,(com.wartec.wartecmod.port.entity.EntityModernVehicle)entity);
+            if(id==WarTechGuiHandler.GUI_GROUND_VEHICLE) return new com.wartec.wartecmod.port.client.GuiGroundVehicle(player.inventory,(EntityWarTechGroundVehicle)entity);
             if (id == WarTechGuiHandler.GUI_RADAR) {
                 return new GuiLegacyRadar(player.inventory, entity);
             }

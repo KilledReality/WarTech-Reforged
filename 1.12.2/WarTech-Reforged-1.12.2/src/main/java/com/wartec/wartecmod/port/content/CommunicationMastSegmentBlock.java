@@ -43,6 +43,9 @@ public final class CommunicationMastSegmentBlock extends PortBlock {
     }
 
     @Override public boolean hasTileEntity(IBlockState state) { return false; }
+    @Override public net.minecraft.item.Item getItemDropped(IBlockState state,java.util.Random random,int fortune){return net.minecraft.init.Items.AIR;}
+    @Override public int quantityDropped(java.util.Random random){return 0;}
+    @Override public boolean canSilkHarvest(World w,BlockPos p,IBlockState s,EntityPlayer player){return false;}
     @Override public TileEntity createTileEntity(World world, IBlockState state) { return null; }
 
     @Override

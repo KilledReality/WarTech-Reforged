@@ -28,6 +28,7 @@ public final class StrikeBlastSafety {
         return a != null && a.equals(b) || ta != null && !ta.isEmpty() && ta.equals(tb);
     }
     private static boolean strike(Entity entity) {
+        if (entity instanceof EntityStrategicMissile) return !((EntityStrategicMissile)entity).isFallingDebris();
         if (entity instanceof EntityWarTechArtilleryProjectile) return ((EntityWarTechArtilleryProjectile)entity).isCruiseSubmunition();
         if (entity instanceof EntityCustomCruise) return true;
         if (entity instanceof EntityCustomUav) return ((EntityCustomUav) entity).hasStrikeWarhead();

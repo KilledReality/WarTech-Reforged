@@ -238,6 +238,9 @@ public final class EntityCustomUav extends EntityWarTechBase
     public UavStats getUavStats() { return stats; }
     public UavMission getMission() { return mission.copy(); }
     public UavReconReport getReconReport() { return reconReport.copy(); }
+    private com.wartec.wartecmod.port.planning.TeamIntelData planningIntel=new com.wartec.wartecmod.port.planning.TeamIntelData();
+    public com.wartec.wartecmod.port.planning.TeamIntelData planningIntel(){return planningIntel;}
+    public boolean planningCanTransmit(){return !isDataLinkJammed() && (getLegacyState()==READY || planningLinkAvailable(homeX,homeY,homeZ));}
     public int getMissionIndex() { return missionIndex; }
 
     public void restoreOperationalState(ItemStack stack) {
@@ -402,7 +405,44 @@ public final class EntityCustomUav extends EntityWarTechBase
         }
     }
 
+    public boolean planningLinkAvailable(double x,double y,double z){return getDistanceSq(x,y,z)<=(double)getLinkRange()*getLinkRange() && !isDataLinkJammed();}
+    public boolean planningTaskCompleted(java.util.UUID step){return getEntityData().hasUniqueId("PlanningTaskDone") && step.equals(getEntityData().getUniqueId("PlanningTaskDone"));}
+    public void revokePlanning(java.util.UUID id,boolean returning){if(!com.wartec.wartecmod.port.planning.PlanningControl.matches(this,id) || isKamikaze())return;com.wartec.wartecmod.port.planning.PlanningFlightControl.revoke(this);mission.clear();missionIndex=0;if(returning && needsFlightChunkTicket()){endRemoteControl(false);setLegacyState(RETURN);}}
+    public boolean planningOrder(com.wartec.wartecmod.port.planning.PlanningCommand c,com.wartec.wartecmod.port.planning.AttackOperation.Step s){
+        if(world.isRemote || !c.owns(this) || isRemoteControlled() || getLegacyState()==CRASHED || getLegacyState()==LOST_CONTROL)return false;
+        switch(s.action){
+            case RETURN: if(isKamikaze())return false;com.wartec.wartecmod.port.planning.PlanningFlightControl.clear(this);endRemoteControl(false);if(getLegacyState()!=READY)setLegacyState(RETURN);return true;
+            case HOLD: if(!needsFlightChunkTicket() || isKamikaze())return false;com.wartec.wartecmod.port.planning.PlanningFlightControl.gate(this,c,s,true);return true;
+            case TAKEOFF:
+                if(getLegacyState()!=READY)return false;
+                mission.clear();missionIndex=0;setGuidanceTarget(s.x,s.y,s.z);launchAutonomous();
+                if(getLegacyState()!=TAKEOFF)return false;
+                com.wartec.wartecmod.port.planning.PlanningFlightControl.gate(this,c,s,true);return true;
+            case TRANSIT: case OBSERVE:
+                cruiseTargetImportManual=true;
+                if(isKamikaze() || s.action==com.wartec.wartecmod.port.planning.AttackOperation.Action.OBSERVE && build.get(UavSlot.SENSOR)==null)return false;
+                mission.clear();missionIndex=0;
+                for(int i=0;i<s.route.tagCount();i++){UavWaypoint p=UavWaypoint.readFromNbt(s.route.getCompoundTagAt(i));if(!UavMission.isModeAllowed(build,p.getMode()) || p.getMode()==UavWaypointMode.STRIKE || p.getMode()==UavWaypointMode.RETURN)return false;mission.add(p);}
+                if(!mission.add(new UavWaypoint(s.x,s.y,s.z,s.action==com.wartec.wartecmod.port.planning.AttackOperation.Action.OBSERVE?UavWaypointMode.OBSERVE:UavWaypointMode.TRANSIT,s.interval)))return false;
+                getEntityData().setUniqueId("PlanningTask",s.id);getEntityData().setBoolean("PlanningHold",false);getEntityData().removeTag("PlanningTaskDone");applyCurrentMissionTarget();
+                if(getLegacyState()==READY)launchAutonomous();else setLegacyState(OUTBOUND);return getLegacyState()!=READY;
+            case RELEASE:
+                if(!needsFlightChunkTicket())return false;mission.clear();missionIndex=0;payloadReleased=false;setGuidanceTarget(s.x,s.y,s.z);
+                if(s.slot>=0){if(s.slot>=getHardpointCount() || getStackInSlot(s.slot).isEmpty())return false;setLegacySelectedPayload(getStackInSlot(s.slot).getMetadata());}
+                com.wartec.wartecmod.port.planning.PlanningFlightControl.gate(this,c,s,false);if(isKamikaze()){com.wartec.wartecmod.port.planning.PlanningHooks.fromSource(this,this);getEntityData().setBoolean("PlanningHold",false);}setLegacyState(OUTBOUND);return true;
+            default:return false;
+        }
+    }
+    private boolean planningOrbit(){
+        if(!com.wartec.wartecmod.port.planning.PlanningFlightControl.holding(this))return false;
+        net.minecraft.nbt.NBTTagCompound n=getEntityData();double angle=Math.atan2(posZ-n.getDouble("PlanningOrbitZ"),posX-n.getDouble("PlanningOrbitX"))+.20;
+        double x=n.getDouble("PlanningOrbitX")+Math.cos(angle)*65,z=n.getDouble("PlanningOrbitZ")+Math.sin(angle)*65;
+        guideTo(x,Math.min(225,Math.max(n.getDouble("PlanningOrbitY"),terrainHeight(x,z)+35)),z,stats.getSpeed()*.82);
+        n.setBoolean("PlanningHolding",true);return true;
+    }
+
     private void tickOutbound() {
+        if(planningOrbit())return;
         if (!mission.isEmpty()) {
             tickMissionOutbound();
             return;
@@ -436,8 +476,8 @@ public final class EntityCustomUav extends EntityWarTechBase
             double releaseRange = customReleaseRange(payloadType);
             if (horizontal <= releaseRange && isAlignedWithTarget(dx, dz)) {
                 if (releasePayload()) {
-                    payloadReleased = true;
-                    setLegacyState(RETURN);
+                    payloadReleased = !getEntityData().getBoolean("PlanningManaged");
+                    if(payloadReleased)setLegacyState(RETURN);
                 }
                 return;
             }
@@ -454,6 +494,7 @@ public final class EntityCustomUav extends EntityWarTechBase
     }
 
     private void tickLoiter() {
+        if(planningOrbit())return;
         if (!mission.isEmpty()) {
             tickMissionLoiter();
             return;
@@ -578,9 +619,9 @@ public final class EntityCustomUav extends EntityWarTechBase
         int dimension = world.provider == null
                 ? 0 : world.provider.getDimension();
         reconReport.beginDimension(dimension);
+        centerX=(int)Math.floor(posX);centerY=(int)Math.floor(posY);centerZ=(int)Math.floor(posZ);
         if (stateTicks % 5 == 0) surveyTerrain(centerX, centerZ, sensor);
-        if (stateTicks % 20 == 0) scanReconContacts(
-                centerX, centerY, centerZ, sensor);
+        if (stateTicks % 20 == 0){scanReconContacts(centerX,centerY,centerZ,sensor);com.wartec.wartecmod.port.planning.PlanningReconSensor.tiles(this,sensor);com.wartec.wartecmod.port.planning.PlanningReconSensor.publish(this);}
     }
 
     private void surveyTerrain(int centerX, int centerZ,
@@ -605,11 +646,13 @@ public final class EntityCustomUav extends EntityWarTechBase
                     cellZ * 16 + 8);
             if (!world.isBlockLoaded(samplePos)) continue;
             BlockPos surface = world.getHeight(samplePos).down();
+            if(!com.wartec.wartecmod.port.planning.PlanningReconSensor.visible(this,new Vec3d(surface).addVector(.5,1.1,.5),sensor))continue;
             net.minecraft.block.state.IBlockState state =
                     world.getBlockState(surface);
             int color = state.getMapColor(world, surface).colorValue;
             if (color == 0) color = 0x4D5B45;
             reconReport.recordCell(cellX, cellZ, surface.getY(), color, time);
+            com.wartec.wartecmod.port.planning.PlanningReconSensor.cell(this,cellX,cellZ,surface.getY(),color,sensor);
         }
     }
 
@@ -643,6 +686,7 @@ public final class EntityCustomUav extends EntityWarTechBase
             reconReport.recordContact(entity, type,
                     reconRelation(type, friendly, getOwnerTeam(), targetTeam),
                     quality, time);
+            com.wartec.wartecmod.port.planning.PlanningReconSensor.contact(this,entity,quality,sensor);
             MissileTrackingService.reportReconContact(world, getOwnerTeam(),
                     entity, quality);
         }
@@ -724,6 +768,7 @@ public final class EntityCustomUav extends EntityWarTechBase
     }
 
     private void finishMission() {
+        if(getEntityData().hasUniqueId("PlanningTask")){getEntityData().setUniqueId("PlanningTaskDone",getEntityData().getUniqueId("PlanningTask"));getEntityData().removeTag("PlanningTask");mission.clear();missionIndex=0;setLegacyState(LOITER);return;}
         if (isKamikaze()) {
             lostControlYawRate = (rand.nextFloat() - 0.5F) * 5.0F;
             setLegacyState(LOST_CONTROL);
@@ -915,7 +960,7 @@ public final class EntityCustomUav extends EntityWarTechBase
 
     private void tickRemote() {
         EntityPlayer controller = findRemoteController();
-        if (controller == null || controller.isDead) {
+        if (controller == null || !canManage(controller)) {
             handleLinkLoss(controller, "Remote data link lost.");
             return;
         }
@@ -1131,7 +1176,7 @@ public final class EntityCustomUav extends EntityWarTechBase
     public ItemStack getCruiseStore() {
         if(world!=null && world.isRemote) return dataManager.get(VENTRAL_STORE);
         ItemStack stack=getStackInSlot(0);
-        return stack.getItem()==WarTechContent.ASSEMBLED_CRUISE?stack:ItemStack.EMPTY;
+        return com.wartec.wartecmod.port.cruise.CruiseBuild.isStore(stack)?stack:ItemStack.EMPTY;
     }
     public boolean hasCruiseStore() { return !getCruiseStore().isEmpty(); }
     private boolean otherWeaponSlotsEmpty() {
@@ -1196,7 +1241,7 @@ public final class EntityCustomUav extends EntityWarTechBase
             program.setTarget(new Vec3d(getTargetX()+.5,getTargetY()+.5,getTargetZ()+.5),world.provider.getDimension());
             program.writeToStack(stack);
         }
-        return stack;
+        return com.wartec.wartecmod.port.planning.PlanningStores.prepare(this,stack);
     }
     public double getCruiseAimingRange() { return UavCruiseCarriage.aimingRange(build); }
     public double getCargoGroundLift() {
@@ -1232,6 +1277,7 @@ public final class EntityCustomUav extends EntityWarTechBase
         }
         if(horizontal>=minimum && getPositionVector().distanceTo(goal)<=maximum
                 && isAlignedWithTarget(dx,dz) && releaseCruiseStore(null)) {
+            if(getEntityData().getBoolean("PlanningManaged")){payloadReleased=false;setLegacyState(OUTBOUND);return;}
             payloadReleased=true;
             if(queued) advanceMission();else setLegacyState(RETURN);
             return;
@@ -1257,6 +1303,7 @@ public final class EntityCustomUav extends EntityWarTechBase
         return false;
     }
     private boolean releaseCruiseStore(EntityPlayer pilot) {
+        if(!com.wartec.wartecmod.port.planning.PlanningFlightControl.mayRelease(this,0))return false;
         if(world.isRemote || !hasCruiseStore()) return false;
         ItemStack stack=preparedCruiseStore();CruiseBuild missileBuild=CruiseBuild.fromStack(stack);
         String error=UavCruiseCarriage.error(build,missileBuild);
@@ -1281,6 +1328,7 @@ public final class EntityCustomUav extends EntityWarTechBase
         missile.setLaunchCarrier(this);
         if(!MissileChunkLoader.prepare(missile)) { if(pilot!=null) tellKey(pilot,"flight.error.chunks");return false; }
         if(!world.spawnEntity(missile)) { MissileChunkLoader.untrack(missile);return false; }
+        com.wartec.wartecmod.port.planning.PlanningFlightControl.emitted(this,missile);
         decrStackSize(0,1); // Sync model and restore dry flight envelope only after successful spawn.
         cruiseEgress.reset();cruiseDeparture.reset();
         playLegacySound(HBMSoundHandler.missileTakeoff,1.0F,1.25F);
@@ -1294,7 +1342,7 @@ public final class EntityCustomUav extends EntityWarTechBase
     private boolean releasePayload() {
         if(hasCruiseStore()) return releaseCruiseStore(findRemoteController());
         int slot = firstPayloadSlot();
-        if (slot < 0) return false;
+        if (slot < 0 || !com.wartec.wartecmod.port.planning.PlanningFlightControl.mayRelease(this,slot)) return false;
         ItemStack stack = getStackInSlot(slot);
         int payload = MathHelper.clamp(stack.getMetadata(), 0, 8);
         EntityWarTechOrdnance ordnance = LegacyEntityFactory.aviationOrdnance(world);
@@ -1313,6 +1361,7 @@ public final class EntityCustomUav extends EntityWarTechBase
         ordnance.setOwnerIdentity(getOwnerUuid(), getOwnerTeam());
         ordnance.setVisual("ordnance/mq9_payload", payload);
         if (world.spawnEntity(ordnance)) {
+            com.wartec.wartecmod.port.planning.PlanningFlightControl.emitted(this,ordnance);
             decrStackSize(slot, 1);
             playLegacySound(HBMSoundHandler.missileTakeoff, 1.6F, 1.18F);
             return true;
@@ -1346,6 +1395,8 @@ public final class EntityCustomUav extends EntityWarTechBase
 
     private int firstPayloadSlot() {
         int selected = MathHelper.clamp(getLegacySelectedPayload(), 0, 8);
+        int preferred=getEntityData().getBoolean("PlanningManaged")?getEntityData().getInteger("PlanningSlot"):-1;
+        if(preferred>=0 && preferred<stats.getHardpoints() && !getStackInSlot(preferred).isEmpty())return preferred;
         for (int slot = 0; slot < stats.getHardpoints(); ++slot) {
             ItemStack stack = getStackInSlot(slot);
             if (!stack.isEmpty() && stack.getItem() == WarTechContent.MQ9_PAYLOAD
@@ -1384,6 +1435,7 @@ public final class EntityCustomUav extends EntityWarTechBase
 
     @Override
     public boolean processInitialInteract(EntityPlayer player, EnumHand hand) {
+        if (!world.isRemote && !canManage(player)) return true;
         if (hand != EnumHand.MAIN_HAND) return true;
         ItemStack held = player.getHeldItem(hand);
         if (!held.isEmpty()
@@ -1427,7 +1479,7 @@ public final class EntityCustomUav extends EntityWarTechBase
             return true;
         }
         if (!world.isRemote && !held.isEmpty()
-                && held.getItem() == WarTechContent.ASSEMBLED_CRUISE) {
+                && com.wartec.wartecmod.port.cruise.CruiseBuild.isStore(held)) {
             if(!isUsableByPlayer(player) || !NetworkTeamHelper.areFriendly(getOwnerTeam(),NetworkTeamHelper.getPlayerTeam(player))) return true;
             String error=UavCruiseCarriage.error(build,CruiseBuild.fromStack(held));
             if(getLegacyState()!=READY || remoteAirborne) error="cruise.error.uav_landed";
@@ -1563,6 +1615,11 @@ public final class EntityCustomUav extends EntityWarTechBase
             tell(player, "No reconnaissance data recorded yet.");
             return;
         }
+        if(!player.capabilities.isCreativeMode){
+            int paper=-1;for(int i=0;i<player.inventory.getSizeInventory();i++)if(player.inventory.getStackInSlot(i).getItem()==net.minecraft.init.Items.PAPER){paper=i;break;}
+            if(paper<0){player.sendStatusMessage(new net.minecraft.util.text.TextComponentTranslation("production.recon.paper"),true);return;}
+            player.inventory.getStackInSlot(paper).shrink(1);player.inventory.markDirty();
+        }
         ItemStack report = WarTechContent.UAV_RECON_REPORT.createReport(
                 build.getName(), reconReport, world.getTotalWorldTime());
         if (!player.inventory.addItemStackToInventory(report)) {
@@ -1637,6 +1694,7 @@ public final class EntityCustomUav extends EntityWarTechBase
             int flags) {
         if (player == null || !isRemoteControlled()
                 || !remoteController.equals(player.getName())) return;
+        if(!canManage(player)){handleLinkLoss(player,"IFF changed. Remote data link revoked.");return;}
         remoteDesiredYaw = MathHelper.wrapDegrees(flightYaw);
         remoteDesiredPitch = MathHelper.clamp(flightPitch, -35.0F, 28.0F);
         remoteThrottle = MathHelper.clamp(throttle, 0.0F, 1.0F);
@@ -1898,7 +1956,7 @@ public final class EntityCustomUav extends EntityWarTechBase
     @Override
     public boolean isPayloadCompatible(ItemStack stack) {
         if(stack.isEmpty()) return false;
-        if(stack.getItem()==WarTechContent.ASSEMBLED_CRUISE)
+        if(com.wartec.wartecmod.port.cruise.CruiseBuild.isStore(stack))
             return UavCruiseCarriage.error(build,CruiseBuild.fromStack(stack))==null && otherWeaponSlotsEmpty();
         return !hasCruiseStore() && stats.getAirframe() == UavAirframe.STRIKE
                 && build.get(UavSlot.PAYLOAD)!=UavPartDefinition.RACK_CRUISE
@@ -1908,7 +1966,7 @@ public final class EntityCustomUav extends EntityWarTechBase
     @Override
     public boolean isItemValidForSlot(int index, ItemStack stack) {
         if(index>=0 && index<6) return getLegacyState()==READY && isPayloadSlotAvailable(index)
-            && isPayloadCompatible(stack) && (stack.getItem()!=WarTechContent.ASSEMBLED_CRUISE || index==0);
+            && isPayloadCompatible(stack) && (!com.wartec.wartecmod.port.cruise.CruiseBuild.isStore(stack) || index==0);
         if (index == 7) {
             return build.get(UavSlot.DEFENSE)
                     == UavPartDefinition.DEFENSE_FLARES
@@ -1993,6 +2051,7 @@ public final class EntityCustomUav extends EntityWarTechBase
         compound.setInteger("UavMissionIndex", missionIndex);
         compound.setInteger("UavMissionLoiter", loiterTicksRemaining);
         compound.setTag(UavReconReport.NBT_KEY, reconReport.writeToNbt());
+        compound.setTag("PlanningIntelBuffer",planningIntel.write());
         compound.setInteger("UavReconCursor", reconSweepCursor);
         compound.setInteger("UavGoAround", goAroundTicks);
         compound.setInteger("UavLandingPhase", landingPhase);
@@ -2042,6 +2101,7 @@ public final class EntityCustomUav extends EntityWarTechBase
                 compound.getInteger("UavMissionLoiter"));
         reconReport = UavReconReport.readFromNbt(
                 compound.getCompoundTag(UavReconReport.NBT_KEY));
+        planningIntel=com.wartec.wartecmod.port.planning.TeamIntelData.read(compound.getCompoundTag("PlanningIntelBuffer"));
         reconSweepCursor = Math.max(0, compound.getInteger("UavReconCursor"));
         goAroundTicks = Math.max(0, compound.getInteger("UavGoAround"));
         landingPhase = MathHelper.clamp(

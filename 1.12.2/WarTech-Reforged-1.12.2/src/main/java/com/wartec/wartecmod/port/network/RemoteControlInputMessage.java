@@ -64,6 +64,7 @@ public final class RemoteControlInputMessage implements IMessage {
             if (!message.hasFiniteControls()) return null;
             EntityPlayerMP player = context.getServerHandler().player;
             player.getServerWorld().addScheduledTask(() -> {
+                if (player.isSpectator() || player.isDead) return;
                 Entity entity = player.world.getEntityByID(message.entityId);
                 if (entity instanceof EntityWarTechAircraft) {
                     ((EntityWarTechAircraft) entity).handleRemoteInput(

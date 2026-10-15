@@ -1,0 +1,383 @@
+{
+  "asset": "S8000",
+  "art_only": true,
+  "minecraft_renderer_integrated": false,
+  "length_art_units": 10,
+  "forward_glb": "+Z",
+  "up_glb": "+Y",
+  "origin": "longitudinal midpoint",
+  "textures": [
+    {
+      "file": "S8000_diffuse.png",
+      "size": [
+        2048,
+        2048
+      ],
+      "role": "diffuse",
+      "colorspace": "sRGB",
+      "used_in_final_shader": true
+    },
+    {
+      "file": "S8000_metallic.png",
+      "size": [
+        2048,
+        2048
+      ],
+      "role": "metallic",
+      "colorspace": "Non-Color",
+      "used_in_final_shader": false
+    },
+    {
+      "file": "S8000_roughness.png",
+      "size": [
+        2048,
+        2048
+      ],
+      "role": "roughness",
+      "colorspace": "Non-Color",
+      "used_in_final_shader": false
+    },
+    {
+      "file": "S8000_normal.png",
+      "size": [
+        2048,
+        2048
+      ],
+      "role": "normal",
+      "colorspace": "Non-Color",
+      "used_in_final_shader": true
+    }
+  ],
+  "parts": [
+    {
+      "name": "AirframeMesh",
+      "type": "MESH",
+      "parent": "Airframe",
+      "translation": [
+        0.0,
+        2.384185791015625e-07,
+        -0.0019137859344482422
+      ],
+      "rotation_euler": [
+        0.0,
+        -0.0,
+        0.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ]
+    },
+    {
+      "name": "Root",
+      "type": "EMPTY",
+      "parent": null,
+      "translation": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "rotation_euler": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ]
+    },
+    {
+      "name": "Airframe",
+      "type": "EMPTY",
+      "parent": "Root",
+      "translation": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "rotation_euler": [
+        0.0,
+        -0.0,
+        0.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ]
+    },
+    {
+      "name": "NoseSocket",
+      "type": "EMPTY",
+      "parent": "Airframe",
+      "translation": [
+        0.0,
+        -5.0,
+        0.0
+      ],
+      "rotation_euler": [
+        0.0,
+        -0.0,
+        0.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ]
+    },
+    {
+      "name": "RearSocket",
+      "type": "EMPTY",
+      "parent": "Airframe",
+      "translation": [
+        0.0,
+        5.0,
+        0.0
+      ],
+      "rotation_euler": [
+        0.0,
+        -0.0,
+        0.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ]
+    },
+    {
+      "name": "EngineExhaustSocket",
+      "type": "EMPTY",
+      "parent": "Airframe",
+      "translation": [
+        0.0,
+        4.974999904632568,
+        0.0
+      ],
+      "rotation_euler": [
+        0.0,
+        -0.0,
+        0.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ]
+    }
+  ],
+  "sockets": {
+    "NoseSocket": "visual nose marker",
+    "RearSocket": "tail marker",
+    "EngineExhaustSocket": "visual exhaust effect attachment; local forward is -Z in GLB"
+  },
+  "lod_triangles": {
+    "LOD0": 12000,
+    "LOD1": 6500,
+    "LOD2": 3000
+  },
+  "processing": {
+    "surface_cleanup": "one bounded relaxation pass; sharp edges retained",
+    "source_triangles": 36440,
+    "symmetry": {
+      "vertices_paired": 16364,
+      "largest_original_pair_error": 5.364418029785156e-06,
+      "maximum_vertex_displacement": 2.682209014892578e-06
+    },
+    "thin_corner_vertices_separated": 5,
+    "wing_edge_relaxation_updates": 20645,
+    "relaxed_vertices": {
+      "AirframeMesh": 15005
+    },
+    "normalized_art_length": 10,
+    "forward_axis_glb": "+Z",
+    "parts": [
+      "AirframeMesh"
+    ]
+  },
+  "clip_nodes": {
+    "Reset": [
+      "Airframe"
+    ],
+    "Flight_Idle": [
+      "Airframe"
+    ],
+    "Flight_Bank": [
+      "Airframe"
+    ],
+    "Demo_Sequence": [
+      "Airframe"
+    ]
+  },
+  "clip_seconds": {
+    "Reset": 0.2,
+    "Flight_Idle": 6,
+    "Flight_Bank": 6,
+    "Demo_Sequence": 12
+  },
+  "clip_frames": {
+    "Reset": [
+      1,
+      7
+    ],
+    "Flight_Idle": [
+      22,
+      202
+    ],
+    "Flight_Bank": [
+      217,
+      397
+    ],
+    "Demo_Sequence": [
+      412,
+      772
+    ]
+  },
+  "coordinate_systems": {
+    "parts": "Blender: nose -Y, up +Z",
+    "glb_bind_pose": "glTF: nose +Z, up +Y; quaternion order x,y,z,w",
+    "clip_frames": "Blender source frames; exported clips start at zero seconds"
+  },
+  "glb_bind_pose": [
+    {
+      "name": "AirframeMesh",
+      "parent": "Airframe",
+      "translation": [
+        0,
+        -0.0019137859344482422,
+        0
+      ],
+      "rotation_quaternion": [
+        0,
+        0,
+        0,
+        1
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ]
+    },
+    {
+      "name": "EngineExhaustSocket",
+      "parent": "Airframe",
+      "translation": [
+        0,
+        0,
+        -4.974999904632568
+      ],
+      "rotation_quaternion": [
+        0,
+        0,
+        0,
+        1
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ]
+    },
+    {
+      "name": "NoseSocket",
+      "parent": "Airframe",
+      "translation": [
+        0,
+        0,
+        5
+      ],
+      "rotation_quaternion": [
+        0,
+        0,
+        0,
+        1
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ]
+    },
+    {
+      "name": "RearSocket",
+      "parent": "Airframe",
+      "translation": [
+        0,
+        0,
+        -5
+      ],
+      "rotation_quaternion": [
+        0,
+        0,
+        0,
+        1
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ]
+    },
+    {
+      "name": "Airframe",
+      "parent": "Root",
+      "translation": [
+        0.0,
+        0.0,
+        -0.0
+      ],
+      "rotation_quaternion": [
+        0.0,
+        0.0,
+        -0.0,
+        1.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ]
+    },
+    {
+      "name": "Root",
+      "parent": null,
+      "translation": [
+        0,
+        0,
+        0
+      ],
+      "rotation_quaternion": [
+        0,
+        0,
+        0,
+        1
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ]
+    }
+  ],
+  "glb_materials": [
+    {
+      "name": "S8000_PBR",
+      "pbr": {
+        "baseColorTexture": {
+          "index": 1
+        },
+        "metallicFactor": 0.18000000715255737,
+        "roughnessFactor": 0.6399999856948853
+      },
+      "normal_texture": {
+        "index": 0,
+        "scale": 0.07999999821186066
+      }
+    }
+  ]
+}

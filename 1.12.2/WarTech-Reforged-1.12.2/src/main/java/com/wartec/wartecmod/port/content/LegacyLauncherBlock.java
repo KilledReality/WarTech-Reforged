@@ -143,8 +143,10 @@ public final class LegacyLauncherBlock extends BlockContainer
         if (placer instanceof EntityPlayer) {
             TileEntityWarTechMachine machine = findMachine(world, pos);
             if (machine != null) {
+                com.wartec.wartecmod.port.planning.PlanningAccessPolicy.claim(machine,(EntityPlayer)placer);
                 machine.setOwnerTeam(OwnerTeamNbt.resolvePlacementTeam(
                         stack, (EntityPlayer) placer));
+                com.wartec.wartecmod.port.production.ProductionState.apply(machine,stack);
             }
         }
     }
@@ -179,6 +181,7 @@ public final class LegacyLauncherBlock extends BlockContainer
         if (player.isSneaking() && !held.isEmpty()
                 && held.getItem() == WarTechContent.WARTECH_IFF_CONFIGURATOR) {
             if (!world.isRemote) {
+                if (!com.wartec.wartecmod.port.integration.OwnershipAccess.mayRebind(player,machine.getOwnerTeam())) return true;
                 String team = PlayerTeamPersistence.getPlayerTeam(player);
                 machine.setOwnerTeam(team);
                 player.sendMessage(new TextComponentString(
@@ -291,7 +294,7 @@ public final class LegacyLauncherBlock extends BlockContainer
     public boolean dismantle(World world, BlockPos selected,
             EntityPlayer player) {
         TileEntityWarTechMachine machine = findMachine(world, selected);
-        if (machine == null || world.isRemote) {
+        if (machine == null || world.isRemote || !machine.mayRemoteLaunch(player)) {
             return false;
         }
         BlockPos core = machine.getPos();
@@ -306,6 +309,7 @@ public final class LegacyLauncherBlock extends BlockContainer
                 }
             }
             ItemStack recovered = new ItemStack(this);
+            com.wartec.wartecmod.port.production.ProductionState.recover(recovered,machine);
             OwnerTeamNbt.write(recovered, machine.getOwnerTeam());
             world.spawnEntity(new EntityItem(world,
                     core.getX() + 0.5D, core.getY() + 0.5D,

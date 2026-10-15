@@ -49,6 +49,7 @@ public final class AirRaidRelayBlock extends PortBlock {
             return false;
         }
         if (!world.isRemote) {
+            if (!com.wartec.wartecmod.port.integration.OwnershipAccess.mayRebind(player,((TileEntityWarTechMachine)tile).getOwnerTeam())) return true;
             String team = PlayerTeamPersistence.getPlayerTeam(player);
             ((TileEntityWarTechMachine) tile).setOwnerTeam(team);
             player.sendMessage(new TextComponentString(

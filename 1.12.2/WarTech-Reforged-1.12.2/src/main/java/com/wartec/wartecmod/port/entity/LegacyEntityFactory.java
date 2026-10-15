@@ -11,6 +11,11 @@ public final class LegacyEntityFactory {
         if (profile == null || profile == MissileProfile.INVALID) {
             throw new IllegalArgumentException("No concrete dev66 missile for profile " + profile);
         }
+        if(ModernMissileProfile.of(profile)!=null) {
+            EntityWarTechMissile missile=new LegacyEntityTypes.GenericMissile(world);
+            missile.setMissileProfile(profile);
+            return missile;
+        }
         switch (profile) {
             case CRUISE_HE: return new LegacyEntityTypes.CruiseMissileHe(world);
             case CRUISE_CLUSTER: return new LegacyEntityTypes.CruiseMissileCluster(world);
@@ -67,7 +72,12 @@ public final class LegacyEntityFactory {
 
     public static EntityWarTechGroundVehicle groundVehicle(World world,
             WarTechEntityProfile profile) {
+        TubeArtilleryProfile tube=TubeArtilleryProfile.of(profile);
+        if(tube!=null)return new EntityTubeArtillery(world,tube);
+        ModernVehicleProfile modern=ModernVehicleProfile.of(profile);
+        if(modern!=null) return new EntityModernVehicle(world,modern);
         switch (profile) {
+            case TACTICAL_ISKANDER:
             case STRATEGIC_TOPOL_M:
             case STRATEGIC_YARS:
             case STRATEGIC_ORESHNIK:

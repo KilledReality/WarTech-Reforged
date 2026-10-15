@@ -406,7 +406,37 @@ public class EntityWarTechAircraft extends EntityWarTechBase
         }
     }
 
+    public void revokePlanning(java.util.UUID id,boolean returning){if(!com.wartec.wartecmod.port.planning.PlanningControl.matches(this,id))return;com.wartec.wartecmod.port.planning.PlanningFlightControl.revoke(this);if(returning && isFlying()){commandReturn(null);}}
+    public boolean planningOrder(com.wartec.wartecmod.port.planning.PlanningCommand c,com.wartec.wartecmod.port.planning.AttackOperation.Step s) {
+        if(world.isRemote || !c.owns(this) || isRemoteControlled() || isCrashed())return false;
+        switch(s.action){
+            case RETURN: com.wartec.wartecmod.port.planning.PlanningFlightControl.clear(this);commandReturn(null);return true;
+            case HOLD: if(!isFlying())return false;com.wartec.wartecmod.port.planning.PlanningFlightControl.gate(this,c,s,true);return true;
+            case TAKEOFF:
+                if(!isReady())return false;
+                queueTarget(s.x,s.y,s.z,true);if(s.slot>=0){if(s.slot>=getHardpointCount() || getStackInSlot(s.slot).isEmpty())return false;setLegacySelectedPayload(getPayloadAt(s.slot));}
+                if(!launchMission(null))return false;
+                com.wartec.wartecmod.port.planning.PlanningFlightControl.gate(this,c,s,true);return true;
+            case RELEASE:
+                if(!isFlying() || s.slot>=getHardpointCount())return false;
+                if(s.slot>=0 && getStackInSlot(s.slot).isEmpty())return false;
+                queueTarget(s.x,s.y,s.z,true);weaponReleased=false;releaseCompleted=false;
+                if(s.slot>=0)setLegacySelectedPayload(getPayloadAt(s.slot));
+                com.wartec.wartecmod.port.planning.PlanningFlightControl.gate(this,c,s,false);
+                if(isTu95()){configureTu95Route();setLegacyState(3);}else setLegacyState(2);return true;
+            default:return false;
+        }
+    }
+    private boolean planningOrbit(){
+        if(!com.wartec.wartecmod.port.planning.PlanningFlightControl.holding(this))return false;
+        net.minecraft.nbt.NBTTagCompound n=getEntityData();double angle=Math.atan2(posZ-n.getDouble("PlanningOrbitZ"),posX-n.getDouble("PlanningOrbitX"))+.18;
+        double x=n.getDouble("PlanningOrbitX")+Math.cos(angle)*100,z=n.getDouble("PlanningOrbitZ")+Math.sin(angle)*100;
+        guideTo(x,Math.min(225,Math.max(n.getDouble("PlanningOrbitY"),terrainHeight(x,z)+55)),z,getCruiseSpeed(getProfile()),.075,.22,.045);
+        n.setBoolean("PlanningHolding",true);return true;
+    }
+
     private void tickOutbound(WarTechEntityProfile profile) {
+        if(planningOrbit())return;
         if (!hasGuidanceTarget() || targetCount <= 0) {
             setLegacyState(4);
             return;
@@ -456,6 +486,7 @@ public class EntityWarTechAircraft extends EntityWarTechBase
             return;
         }
         int slot = findPayloadSlot(payload);
+        if(slot>=0 && !com.wartec.wartecmod.port.planning.PlanningFlightControl.mayRelease(this,slot))return;
         if (slot < 0 || weaponReleased) {
             setLegacyState(4);
             return;
@@ -474,12 +505,14 @@ public class EntityWarTechAircraft extends EntityWarTechBase
             setLegacyState(4);
             return;
         }
+        com.wartec.wartecmod.port.planning.PlanningFlightControl.emitted(this,ordnance);
         MissileTrackingService.registerLaunch(ordnance, posX, posY, posZ,
                 floor(getTargetX()), floor(getTargetZ()), getOwnerTeam());
         consumeHardpoint(slot);
         setLegacyPower(Math.max(0, getLegacyPower()
                 - AviationOrdnance.getEnergyCost(payload)));
         playWeaponRelease(payload);
+        if(getEntityData().getBoolean("PlanningManaged")){weaponReleased=false;setLegacyState(2);return;}
         if (!advanceMissionTarget()) {
             setLegacyState(4);
         }
@@ -511,6 +544,7 @@ public class EntityWarTechAircraft extends EntityWarTechBase
         }
         MissileTrackingService.registerLaunch(missile, posX, posY, posZ,
                 floor(target.posX), floor(target.posZ), getOwnerTeam());
+        com.wartec.wartecmod.port.planning.PlanningHooks.defenseShot(world,this,missile,target);
         MissileTrackingService.confirmReservation(world, target.getEntityId(),
                 getFighterOwnerKey(), missile.getEntityId());
         consumeHardpoint(slot);
@@ -705,6 +739,7 @@ public class EntityWarTechAircraft extends EntityWarTechBase
     }
 
     private void tickTu95Ingress() {
+        if(planningOrbit())return;
         if(getCustomCruiseCount()>0) {
             int custom=findCruiseHardpoint();
             if(custom>=0 && targetCount>0) { targetIndex=custom%targetCount;syncActiveTarget(); }
@@ -731,6 +766,7 @@ public class EntityWarTechAircraft extends EntityWarTechBase
     }
 
     private void tickTu95Launch() {
+        if(planningOrbit())return;
         double deltaX = getTargetX() + 0.5D - launchX;
         double deltaZ = getTargetZ() + 0.5D - launchZ;
         double length = Math.sqrt(deltaX * deltaX + deltaZ * deltaZ);
@@ -760,7 +796,7 @@ public class EntityWarTechAircraft extends EntityWarTechBase
         if (slot >= 0 && launchStrategicWeapon(slot, floor(getTargetX()),
                 floor(getTargetY()), floor(getTargetZ()))) {
             launchCooldown = 38 + world.rand.nextInt(9);
-            releaseCompleted = true;
+            releaseCompleted = !getEntityData().getBoolean("PlanningManaged");
         } else if (slot < 0 && !advanceTu95Target()) {
             setLegacyState(5);
         }
@@ -769,6 +805,7 @@ public class EntityWarTechAircraft extends EntityWarTechBase
     private boolean launchStrategicWeapon(int slot, int targetX,
             int targetY, int targetZ) {
         int code = getLegacyPayloadCodeAt(slot);
+        if(!com.wartec.wartecmod.port.planning.PlanningFlightControl.mayRelease(this,slot))return false;
         if(code>=13) return releaseCustomCruise(slot,null);
         if (code == 10) {
             EntityWarTechMissile missile =
@@ -785,6 +822,7 @@ public class EntityWarTechAircraft extends EntityWarTechBase
             if (!com.wartec.wartecmod.port.integration.MissileChunkLoader.spawnFlight(missile)) {
                 return false;
             }
+            com.wartec.wartecmod.port.planning.PlanningFlightControl.emitted(this,missile);
             MissileTrackingService.registerLaunch(missile, posX, posY, posZ,
                     targetX, targetZ, getOwnerTeam());
         } else if (code == 11 || code == 12) {
@@ -810,6 +848,7 @@ public class EntityWarTechAircraft extends EntityWarTechBase
             if (!world.spawnEntity(bomb)) {
                 return false;
             }
+            com.wartec.wartecmod.port.planning.PlanningFlightControl.emitted(this,bomb);
             MissileTrackingService.registerLaunch(bomb, posX, posY, posZ,
                     targetX, targetZ, getOwnerTeam());
         } else {
@@ -1253,6 +1292,7 @@ public class EntityWarTechAircraft extends EntityWarTechBase
 
     @Override
     public boolean processInitialInteract(EntityPlayer player, EnumHand hand) {
+        if (!world.isRemote && !canManage(player)) return true;
         if (hand != EnumHand.MAIN_HAND) {
             return true;
         }
@@ -2162,8 +2202,9 @@ public class EntityWarTechAircraft extends EntityWarTechBase
         if (!AviationOrdnance.isCompatible(payload, getCarrierClass())) {
             return -1;
         }
+        int preferred=getEntityData().getBoolean("PlanningManaged")?getEntityData().getInteger("PlanningSlot"):-1;
         for (int slot = 0; slot < getHardpointCount(); ++slot) {
-            if (getPayloadAt(slot) == payload && getPayloadCountAt(slot) > 0) {
+            if ((preferred<0 || preferred==slot) && getPayloadAt(slot) == payload && getPayloadCountAt(slot) > 0) {
                 return slot;
             }
         }
@@ -2214,7 +2255,9 @@ public class EntityWarTechAircraft extends EntityWarTechBase
 
     private int findAssignedStrategicWeapon(int target) {
         int divisor = Math.max(1, targetCount);
+        int preferred=getEntityData().getBoolean("PlanningManaged")?getEntityData().getInteger("PlanningSlot"):-1;
         for (int slot = 0; slot < 6; ++slot) {
+            if((preferred>=0 && preferred!=slot) || getStackInSlot(slot).isEmpty())continue;
             int code = getLegacyPayloadCodeAt(slot);
             if (slot % divisor == target
                     && (code == 10 || code == 11 || code == 12 || code>=13)) {
@@ -2405,7 +2448,8 @@ public class EntityWarTechAircraft extends EntityWarTechBase
         return 0.68D*scale;
     }
     private int findCruiseHardpoint() {
-        for(int i=0;i<getHardpointCount();i++) if(getLegacyPayloadCodeAt(i)>=13 && getPayloadCountAt(i)>0) return i;
+        int preferred=getEntityData().getBoolean("PlanningManaged")?getEntityData().getInteger("PlanningSlot"):-1;
+        for(int i=0;i<getHardpointCount();i++) if((preferred<0 || preferred==i) && getLegacyPayloadCodeAt(i)>=13 && getPayloadCountAt(i)>0) return i;
         return -1;
     }
     public com.wartec.wartecmod.port.cruise.CruiseBuild getCruiseStoreBuild(int slot) {
@@ -2429,15 +2473,15 @@ public class EntityWarTechAircraft extends EntityWarTechBase
     }
     @Override public boolean isItemValidForSlot(int slot,ItemStack stack) {
         if(slot>=0 && slot<6) {
-            if(stack.getItem()==WarTechContent.ASSEMBLED_CRUISE) return getCruiseLoadError(slot,stack)==null;
+            if(com.wartec.wartecmod.port.cruise.CruiseBuild.isStore(stack)) return getCruiseLoadError(slot,stack)==null;
             if(!isTu95() && getCustomCruiseCount()>0) return false;
         }
         return super.isItemValidForSlot(slot,stack);
     }
     private ItemStack preparedAircraftCruise(int slot) {
-        return com.wartec.wartecmod.port.cruise.CruiseAircraftLoadout.prepare(getStackInSlot(slot),
+        return com.wartec.wartecmod.port.planning.PlanningStores.prepare(this,com.wartec.wartecmod.port.cruise.CruiseAircraftLoadout.prepare(getStackInSlot(slot),
             hasGuidanceTarget()?new Vec3d(getTargetX()+.5,getTargetY()+.5,getTargetZ()+.5):null,
-            world==null?0:world.provider.getDimension());
+            world==null?0:world.provider.getDimension()));
     }
     /** Rebuild automatic orders when stores change, never mutate an active sortie or manual queue. */
     public boolean importCruiseTargets(boolean replaceManual) {
@@ -2476,15 +2520,17 @@ public class EntityWarTechAircraft extends EntityWarTechBase
         importCruiseTargets(false);
         if(getCustomCruiseCount()>0 && (world==null || !world.isRemote)) {
             setLegacyFlags(getLegacyFlags() & ~8);setLegacySelectedPayload(9);
-            for(int i=0;i<getHardpointCount();i++) if(getLegacyPayloadCodeAt(i)>=13) { setLegacySelectedHardpoint(i);break; }
+            int preferred=getEntityData().getBoolean("PlanningManaged")?getEntityData().getInteger("PlanningSlot"):-1;
+        for(int i=0;i<getHardpointCount();i++) if((preferred<0 || preferred==i) && getLegacyPayloadCodeAt(i)>=13) { setLegacySelectedHardpoint(i);break; }
         }
         if(world==null || world.isRemote) return;
         NBTTagCompound stores=new NBTTagCompound();
-        for(int i=0;i<6;i++) if(getStackInSlot(i).getItem()==WarTechContent.ASSEMBLED_CRUISE)
+        for(int i=0;i<6;i++) if(com.wartec.wartecmod.port.cruise.CruiseBuild.isStore(getStackInSlot(i)))
             stores.setTag("S"+i,com.wartec.wartecmod.port.cruise.CruiseBuild.fromStack(getStackInSlot(i)).write());
         dataManager.set(CRUISE_STORES,stores);
     }
     private boolean releaseCustomCruise(int slot,EntityPlayer pilot) {
+        if(!com.wartec.wartecmod.port.planning.PlanningFlightControl.mayRelease(this,slot))return false;
         if(world.isRemote || !isPayloadCompatible(getStackInSlot(slot))) return false;
         if(posY<8 || getLegacyPower()<12000 || (!isRemoteControlled() && !isFlying())) {
             if(pilot!=null) com.wartec.wartecmod.port.cruise.CruiseText.tell(pilot,"error.air_release");return false;
@@ -2514,6 +2560,7 @@ public class EntityWarTechAircraft extends EntityWarTechBase
             if(pilot!=null) pilot.sendMessage(new net.minecraft.util.text.TextComponentTranslation("flight.error.chunks"));return false;
         }
         if(!com.wartec.wartecmod.port.integration.MissileChunkLoader.spawnFlight(missile)) { MissileChunkLoader.untrack(missile);return false; }
+        com.wartec.wartecmod.port.planning.PlanningFlightControl.emitted(this,missile);
         consumeHardpoint(slot);setLegacyPower(getLegacyPower()-12000);cruiseEgress.reset();cruiseDeparture.reset();return true;
     }
     public double getCruiseAimingRange() {
@@ -2521,6 +2568,7 @@ public class EntityWarTechAircraft extends EntityWarTechBase
             :getProfile()==WarTechEntityProfile.F_16C?1800:1000;
     }
     private void tickCustomCruiseIngress(int slot,boolean strategic) {
+        if(planningOrbit())return;
         if(slot<0) { setLegacyState(strategic?5:4);return; }
         ItemStack prepared=preparedAircraftCruise(slot);
         com.wartec.wartecmod.port.cruise.CruiseBuild build=com.wartec.wartecmod.port.cruise.CruiseBuild.fromStack(prepared);
@@ -2548,6 +2596,7 @@ public class EntityWarTechAircraft extends EntityWarTechBase
         }
         if(distance>=minimum && getPositionVector().distanceTo(goal)<=maximum && forward>.85 && releaseCustomCruise(slot,null)) {
             weaponReleased=true;
+            if(getEntityData().getBoolean("PlanningManaged")){weaponReleased=false;setLegacyState(strategic?3:2);return;}
             if(findCruiseHardpoint()>=0) {
                 if(targetIndex+1<targetCount) { ++targetIndex;syncActiveTarget(); }
                 weaponReleased=false;setLegacyState(strategic?3:2);

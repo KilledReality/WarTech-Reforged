@@ -8,7 +8,10 @@ import com.wartec.wartecmod.port.uav.UavReconReport;
 public class CommonProxy {
     public void spawnCruiseVisualEvent(com.wartec.wartecmod.port.network.CruiseVisualEventMessage message) { }
     public void updateCruiseTrail(com.wartec.wartecmod.port.entity.EntityCustomCruise entity) { }
+    public void acceptPlanningSnapshot(net.minecraft.nbt.NBTTagCompound data) { }
     public void preInit() {
+        net.minecraftforge.common.MinecraftForge.EVENT_BUS.register(new com.wartec.wartecmod.port.planning.PlanningEvents());
+        net.minecraftforge.common.MinecraftForge.EVENT_BUS.register(new com.wartec.wartecmod.port.entity.GroundVehicleEvents());
     }
 
     public void spawnLegacyMushroomEffect(double x, double y, double z,

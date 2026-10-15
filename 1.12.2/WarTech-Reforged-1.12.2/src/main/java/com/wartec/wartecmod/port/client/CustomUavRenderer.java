@@ -104,7 +104,7 @@ final class CustomUavRenderer {
             GL11.glPushAttrib(GL11.GL_ALL_ATTRIB_BITS);
             CruiseBuild missile=entity.hasCruiseStore()?CruiseBuild.fromStack(entity.getCruiseStore()):null;
             double y=UavCruiseCarriage.mountY(frame,missile);
-            double top=UavCruiseCarriage.attachY(frame),bottom=y+UavCruiseCarriage.storeTop(missile);
+            double top=UavCruiseCarriage.attachY(frame),bottom=y+UavCruiseCarriage.storeBodyTop(missile);
             Minecraft.getMinecraft().getTextureManager().bindTexture(CLEAN_COMPOSITE_SKIN);
             GL11.glEnable(GL11.GL_NORMALIZE);color(.78F,.80F,.79F);
             GL11.glPushMatrix();GL11.glTranslated(0,bottom,0);GL11.glScaled(1,top-bottom+.015,1);

@@ -126,6 +126,7 @@ public final class RemoteControlClient {
         FMLCommonHandler.instance().bus().register(INSTANCE);
         MinecraftForge.EVENT_BUS.register(INSTANCE);
     }
+    public static boolean isActive() {return INSTANCE.entityId>=0;}
 
     public static void acceptServerState(int entityId, boolean active,
             int vehicleType, String message) {

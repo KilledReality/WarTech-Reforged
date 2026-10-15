@@ -158,6 +158,17 @@ public class CruiseGuidanceTest {
         assertTrue(CruiseNavigation.loadedRay(new Vec3d(0,70,0),new Vec3d(260,70,260),(x,z)->{checks[0]++;return true;}));assertTrue(checks[0]<128);
         Vec3d p=new Vec3d(100,64,0);assertEquals(p,CruiseSeeker.lead(p,new Vec3d(Double.NaN,0,0),Vec3d.ZERO,1,CruisePartDefinition.NAV_TERRAIN));
     }
+    @Test public void rayEndingOnMixedDirectionCornerStopsAtItsActualEndpoint() {
+        for(int signX:new int[]{-1,1}) for(int signZ:new int[]{-1,1}) {
+            Vec3d from=new Vec3d(16-signX*.01,4,16-signZ*.02),to=new Vec3d(16,3,16);
+            final int[] calls={0};
+            assertTrue(CruiseNavigation.loadedRay(from,to,(x,z)->{calls[0]++;return x>=0 && x<=1 && z>=0 && z<=1;}));
+            assertTrue("must not walk past the endpoint",calls[0]<=4);
+            assertFalse(CruiseNavigation.loadedRay(from,to,(x,z)->!(x==1 && z==1)));
+        }
+        assertTrue(CruiseNavigation.loadedRay(new Vec3d(34799.98881645872,3.818,32000.000028937564),
+            new Vec3d(34800,3,32000),(x,z)->x>=2174 && x<=2175 && z==2000));
+    }
     @Test public void heavyLoiterSpeedMakesTheSelectedOrbitAchievableWithoutChangingCruiseStats() {
         CruiseStats stats=CruiseBuild.starter(CruisePartDefinition.BODY_LONG_RANGE).calculateStats();
         double top=stats.getSpeed(),turn=stats.getTurnRate(),area=CruiseSeeker.area(CruisePartDefinition.NAV_TERRAIN);

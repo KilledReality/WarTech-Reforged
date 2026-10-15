@@ -1,5 +1,7 @@
 package com.wartec.flightqa;
 import com.wartec.wartecmod.port.network.RemoteControlTelemetryMessage;
+import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.util.math.BlockPos;
 
 import com.google.gson.*;
 import com.mojang.authlib.GameProfile;
@@ -8,6 +10,7 @@ import com.wartec.wartecmod.port.content.*;
 import com.wartec.wartecmod.port.entity.*;
 import com.wartec.wartecmod.port.gameplay.*;
 import com.wartec.wartecmod.port.gui.WarTechGuiHandler;
+import com.wartec.wartecmod.port.gui.ContainerLegacyEntity;
 import com.wartec.wartecmod.port.uav.*;
 import java.io.File;
 import java.nio.charset.StandardCharsets;
@@ -66,6 +69,9 @@ public final class ClientUiQa {
         world.doPreChunk(0,0,true);
         player=new EntityPlayerSP(mc,world,handler,new StatisticsManager(),new RecipeBook());
         inventory=player.inventory;
+        if(Boolean.getBoolean("wartech.tubeuiqa")){setupTube();return;}
+        if(Boolean.getBoolean("wartech.modernuiqa")) { setupModern();return; }
+        if(Boolean.getBoolean("wartech.strategicuiqa")) { setupStrategic();return; }
         cameraRegression();
         for(String language:new String[]{"ru_ru","en_us"}) {
             add(language+"-iff",()->{locale(language);return new GuiLegacyIffTeamSelector();});
@@ -320,6 +326,9 @@ public final class ClientUiQa {
     private final class Canvas extends GuiScreen {
         private final GuiScreen delegate;
         Canvas(GuiScreen delegate) { this.delegate=delegate; }
+        @Override public void updateScreen() {
+            mc.player=player;try { delegate.updateScreen(); } finally { mc.player=null; }
+        }
         @Override public void drawScreen(int x,int y,float partial) {
             long start=System.nanoTime();mc.player=player;
             try { delegate.drawScreen(-999,-999,partial); }
@@ -336,8 +345,9 @@ public final class ClientUiQa {
     private static final class ItemGrid extends GuiScreen {
         final NonNullList<ItemStack> items=NonNullList.create();final String title;
         ItemGrid(CreativeTabs tab) { tab.displayAllRelevantItems(items);title=tab.getTranslatedTabLabel(); }
+        ItemGrid(java.util.List<ItemStack> stacks){items.addAll(stacks);title="D-30 / CAESAR";}
         @Override public void drawScreen(int x,int y,float partial) {
-            drawDefaultBackground();int columns=24,left=(width-columns*20)/2,top=35;
+            drawDefaultBackground();int columns=Math.min(24,Math.max(1,(width-40)/20)),left=(width-columns*20)/2,top=35;
             GuiTheme.frame(left-8,top-25,columns*20+16,Math.min(height-20,((items.size()+columns-1)/columns)*20+37));
             GuiTheme.text(fontRenderer,title,left,top-18,columns*20,GuiTheme.TEXT);
             RenderHelper.enableGUIStandardItemLighting();
@@ -379,6 +389,470 @@ public final class ClientUiQa {
                 }
             } catch(ReflectiveOperationException ex) { throw new IllegalStateException(ex); }
             RenderHelper.disableStandardItemLighting();org.lwjgl.opengl.GL11.glPopAttrib();org.lwjgl.opengl.GL11.glPopMatrix();
+        }
+    }
+
+    private EntityStrategicTel fixture(StrategicSystemProfile system,int deployment,int launch,int mask,int slot) {
+        EntityStrategicTel tel=new EntityStrategicTel(world,system);tel.setPosition(0,4,0);tel.setOwnerIdentity(player.getUniqueID(),"blue");
+        for(int i=0;i<(system.isTactical()?2:1);i++) if((mask&(1<<i))!=0)
+            tel.setInventorySlotContents(i,new ItemStack(system.isTactical()?WarTechContent.ITEM_ISKANDER_MISSILE:WarTechContent.STRATEGIC_MISSILE,1,system.isTactical()?0:system.ordinal()));
+        net.minecraft.nbt.NBTTagCompound nbt=new net.minecraft.nbt.NBTTagCompound();tel.writeToNBT(nbt);
+        nbt.setInteger("TelDeploymentTicks",deployment);nbt.setInteger("StrategicLaunchTicks",launch);nbt.setInteger("TelLaunchSlot",slot);tel.readFromNBT(nbt);
+        tel.setGuidanceTarget(123456.5,64.5,-234567.5);tel.setDeployed(deployment>0);return tel;
+    }
+    private EntityModernVehicle modernFixture(ModernVehicleProfile kind,int deployment,boolean loaded) {
+        for(int x=0;x<9;x++) for(int z=0;z<9;z++) world.setBlockState(new net.minecraft.util.math.BlockPos(x,3,z),net.minecraft.init.Blocks.GRASS.getDefaultState(),3);
+        EntityModernVehicle vehicle=new EntityModernVehicle(world,kind);vehicle.setVisual("ground/modern_"+kind.model,0);
+        vehicle.setPosition(0,4,0);vehicle.setOwnerIdentity(player.getUniqueID(),"blue");vehicle.setLegacyPower(vehicle.getEnergyCapacity());
+        for(int i=0;i<kind.slots;i++) if(loaded) vehicle.setInventorySlotContents(i,new ItemStack(kind.ammunition()));
+        net.minecraft.nbt.NBTTagCompound nbt=new net.minecraft.nbt.NBTTagCompound();vehicle.writeToNBT(nbt);
+        nbt.setInteger("ModernDeployment",deployment);nbt.setInteger("ModernReload",0);
+        net.minecraft.nbt.NBTTagCompound targets=new net.minecraft.nbt.NBTTagCompound();
+        for(int i=0;i<vehicle.targetCount();i++) { net.minecraft.nbt.NBTTagCompound t=new net.minecraft.nbt.NBTTagCompound();t.setInteger("X",-1200+i*75);t.setInteger("Y",64);t.setInteger("Z",2200+i*40);targets.setTag("T"+i,t); }
+        targets.setInteger("Radius",kind==ModernVehicleProfile.GRAD?50:0);nbt.setTag("ModernTargets",targets);vehicle.readFromNBT(nbt);vehicle.setDeployed(deployment>0);
+        net.minecraft.nbt.NBTTagCompound visual=new net.minecraft.nbt.NBTTagCompound();
+        if(loaded) { visual.setInteger("Low",kind.slots>=32?-1:(1<<kind.slots)-1);visual.setInteger("High",kind.slots>32?(1<<(kind.slots-32))-1:0); }
+        try { vehicle.getDataManager().set((net.minecraft.network.datasync.DataParameter<net.minecraft.nbt.NBTTagCompound>)value(EntityModernVehicle.class,null,"VISUAL"),visual); }
+        catch(Exception ex) { throw new IllegalStateException(ex); }return vehicle;
+    }
+    private EntityTubeArtillery tubeFixture(TubeArtilleryProfile p,float yaw,float pitch,int shotAge){
+        EntityTubeArtillery gun=new EntityTubeArtillery(world,p);gun.setVisual("ground/tube_"+p.model,0);gun.setPosition(0,4,0);gun.setOwner(player);gun.setLegacyPower(50000);gun.setDeployed(true);
+        gun.setInventorySlotContents(0,new ItemStack(WarTechContent.ARTILLERY_AMMO,16,0));gun.setInventorySlotContents(1,new ItemStack(WarTechContent.ARTILLERY_AMMO,8,2));
+        NBTTagCompound n=gun.writeToNBT(new NBTTagCompound()),s=new NBTTagCompound();s.setInteger("Deployment",p.prepareTicks);s.setInteger("ShotAge",shotAge);s.setFloat("Yaw",yaw);s.setFloat("Pitch",pitch);s.setInteger("Ammo",24);s.setInteger("SelectedCount",16);world.setBlockState(new BlockPos(0,3,0),net.minecraft.init.Blocks.BEDROCK.getDefaultState(),2);s.setLong("Target",new BlockPos(600,64,800).toLong());n.setTag("TubeState",s);gun.readFromNBT(n);gun.onUpdate();return gun;
+    }
+    private void setupTube(){
+        for(String language:new String[]{"ru_ru","en_us"})for(TubeArtilleryProfile p:TubeArtilleryProfile.values())add(language+"-tube-gui-"+p.model,()->{locale(language);return new GuiTubeArtillery(inventory,tubeFixture(p,0,35,1000));});
+        for(TubeArtilleryProfile p:TubeArtilleryProfile.values())for(int moment:new int[]{0,1,2,3,4,5})add("tube-model-"+p.model+"-"+moment,()->new ModernModel(tubeFixture(p,moment==0?0:55,moment==0?0:moment==5?70:35,moment==2?1:moment==3?4:moment==4?16:1000),null,1));
+        add("tube-inventory",()->new ItemGrid(Arrays.asList(new ItemStack(WarTechContent.D30),new ItemStack(WarTechContent.CAESAR))));
+    }
+    private void setupModern() {
+        try { modernPanelRegression(); }catch(Exception ex) { throw new IllegalStateException(ex); }
+        for(int i=0;i<4;i++) { final int heading=i*90;add("tor-travel-heading-"+heading,()->new TorTravel(heading)); }
+        for(ModernVehicleProfile kind:ModernVehicleProfile.values()) if(kind.isMlrs()) for(int i=0;i<4;i++) {
+            final int phase=i;
+            add("mlrs-stow-"+kind.model+"-"+phase,()->{
+                EntityModernVehicle vehicle=modernFixture(kind,phase<2?kind.prepareTicks:phase==2?kind.prepareTicks/2:0,true);
+                try { vehicle.getDataManager().set((net.minecraft.network.datasync.DataParameter<Float>)value(EntityModernVehicle.class,null,"TURRET"),phase==0?120F:phase==1?60F:0F); }
+                catch(Exception ex) { throw new IllegalStateException(ex); }
+                return new DetailModel(vehicle,false,28,0,0);
+            });
+        }
+        for(int angle=0;angle<2;angle++) {
+            final boolean side=angle==1;
+            for(WarTechEntityProfile carrier:new WarTechEntityProfile[]{WarTechEntityProfile.SU_27,WarTechEntityProfile.F_16C,WarTechEntityProfile.TU_95})
+                add("banderol-mounted-"+carrier+"-"+angle,()->new DetailModel(banderolFixture(carrier),side,23,0,0));
+            add("banderol-mounted-uav-"+angle,()->new DetailModel(banderolFixture(null),side,42,0,0));
+            for(int lod=0;lod<3;lod++) { final int level=lod;
+                add("uragan-cab-lod"+lod+"-"+angle,()->new DetailModel(modernFixture(ModernVehicleProfile.URAGAN,0,true),side,65,4.1,level));
+            }
+        }
+        add("air-defense-scale-comparison",()->new DefenseScale());
+        for(String language:new String[]{"ru_ru","en_us"}) {
+            for(ModernVehicleProfile kind:ModernVehicleProfile.values()) add(language+"-modern-panel-"+kind.model,()->{
+                locale(language);EntityModernVehicle fixture=modernFixture(kind,kind.prepareTicks,true);
+                if(!kind.isMlrs()) { fixture.setLegacyOperational(true);fixture.setLegacyContacts(3);fixture.setLegacyBlip(0,(-120&65535)<<16|80);fixture.setLegacyBlip(1,(60<<16)|(-90&65535));fixture.setLegacyBlip(2,(150<<16)|40); }
+                return new GuiModernVehicle(inventory,fixture);});
+            add(language+"-banderol-programmer",()->{locale(language);inventory.setInventorySlotContents(0,new ItemStack(WarTechContent.S8000_MISSILE));return new GuiCruiseProgrammer(inventory,0);});
+            add(language+"-modern-inventory",()->{locale(language);return new ModernInventory();});
+            for(int page=0;page<2;page++) { final int part=page;add(language+"-mlrs-ammunition-"+page,()->{locale(language);return new ModernAmmoInventory(part);}); }
+        }
+        for(ModernVehicleProfile kind:ModernVehicleProfile.values()) for(int phase=0;phase<5;phase++) {
+            final int moment=phase;add("modern-model-"+kind.model+"-"+phase,()->new ModernModel(modernFixture(kind,moment<3?kind.prepareTicks*moment/2:kind.prepareTicks,true),null,moment));
+        }
+        for(ModernMissileProfile profile:new ModernMissileProfile[]{ModernMissileProfile.FP5,ModernMissileProfile.FP7,ModernMissileProfile.S8000}) add("modern-flight-"+profile.model,()->{
+            EntityWarTechMissile missile=LegacyEntityFactory.missile(world,profile.missile);missile.setVisual("missile/"+profile.missile.getIntentPath(),0);missile.ticksExisted=60;missile.setArmed(true);
+            return new ModernModel(missile,null,0);
+        });
+        for(ModernMissileProfile profile:ModernMissileProfile.values()) if(profile.isMlrs()) for(int phase=0;phase<3;phase++) {
+            final int slope=phase;add("mlrs-flight-"+profile.name().toLowerCase(java.util.Locale.ROOT)+"-"+phase,()->{
+                EntityWarTechMissile missile=LegacyEntityFactory.missile(world,profile.missile);missile.setVisual("missile/"+profile.missile.getIntentPath(),0);missile.setArmed(true);
+                missile.motionX=.2;missile.motionY=slope==0?.8:slope==1?0:-.8;missile.motionZ=1;
+                try { method(EntityWarTechMissile.class,"updateLegacyRotation").invoke(missile); }catch(Exception ex) { throw new IllegalStateException(ex); }
+                return new ModernModel(missile,null,0);
+            });
+        }
+        for(ModernVehicleProfile kind:new ModernVehicleProfile[]{ModernVehicleProfile.GRAD,ModernVehicleProfile.HIMARS,ModernVehicleProfile.BUK_M3,ModernVehicleProfile.OSA}) for(int phase=0;phase<3;phase++) {
+            final int moment=phase;add("modern-exit-"+kind.model+"-"+phase,()->{
+                EntityModernVehicle vehicle=modernFixture(kind,kind.prepareTicks,true);
+                try {
+                    if(!kind.isMlrs()) { vehicle.getDataManager().set((net.minecraft.network.datasync.DataParameter<Integer>)value(EntityModernVehicle.class,null,"CAP_SLOT"),0);vehicle.getDataManager().set((net.minecraft.network.datasync.DataParameter<Integer>)value(EntityModernVehicle.class,null,"CAP_TICKS"),30); }
+                    ModernLaunchGeometry.Shot shot=ModernLaunchGeometry.shot(vehicle,0);
+                    EntityWarTechMissile missile=LegacyEntityFactory.missile(world,((MissileItem)kind.ammunition()).getProfile());
+                    missile.configureModernVisual(shot.scale,!kind.isMlrs(),shot.direction,shot.scale[1]+.25F);
+                    if(!kind.isMlrs()) missile.configureModernExit(kind,0);
+                    missile.setArmed(true);missile.rotationYaw=(float)Math.toDegrees(Math.atan2(shot.direction.x,shot.direction.z));missile.rotationPitch=(float)-Math.toDegrees(Math.asin(shot.direction.y));
+                    missile.setPosition(shot.origin.x,shot.origin.y+shot.direction.y*moment*2,shot.origin.z+shot.direction.z*moment*2);
+                    vehicle.getDataManager().set((net.minecraft.network.datasync.DataParameter<net.minecraft.nbt.NBTTagCompound>)value(EntityModernVehicle.class,null,"VISUAL"),new net.minecraft.nbt.NBTTagCompound());
+                    return new ModernModel(vehicle,missile,moment);
+                } catch(Exception ex) { throw new IllegalStateException(ex); }
+            });
+        }
+    }
+    private EntityWarTechBase banderolFixture(WarTechEntityProfile carrier) {
+        try {
+            if(carrier==null) {
+                EntityCustomUav uav=new EntityCustomUav(world);uav.configure(UavBuild.cruiseCarrier(UavAirframe.STRIKE),null);
+                uav.getDataManager().set((net.minecraft.network.datasync.DataParameter<ItemStack>)value(EntityCustomUav.class,null,"VENTRAL_STORE"),new ItemStack(WarTechContent.S8000_MISSILE));
+                return uav;
+            }
+            EntityWarTechAircraft aircraft=LegacyEntityFactory.aircraft(world,carrier);
+            int count=carrier==WarTechEntityProfile.TU_95?6:2;
+            net.minecraft.nbt.NBTTagCompound stores=new net.minecraft.nbt.NBTTagCompound();
+            for(int slot=0;slot<count;slot++) { aircraft.setInventorySlotContents(slot,new ItemStack(WarTechContent.S8000_MISSILE));stores.setTag("S"+slot,com.wartec.wartecmod.port.cruise.CruiseBuild.banderol().write()); }
+            aircraft.getDataManager().set((net.minecraft.network.datasync.DataParameter<net.minecraft.nbt.NBTTagCompound>)value(EntityWarTechAircraft.class,null,"CRUISE_STORES"),stores);
+            return aircraft;
+        } catch(Exception ex) { throw new IllegalStateException(ex); }
+    }
+    private final class DetailModel extends GuiScreen {
+        final EntityWarTechBase entity;final boolean side;final int zoom,lod;final double focus;
+        DetailModel(EntityWarTechBase entity,boolean side,int zoom,double focus,int lod) { this.entity=entity;this.side=side;this.zoom=zoom;this.focus=focus;this.lod=lod; }
+        @Override public void drawScreen(int x,int y,float partial) {
+            drawRect(0,0,width,height,0xFF879299);drawString(fontRenderer,entity.getProfile()+" / native model detail / LOD "+lod,12,12,0xFFFFFF);
+            net.minecraft.entity.Entity saved=mc.getRenderViewEntity();player.setPosition(lod==0?0:lod==1?100:256,4,0);mc.setRenderViewEntity(player);
+            org.lwjgl.opengl.GL11.glPushMatrix();org.lwjgl.opengl.GL11.glPushAttrib(org.lwjgl.opengl.GL11.GL_ALL_ATTRIB_BITS);
+            org.lwjgl.opengl.GL11.glTranslatef(width*.5F,height*.67F,100);org.lwjgl.opengl.GL11.glScalef(zoom,-zoom,zoom);
+            org.lwjgl.opengl.GL11.glRotatef(side?0:16,1,0,0);org.lwjgl.opengl.GL11.glRotatef(side?90:130,0,1,0);
+            org.lwjgl.opengl.GL11.glTranslated(0,focus==0?0:-1.8,-focus);RenderHelper.enableStandardItemLighting();
+            try { method(Class.forName("com.wartec.wartecmod.port.client.LegacyRenderLibrary"),"renderEntity",EntityWarTechBase.class,double.class,double.class,double.class,float.class,float.class,float.class).invoke(null,entity,0D,0D,0D,0F,Float.NaN,Float.NaN); }
+            catch(Exception ex) { throw new IllegalStateException(ex); }
+            RenderHelper.disableStandardItemLighting();org.lwjgl.opengl.GL11.glPopAttrib();org.lwjgl.opengl.GL11.glPopMatrix();mc.setRenderViewEntity(saved);
+            if(org.lwjgl.opengl.GL11.glGetError()!=0) throw new IllegalStateException("Detail model GL error");
+        }
+    }
+    private final class TorTravel extends GuiScreen {
+        final float heading;TorTravel(float heading) { this.heading=heading; }
+        @Override public void drawScreen(int x,int y,float partial) {
+            drawRect(0,0,width,height,0xFF879299);
+            drawString(fontRenderer,"Tor native hull / yaw "+heading+" / green arrow = W movement",12,12,0xFFFFFF);
+            EntityWarTechGroundVehicle tor=new EntityWarTechGroundVehicle(world,WarTechEntityProfile.MOBILE_AIR_DEFENSE);tor.setVisual("deployment/mobile_air_defense",0);
+            org.lwjgl.opengl.GL11.glPushMatrix();org.lwjgl.opengl.GL11.glPushAttrib(org.lwjgl.opengl.GL11.GL_ALL_ATTRIB_BITS);
+            org.lwjgl.opengl.GL11.glTranslatef(width*.5F,height*.67F,100);org.lwjgl.opengl.GL11.glScalef(38,-38,38);
+            org.lwjgl.opengl.GL11.glRotatef(65,1,0,0);org.lwjgl.opengl.GL11.glRotatef(-30,0,1,0);RenderHelper.enableStandardItemLighting();
+            try { method(Class.forName("com.wartec.wartecmod.port.client.LegacyRenderLibrary"),"renderEntity",EntityWarTechBase.class,double.class,double.class,double.class,float.class,float.class,float.class).invoke(null,tor,0D,0D,0D,0F,heading,0F); }
+            catch(Exception ex) { throw new IllegalStateException(ex); }
+            RenderHelper.disableStandardItemLighting();org.lwjgl.opengl.GL11.glDisable(org.lwjgl.opengl.GL11.GL_TEXTURE_2D);org.lwjgl.opengl.GL11.glDisable(org.lwjgl.opengl.GL11.GL_LIGHTING);
+            org.lwjgl.opengl.GL11.glColor3f(.2F,1,.2F);org.lwjgl.opengl.GL11.glLineWidth(3);org.lwjgl.opengl.GL11.glBegin(org.lwjgl.opengl.GL11.GL_LINES);
+            double a=Math.toRadians(heading),dx=-Math.sin(a),dz=Math.cos(a),sx=Math.cos(a),sz=Math.sin(a);
+            org.lwjgl.opengl.GL11.glVertex3d(dx*3.5,.05,dz*3.5);org.lwjgl.opengl.GL11.glVertex3d(dx*7,.05,dz*7);
+            for(int side:new int[]{-1,1}) {org.lwjgl.opengl.GL11.glVertex3d(dx*7,.05,dz*7);org.lwjgl.opengl.GL11.glVertex3d(dx*6+sx*side*.5,.05,dz*6+sz*side*.5);}
+            org.lwjgl.opengl.GL11.glEnd();org.lwjgl.opengl.GL11.glPopAttrib();org.lwjgl.opengl.GL11.glPopMatrix();
+            if(org.lwjgl.opengl.GL11.glGetError()!=0) throw new IllegalStateException("Tor travel GL error");
+        }
+    }
+    private final class DefenseScale extends GuiScreen {
+        @Override public void drawScreen(int x,int y,float partial) {
+            drawRect(0,0,width,height,0xFF879299);drawString(fontRenderer,"S400 / Patriot / Osa / S400 radar - SAME scale",12,12,0xFFFFFF);
+            for(int i=0;i<4;i++) {
+                org.lwjgl.opengl.GL11.glPushMatrix();org.lwjgl.opengl.GL11.glPushAttrib(org.lwjgl.opengl.GL11.GL_ALL_ATTRIB_BITS);
+                org.lwjgl.opengl.GL11.glTranslatef(width*(i+.5F)/4,height*.79F,100);org.lwjgl.opengl.GL11.glScalef(11,-11,11);
+                org.lwjgl.opengl.GL11.glRotatef(12,1,0,0);org.lwjgl.opengl.GL11.glRotatef(90,0,1,0);RenderHelper.enableStandardItemLighting();
+                try {
+                    Class<?> lib=Class.forName("com.wartec.wartecmod.port.client.LegacyRenderLibrary");
+                    if(i<2) method(lib,"renderBlock",String.class,double.class,double.class,double.class,TileEntityWarTechMachine.class,EnumFacing.class,float.class)
+                        .invoke(null,i==0?"s400launcher":"patriotlauncher",-.5D,0D,-.5D,null,EnumFacing.NORTH,0F);
+                    else method(lib,"renderEntity",EntityWarTechBase.class,double.class,double.class,double.class,float.class,float.class,float.class)
+                        .invoke(null,i==2?modernFixture(ModernVehicleProfile.OSA,80,true):LegacyEntityFactory.groundVehicle(world,WarTechEntityProfile.S400_RADAR),0D,0D,0D,0F,Float.NaN,Float.NaN);
+                } catch(Exception ex) { throw new IllegalStateException(ex); }
+                RenderHelper.disableStandardItemLighting();org.lwjgl.opengl.GL11.glPopAttrib();org.lwjgl.opengl.GL11.glPopMatrix();
+            }
+        }
+    }
+    private void modernPanelRegression() throws Exception {
+        EntityPlayerSP before=mc.player;mc.player=player;
+        try {
+            JsonArray checks=new JsonArray();locale("ru_ru");
+            for(ModernVehicleProfile kind:ModernVehicleProfile.values()) require(mc.getRenderItem().getItemModelWithOverrides(new ItemStack(kind.deploymentItem()),world,player).isBuiltInRenderer(),"3d_inventory_"+kind.model,checks);
+            for(net.minecraft.item.Item item:WarTechContent.getItems()) if(item instanceof MissileItem && ModernMissileProfile.of(((MissileItem)item).getProfile())!=null) require(mc.getRenderItem().getItemModelWithOverrides(new ItemStack(item),world,player).isBuiltInRenderer(),"3d_inventory_"+item.getRegistryName(),checks);
+            for(net.minecraft.item.Item item:WarTechContent.getItems()) if(item instanceof MissileItem && ModernMissileProfile.of(((MissileItem)item).getProfile())!=null && ModernMissileProfile.of(((MissileItem)item).getProfile()).isMlrs()) for(int variant=0;variant<5;variant++) {
+                ItemStack ammo=new ItemStack(item,16,variant);
+                require(mc.getRenderItem().getItemModelWithOverrides(ammo,world,player).isBuiltInRenderer(),"3d_payload_"+item.getRegistryName()+"_"+variant,checks);
+                require(!ammo.getDisplayName().startsWith("item.") && ammo.getMaxStackSize()==16,"localized_stack16_"+item.getRegistryName()+"_"+variant,checks);
+            }
+            EntityModernVehicle vehicle=modernFixture(ModernVehicleProfile.HIMARS,80,true);GuiModernVehicle gui=new GuiModernVehicle(inventory,vehicle);
+            ScaledResolution resolution=new ScaledResolution(mc);gui.setWorldAndResolution(mc,resolution.getScaledWidth(),resolution.getScaledHeight());gui.updateScreen();
+            GuiTextField[][] inputs=(GuiTextField[][])value(GuiModernVehicle.class,gui,"fields");require(inputs.length==6,"six_independent_himars_targets",checks);
+            inputs[1][0].setText("34567");gui.updateScreen();
+            List<GuiButton> buttons=(List<GuiButton>)value(GuiScreen.class,gui,"field_146292_n");
+            require(buttons.stream().anyMatch(b->b.id==0 && !b.enabled),"unsaved_target_blocks_salvo",checks);
+            net.minecraft.nbt.NBTTagCompound nbt=new net.minecraft.nbt.NBTTagCompound();vehicle.writeToNBT(nbt);net.minecraft.nbt.NBTTagCompound targets=nbt.getCompoundTag("ModernTargets");
+            targets.getCompoundTag("T0").setInteger("X",-1100);targets.getCompoundTag("T0").setInteger("Revision",1);vehicle.readFromNBT(nbt);gui.updateScreen();
+            require(inputs[0][0].getText().equals("-1100") && inputs[1][0].getText().equals("34567"),"target_import_preserves_other_row_draft",checks);
+            targets.getCompoundTag("T1").setInteger("Revision",1);vehicle.readFromNBT(nbt);gui.updateScreen();
+            require(inputs[1][0].getText().equals("-1125") && buttons.stream().anyMatch(b->b.id==0 && b.enabled),"same_coordinate_import_acknowledges_draft",checks);
+            for(GuiTextField[] row:inputs) for(GuiTextField input:row) require(input.y>=0 && input.y+16<=resolution.getScaledHeight(),"visible_field_"+input.getId(),checks);
+            for(String language:new String[]{"ru_ru","en_us"}) require(!new String(readResource("assets/wartecmod/lang/"+language+".lang"),StandardCharsets.UTF_8).matches("(?s).*[«»“”„].*"),"font_safe_"+language,checks);
+            Files.write(Paths.get("modern-client-checks.json"),new GsonBuilder().setPrettyPrinting().create().toJson(checks).getBytes(StandardCharsets.UTF_8));System.out.println("UIQA modern regression "+checks.size()+" checks passed");
+        } finally { mc.player=before; }
+    }
+    private final class ModernAmmoInventory extends GuiScreen {
+        final int page;ModernAmmoInventory(int page) { this.page=page; }
+        @Override public void drawScreen(int x,int y,float partial) {
+            drawRect(0,0,width,height,0xFF202C37);drawString(fontRenderer,net.minecraft.client.resources.I18n.format("wartec.modern.ui.ammo")+" / 16",12,12,0xFFFFFF);
+            ModernVehicleProfile[] kinds={ModernVehicleProfile.GRAD,ModernVehicleProfile.URAGAN,ModernVehicleProfile.SMERCH,ModernVehicleProfile.HIMARS};
+            for(int col=0;col<2;col++) for(int variant=0;variant<5;variant++) {
+                int sx=12+col*310,sy=42+variant*60;ItemStack stack=new ItemStack(kinds[page*2+col].ammunition(),16,variant);
+                RenderHelper.enableGUIStandardItemLighting();org.lwjgl.opengl.GL11.glPushMatrix();org.lwjgl.opengl.GL11.glTranslatef(sx,sy,0);org.lwjgl.opengl.GL11.glScalef(2,2,2);mc.getRenderItem().renderItemAndEffectIntoGUI(stack,0,0);mc.getRenderItem().renderItemOverlayIntoGUI(fontRenderer,stack,0,0,null);org.lwjgl.opengl.GL11.glPopMatrix();RenderHelper.disableStandardItemLighting();
+                drawString(fontRenderer,fontRenderer.trimStringToWidth(stack.getDisplayName(),265),sx+36,sy+2,0xE0ECDD);
+                String description=net.minecraft.client.resources.I18n.format("wartec.modern.payload."+((MissileItem)stack.getItem()).getVariantName(stack)+".description");
+                fontRenderer.drawSplitString(description,sx+36,sy+15,265,0xADC4B5);
+            }
+        }
+    }
+    private final class ModernInventory extends GuiScreen {
+        @Override public void drawScreen(int x,int y,float partial) {
+            drawRect(0,0,width,height,0xFF202C37);drawString(fontRenderer,"Modern vehicles and missiles / native inventory",12,12,0xFFFFFF);
+            List<ItemStack> items=new ArrayList<>();for(ModernVehicleProfile kind:ModernVehicleProfile.values()) items.add(new ItemStack(kind.deploymentItem()));
+            for(net.minecraft.item.Item item:WarTechContent.getItems()) if(item instanceof MissileItem && ModernMissileProfile.of(((MissileItem)item).getProfile())!=null) items.add(new ItemStack(item));
+            for(int i=0;i<items.size();i++) { int sx=12+(i%2)*310,sy=36+(i/2)*49;ItemStack stack=items.get(i);
+                RenderHelper.enableGUIStandardItemLighting();org.lwjgl.opengl.GL11.glPushMatrix();org.lwjgl.opengl.GL11.glTranslatef(sx,sy,0);org.lwjgl.opengl.GL11.glScalef(2,2,2);mc.getRenderItem().renderItemAndEffectIntoGUI(stack,0,0);org.lwjgl.opengl.GL11.glPopMatrix();RenderHelper.disableStandardItemLighting();
+                drawString(fontRenderer,stack.getDisplayName(),sx+40,sy+5,0xE0ECDD);
+            }
+        }
+    }
+    private final class ModernModel extends GuiScreen {
+        final EntityWarTechBase entity,companion;final int moment;
+        ModernModel(EntityWarTechBase entity,EntityWarTechBase companion,int moment) { this.entity=entity;this.companion=companion;this.moment=moment; }
+        @Override public void drawScreen(int x,int y,float partial) {
+            drawRect(0,0,width,height,0xFF879299);drawString(fontRenderer,entity.getVisualId()+" / actual game renderer",12,12,0xFFFFFF);
+            net.minecraft.entity.Entity savedView=mc.getRenderViewEntity();
+            player.setPosition(moment==3?100:moment==4?256:0,4,0);mc.setRenderViewEntity(player);
+            org.lwjgl.opengl.GL11.glPushMatrix();org.lwjgl.opengl.GL11.glPushAttrib(org.lwjgl.opengl.GL11.GL_ALL_ATTRIB_BITS);
+            org.lwjgl.opengl.GL11.glTranslatef(width*.5F,height*.83F,100);org.lwjgl.opengl.GL11.glScalef(entity instanceof EntityTubeArtillery?18:23,entity instanceof EntityTubeArtillery?-18:-23,entity instanceof EntityTubeArtillery?18:23);
+            org.lwjgl.opengl.GL11.glRotatef(18,1,0,0);org.lwjgl.opengl.GL11.glRotatef(130,0,1,0);RenderHelper.enableStandardItemLighting();
+            try {
+                java.lang.reflect.Method render=method(Class.forName("com.wartec.wartecmod.port.client.LegacyRenderLibrary"),"renderEntity",EntityWarTechBase.class,double.class,double.class,double.class,float.class,float.class,float.class);
+                render.invoke(null,entity,0D,0D,0D,1F,Float.NaN,Float.NaN);
+                if(companion!=null) render.invoke(null,companion,companion.posX-entity.posX,companion.posY-entity.posY,companion.posZ-entity.posZ,1F,Float.NaN,Float.NaN);
+            } catch(Exception ex) { throw new IllegalStateException(ex); }
+            RenderHelper.disableStandardItemLighting();org.lwjgl.opengl.GL11.glPopAttrib();org.lwjgl.opengl.GL11.glPopMatrix();
+            mc.setRenderViewEntity(savedView);
+            int error=org.lwjgl.opengl.GL11.glGetError();if(error!=0) throw new IllegalStateException("Modern model GL error "+error);
+        }
+    }
+    private void setupStrategic() {
+        if(Boolean.getBoolean("wartech.telstrikeuiqa") || Boolean.getBoolean("wartech.telcommanduiqa")) {
+            try { coldLaunchRegression(); } catch(Exception ex) { throw new IllegalStateException(ex); }
+            if(Boolean.getBoolean("wartech.telcommanduiqa")) {
+                try { telInventoryRegression(); } catch(Exception ex) { throw new IllegalStateException(ex); }
+                for(String language:new String[]{"ru_ru","en_us"}) add(language+"-strategic-inventory",()->{locale(language);return new TelInventory();});
+            }
+            for(StrategicSystemProfile system:new StrategicSystemProfile[]{StrategicSystemProfile.TOPOL_M,StrategicSystemProfile.ORESHNIK}) {
+                for(int moment:new int[]{31,system.getIgnitionTick()-1,system.getIgnitionTick(),system.getIgnitionTick()+6,system.getSeparationTick()-1}) add("cold-launch-"+system.getId()+"-"+moment,()->new StrategicModel(fixture(system,system.getDeploymentTicks(),moment,1,0)));
+                if(Boolean.getBoolean("wartech.telcommanduiqa")) add("cold-ejection-cloud-"+system.getId(),()->new StrategicModel(fixture(system,system.getDeploymentTicks(),system.getEjectionTick()+2,1,0),null,true));
+                add("powered-flight-"+system.getId(),()->{
+                    EntityStrategicMissile missile=new EntityStrategicMissile(world);missile.setPosition(0,0,0);missile.configureBoost(system,100,4,100,null,"blue");
+                    missile.rotationPitch=-90;missile.ticksExisted=10;return new StrategicModel(missile);
+                });
+            }
+            add("new-jet-iskander",()->new StrategicModel(fixture(StrategicSystemProfile.ISKANDER,105,39,3,0)));
+            for(int moment:new int[]{4,16}) add("iskander-impact-flash-"+moment,()->new StrategicModel(fixture(StrategicSystemProfile.ISKANDER,0,0,0,0),moment));
+            return;
+        }
+        if(Boolean.getBoolean("wartech.teltargetuiqa")) {
+            try { targetPanelRegression(); } catch(Exception ex) { throw new IllegalStateException(ex); }
+            for(String language:new String[]{"ru_ru","en_us"}) for(StrategicSystemProfile system:new StrategicSystemProfile[]{StrategicSystemProfile.TOPOL_M,StrategicSystemProfile.ORESHNIK,StrategicSystemProfile.ISKANDER})
+                add(language+"-tel-targets-"+system.getId(),()->{locale(language);return targetPanel(system);});
+            return;
+        }
+        if(Boolean.getBoolean("wartech.strategicfxqa")) {
+            try { clientTelRegression(); } catch(Exception ex) { throw new IllegalStateException(ex); }
+            for(StrategicSystemProfile system:new StrategicSystemProfile[]{StrategicSystemProfile.TOPOL_M,StrategicSystemProfile.ORESHNIK,StrategicSystemProfile.ISKANDER})
+                add("launch-effects-"+system.getId(),()->new StrategicModel(fixture(system,system.getDeploymentTicks(),system.getSeparationTick()-12,3,0),null,true));
+            if(!Boolean.getBoolean("wartech.strategicfulluiqa")) return;
+        }
+        for(String language:new String[]{"ru_ru","en_us"}) for(StrategicSystemProfile system:new StrategicSystemProfile[]{StrategicSystemProfile.TOPOL_M,StrategicSystemProfile.ORESHNIK,StrategicSystemProfile.ISKANDER})
+            add(language+"-tel-"+system.getId(),()->{ locale(language);return new GuiStrategicTel(inventory,fixture(system,system.getDeploymentTicks(),0,3,0)); });
+        for(StrategicSystemProfile system:new StrategicSystemProfile[]{StrategicSystemProfile.TOPOL_M,StrategicSystemProfile.ORESHNIK,StrategicSystemProfile.ISKANDER}) {
+            for(int frame=-1;frame<=1;frame++) {
+                final int moment=frame;
+                add("handoff-"+system.getId()+"-"+(frame+1),()->{
+                    EntityStrategicTel tel=fixture(system,system.getDeploymentTicks(),moment<0?system.getSeparationTick()-1:system.getSeparationTick()+7,
+                        moment<0?3:system.isTactical()?2:0,0);
+                    if(moment<0) return new StrategicModel(tel);
+                    net.minecraft.util.math.Vec3d point=tel.getLaunchPosition(0).addVector(0,moment*system.separationSpeed(),0);
+                    EntityWarTechBase rocket;
+                    if(system.isTactical()) { EntityWarTechMissile tactical=LegacyEntityFactory.missile(world,MissileProfile.ISKANDER);tactical.setPosition(point.x,point.y,point.z);tactical.configureTelLaunch(2200,3,0);rocket=tactical; }
+                    else { EntityStrategicMissile strategic=new EntityStrategicMissile(world);strategic.setPosition(point.x,point.y,point.z);strategic.configureBoost(system,2200,3,0,null,"blue");rocket=strategic; }
+                    rocket.rotationYaw=rocket.prevRotationYaw=system.isTactical()?180:-180;rocket.rotationPitch=rocket.prevRotationPitch=system.isTactical()?0:-90;
+                    return new StrategicModel(tel,rocket);
+                });
+            }
+            for(int state=0;state<6;state++) {
+                final int frame=state;
+                add("model-"+system.getId()+"-"+state,()->new StrategicModel(fixture(system,frame==0?0:frame==1?system.getDeploymentTicks()/2:system.getDeploymentTicks(),
+                    frame==3?20:frame==4?system.getSeparationTick()-2:0,frame==5?0:3,0)));
+            }
+            if(!system.isTactical()) for(boolean reentry:new boolean[]{false,true}) add("flight-"+system.getId()+(reentry?"-reentry":"-boost"),()->{
+                EntityStrategicMissile missile=new EntityStrategicMissile(world);missile.setPosition(0,0,0);
+                if(reentry) missile.configureReentry(system,0,100,4,100,null,"red");else missile.configureBoost(system,100,4,100,null,"red");
+                missile.rotationPitch=reentry?70:-75;missile.rotationYaw=30;missile.ticksExisted=40;return new StrategicModel(missile);
+            });
+        }
+    }
+    private void telInventoryRegression() throws Exception {
+        JsonArray checks=new JsonArray();locale("ru_ru");
+        for(int metadata:new int[]{0,2}) {
+            ItemStack stack=new ItemStack(WarTechContent.STRATEGIC_MISSILE,1,metadata);
+            require(mc.getRenderItem().getItemModelWithOverrides(stack,world,player).isBuiltInRenderer(),"native_3d_missile_model_"+metadata,checks);
+            require(!stack.getDisplayName().matches(".*[«»“”„].*"),"font_safe_missile_name_"+metadata,checks);
+        }
+        require(new ItemStack(WarTechContent.STRATEGIC_MISSILE,1,2).getDisplayName().equals("Ракета \"Орешник\""),"exact_oreshnik_name_without_extra_o",checks);
+        for(String language:new String[]{"ru_ru","en_us"}) {
+            String value=new String(readResource("assets/wartecmod/lang/"+language+".lang"),StandardCharsets.UTF_8);
+            require(!value.matches("(?s).*[«»“”„].*"),language+"_all_ui_quotes_font_safe",checks);
+        }
+        Files.write(Paths.get("tel-inventory-client-regression.json"),new GsonBuilder().setPrettyPrinting().create().toJson(checks).getBytes(StandardCharsets.UTF_8));
+    }
+    private byte[] readResource(String path) throws Exception {
+        try(java.io.InputStream input=ClientUiQa.class.getClassLoader().getResourceAsStream(path);java.io.ByteArrayOutputStream out=new java.io.ByteArrayOutputStream()) {
+            if(input==null) throw new IllegalStateException(path);byte[] buffer=new byte[4096];int n;
+            while((n=input.read(buffer))!=-1) out.write(buffer,0,n);return out.toByteArray();
+        }
+    }
+    private final class TelInventory extends GuiScreen {
+        @Override public void drawScreen(int x,int y,float partial) {
+            drawRect(0,0,width,height,0xFF202C37);drawString(fontRenderer,"Strategic missile inventory / native item renderer",16,15,0xFFFFFF);
+            ItemStack[] stacks={new ItemStack(WarTechContent.STRATEGIC_MISSILE,1,0),new ItemStack(WarTechContent.STRATEGIC_MISSILE,1,2),new ItemStack(WarTechContent.ITEM_ISKANDER_MISSILE)};
+            for(int i=0;i<stacks.length;i++) {
+                int top=50+i*100;RenderHelper.enableGUIStandardItemLighting();mc.getRenderItem().renderItemAndEffectIntoGUI(stacks[i],18,top);
+                org.lwjgl.opengl.GL11.glPushMatrix();org.lwjgl.opengl.GL11.glTranslatef(55,top-10,0);org.lwjgl.opengl.GL11.glScalef(4,4,4);
+                mc.getRenderItem().renderItemAndEffectIntoGUI(stacks[i],0,0);org.lwjgl.opengl.GL11.glPopMatrix();RenderHelper.disableStandardItemLighting();
+                drawString(fontRenderer,stacks[i].getDisplayName(),140,top,0xFFFFFF);int row=top+16;
+                List<String> tooltip=stacks[i].getTooltip(player,net.minecraft.client.util.ITooltipFlag.TooltipFlags.NORMAL);
+                for(int j=1;j<Math.min(tooltip.size(),5);j++) { drawString(fontRenderer,tooltip.get(j),140,row,0xB9C7D5);row+=12; }
+            }
+        }
+    }
+    private void coldLaunchRegression() throws Exception {
+        JsonArray checks=new JsonArray();
+        java.lang.reflect.Method burning=Class.forName("com.wartec.wartecmod.port.client.StrategicLaunchEffects").getDeclaredMethod("burning",net.minecraft.entity.Entity.class);burning.setAccessible(true);
+        for(StrategicSystemProfile system:new StrategicSystemProfile[]{StrategicSystemProfile.TOPOL_M,StrategicSystemProfile.ORESHNIK}) {
+            EntityStrategicTel cold=fixture(system,100,system.getIgnitionTick()-1,1,0),hot=fixture(system,100,system.getIgnitionTick(),1,0);
+            require(!(Boolean)burning.invoke(null,cold),system.getId()+"_no_engine_effects_before_ignition",checks);
+            require((Boolean)burning.invoke(null,hot),system.getId()+"_engine_effects_start_at_ignition",checks);
+            require(system.launchTravel(cold.getLaunchTicks())>1.8,system.getId()+"_rocket_ejected_before_fire",checks);
+        }
+        require((Boolean)burning.invoke(null,fixture(StrategicSystemProfile.ISKANDER,105,1,3,0)),"iskander_retains_hot_launch",checks);
+        Files.write(Paths.get("tel-strike-client-regression.json"),new GsonBuilder().setPrettyPrinting().create().toJson(checks).getBytes(StandardCharsets.UTF_8));
+    }
+    private GuiStrategicTel targetPanel(StrategicSystemProfile system) {
+        EntityStrategicTel tel=fixture(system,system.getDeploymentTicks(),0,3,0);
+        net.minecraft.nbt.NBTTagCompound state=new net.minecraft.nbt.NBTTagCompound();tel.writeToNBT(state);
+        state.setInteger("TelTargetMask",system.isTactical()?3:1);
+        state.setLong("TelTargetFirst",new net.minecraft.util.math.BlockPos(-29999984,255,29999984).toLong());
+        state.setLong("TelTargetSecond",new net.minecraft.util.math.BlockPos(23456789,64,-23456789).toLong());tel.readFromNBT(state);
+        GuiStrategicTel gui=new GuiStrategicTel(inventory,tel);ContainerLegacyEntity c=(ContainerLegacyEntity)gui.inventorySlots;
+        ItemStack designator=new ItemStack(WarTechContent.ITEM_TARGET_FINDER);designator.setTagCompound(new net.minecraft.nbt.NBTTagCompound());
+        designator.getTagCompound().setInteger("xCoord",23456789);designator.getTagCompound().setInteger("yCoord",64);designator.getTagCompound().setInteger("zCoord",-23456789);
+        c.getSlot(tel.getTargetCount()).putStack(designator);return gui;
+    }
+    private void targetPanelRegression() throws Exception {
+        EntityPlayerSP previousPlayer=mc.player;try {
+            mc.player=player;JsonArray checks=new JsonArray();GuiStrategicTel gui=targetPanel(StrategicSystemProfile.ISKANDER);
+            ScaledResolution resolution=new ScaledResolution(mc);gui.setWorldAndResolution(mc,resolution.getScaledWidth(),resolution.getScaledHeight());
+            GuiTextField[][] inputs=(GuiTextField[][])value(GuiStrategicTel.class,gui,"fields");
+            EntityStrategicTel tel=(EntityStrategicTel)((ContainerLegacyEntity)gui.inventorySlots).getTarget();
+            require(inputs.length==2 && "-29999984".equals(inputs[0][0].getText()) && "23456789".equals(inputs[1][0].getText()),"two_independent_rows_show_exact_signed_coordinates",checks);
+            inputs[1][0].setFocused(true);method(GuiStrategicTel.class,"func_73869_a",char.class,int.class).invoke(gui,'1',org.lwjgl.input.Keyboard.KEY_1);
+            String draft=inputs[1][0].getText();
+            method(EntityStrategicTel.class,"setTarget",int.class,net.minecraft.util.math.BlockPos.class).invoke(tel,0,new net.minecraft.util.math.BlockPos(500,64,600));gui.updateScreen();
+            require(draft.equals(inputs[1][0].getText()) && "500".equals(inputs[0][0].getText()),"import_refresh_preserves_other_tube_draft",checks);
+            java.util.List<GuiButton> buttons=(java.util.List<GuiButton>)value(GuiScreen.class,gui,"field_146292_n");
+            require(buttons.stream().anyMatch(b->b.id==2 && !b.enabled),"unsaved_right_target_blocks_right_launch",checks);
+            require(buttons.stream().anyMatch(b->b.id==0 && b.enabled),"right_draft_does_not_block_left_launch",checks);
+            method(EntityStrategicTel.class,"setTarget",int.class,net.minecraft.util.math.BlockPos.class).invoke(tel,1,tel.getTarget(1));gui.updateScreen();
+            require("23456789".equals(inputs[1][0].getText()) && buttons.stream().anyMatch(b->b.id==2 && b.enabled),"same_target_import_acknowledges_and_clears_draft",checks);
+            require(buttons.stream().filter(b->b.id==6 || b.id==7).count()==2,"separate_tgt_import_buttons",checks);
+            for(GuiTextField[] row:inputs) for(GuiTextField f:row) require(f.y>=0 && f.y+16<=resolution.getScaledHeight(),"coordinate_field_inside_screen_"+f.getId(),checks);
+            Files.write(Paths.get("tel-target-client-regression.json"),new GsonBuilder().setPrettyPrinting().create().toJson(checks).getBytes(StandardCharsets.UTF_8));
+        } finally { mc.player=previousPlayer; }
+    }
+    private void clientTelRegression() throws Exception {
+        WorldClient previousWorld=mc.world;EntityPlayerSP previousPlayer=mc.player;
+        try {
+        mc.world=world;mc.player=player;
+        JsonArray checks=new JsonArray();
+        for(int x=-2;x<=2;x++) for(int z=-2;z<=2;z++) world.doPreChunk(x,z,true);
+        for(StrategicSystemProfile system:new StrategicSystemProfile[]{StrategicSystemProfile.TOPOL_M,StrategicSystemProfile.ORESHNIK,StrategicSystemProfile.ISKANDER}) {
+            EntityStrategicTel tel=fixture(system,system.getDeploymentTicks(),system.getSeparationTick()+1,system.isTactical()?2:0,0);
+            world.addEntityToWorld(tel.getEntityId(),tel);
+            require((tel.getVisualMissileMask()&1)!=0,system.getId()+"_metadata_before_spawn_keeps_rocket",checks);
+            EntityStrategicMissile rocket=new EntityStrategicMissile(world);net.minecraft.util.math.Vec3d point=tel.getLaunchPosition(0);
+            rocket.setPosition(point.x,point.y,point.z);rocket.getTelLaunchOrigin().configure(tel,0);world.addEntityToWorld(rocket.getEntityId(),rocket);
+            require((tel.getVisualMissileMask()&1)==0,system.getId()+"_spawn_hides_attached_rocket",checks);
+            if(system.isTactical()) require((tel.getVisualMissileMask()&2)!=0,"other_iskander_tube_remains_visible",checks);
+            world.removeEntityFromWorld(rocket.getEntityId());world.removeEntityFromWorld(tel.getEntityId());
+        }
+        require(SoundEvent.REGISTRY.getObject(new ResourceLocation("wartecmod","weapon.ballisticmissiletakeoff"))!=null,"registered_heavy_takeoff_sound",checks);
+        require(SoundEvent.REGISTRY.getObject(new ResourceLocation("wartecmod","weapon.cruisemissileengine"))!=null,"registered_continuous_motor_sound",checks);
+        java.lang.reflect.Method visual=Class.forName("com.wartec.wartecmod.port.client.LegacyRenderLibrary").getDeclaredMethod("resolveVisual",EntityWarTechBase.class);visual.setAccessible(true);
+        EntityWarTechMissile real=LegacyEntityFactory.missile(world,MissileProfile.ISKANDER);
+        require("missile/iskander".equals(visual.invoke(null,real)),"iskander_factory_selects_actual_model",checks);
+        real.setVisual("missile/storm_shadow",0);
+        require("missile/iskander".equals(visual.invoke(null,real)),"iskander_saved_fallback_selects_actual_model",checks);
+        Files.write(Paths.get("tel-client-regression.json"),new GsonBuilder().setPrettyPrinting().create().toJson(checks).getBytes(StandardCharsets.UTF_8));
+        } finally { mc.world=previousWorld;mc.player=previousPlayer; }
+    }
+    private final class StrategicModel extends GuiScreen {
+        final EntityWarTechBase entity;
+        final EntityWarTechBase companion;
+        final boolean effects;
+        int impactAge=-1;
+        StrategicModel(EntityWarTechBase entity) { this(entity,null,false); }
+        StrategicModel(EntityWarTechBase entity,int impactAge) { this(entity);this.impactAge=impactAge; }
+        StrategicModel(EntityWarTechBase entity,EntityWarTechBase companion) { this(entity,companion,false); }
+        StrategicModel(EntityWarTechBase entity,EntityWarTechBase companion,boolean effects) { this.entity=entity;this.companion=companion;this.effects=effects; }
+        @Override public void drawScreen(int x,int y,float partial) {
+            drawRect(0,0,width,height,0xFF879299);drawString(fontRenderer,entity.getVisualId()+" / supplied animated model",12,12,0xFFFFFF);
+            org.lwjgl.opengl.GL11.glPushMatrix();org.lwjgl.opengl.GL11.glPushAttrib(org.lwjgl.opengl.GL11.GL_ALL_ATTRIB_BITS);
+            float cameraScale=impactAge>=0?3:entity instanceof EntityStrategicMissile || entity instanceof EntityStrategicTel && ((EntityStrategicTel)entity).getLaunchTicks()>30?6:10;
+            org.lwjgl.opengl.GL11.glTranslatef(width*.5F,height*(impactAge>=0?.72F:entity instanceof EntityStrategicMissile?.57F:.87F),100);
+            org.lwjgl.opengl.GL11.glScalef(cameraScale,-cameraScale,cameraScale);
+            org.lwjgl.opengl.GL11.glRotatef(15,1,0,0);org.lwjgl.opengl.GL11.glRotatef(125,0,1,0);RenderHelper.enableStandardItemLighting();
+            try {
+                Class<?> c=Class.forName("com.wartec.wartecmod.port.client.LegacyRenderLibrary");
+                java.lang.reflect.Method render=c.getDeclaredMethod("renderEntity",EntityWarTechBase.class,double.class,double.class,double.class,float.class,float.class,float.class);
+                render.setAccessible(true);if(impactAge<0) render.invoke(null,entity,0D,0D,0D,1F,Float.NaN,Float.NaN);
+                if(companion!=null) render.invoke(null,companion,companion.posX-entity.posX,companion.posY-entity.posY,companion.posZ-entity.posZ,1F,Float.NaN,Float.NaN);
+                if(effects) drawSmoke();
+                if(impactAge>=0) drawImpact();
+            } catch(ReflectiveOperationException ex) { throw new IllegalStateException(ex); }
+            RenderHelper.disableStandardItemLighting();org.lwjgl.opengl.GL11.glPopAttrib();org.lwjgl.opengl.GL11.glPopMatrix();
+        }
+        private void drawImpact() {
+            WorldClient previousWorld=mc.world;EntityPlayerSP previousPlayer=mc.player;net.minecraft.entity.Entity previousView=mc.getRenderViewEntity();
+            try {
+                mc.world=world;mc.player=player;mc.setRenderViewEntity(player);player.setPosition(entity.posX,entity.posY,entity.posZ);
+                player.lastTickPosX=player.prevPosX=player.posX;player.lastTickPosY=player.prevPosY=player.posY;player.lastTickPosZ=player.prevPosZ=player.posZ;
+                player.rotationYaw=125;player.rotationPitch=-15;mc.effectRenderer.clearEffects(world);
+                mc.effectRenderer.addEffect(new ParticleLegacyMushroom(world,entity.posX,entity.posY+.25,entity.posZ,14));
+                for(int t=0;t<impactAge;t++) mc.effectRenderer.updateEffects();
+                net.minecraft.client.renderer.ActiveRenderInfo.updateRenderInfo(player,false);
+                mc.effectRenderer.renderParticles(player,1);mc.effectRenderer.renderLitParticles(player,1);
+            } finally { mc.effectRenderer.clearEffects(previousWorld);mc.world=previousWorld;mc.player=previousPlayer;mc.setRenderViewEntity(previousView); }
+        }
+        private void drawSmoke() throws ReflectiveOperationException {
+            WorldClient previousWorld=mc.world;EntityPlayerSP previousPlayer=mc.player;net.minecraft.entity.Entity previousView=mc.getRenderViewEntity();
+            try {
+                mc.world=world;mc.player=player;mc.setRenderViewEntity(player);player.setPosition(entity.posX,entity.posY,entity.posZ);
+                player.lastTickPosX=player.prevPosX=player.posX;player.lastTickPosY=player.prevPosY=player.posY;player.lastTickPosZ=player.prevPosZ=player.posZ;
+                player.rotationYaw=125;player.rotationPitch=-15;mc.effectRenderer.clearEffects(world);
+                EntityStrategicTel tel=(EntityStrategicTel)entity;
+                boolean cold=tel.getLaunchTicks()<tel.getStrategicSystem().getIgnitionTick();
+                java.lang.reflect.Method emit=cold?CruiseEffects.class.getDeclaredMethod("coldEjectionCloud",net.minecraft.entity.Entity.class,net.minecraft.util.math.Vec3d.class):
+                    CruiseEffects.class.getDeclaredMethod("heavyRocketSmoke",net.minecraft.entity.Entity.class,net.minecraft.util.math.Vec3d.class,net.minecraft.util.math.Vec3d.class,float.class,boolean.class);emit.setAccessible(true);
+                for(int tick=0;tick<(cold?5:24);tick++) {
+                    world.setTotalWorldTime(world.getTotalWorldTime()+1);
+                    if(cold) emit.invoke(null,tel,tel.getEjectionCloudPosition());
+                    else emit.invoke(null,tel,tel.getLaunchPosition(0,tel.getLaunchTicks()),new net.minecraft.util.math.Vec3d(0,1,0),tel.getStrategicSystem().isTactical()?6F:9.5F,true);
+                    mc.effectRenderer.updateEffects();
+                }
+                net.minecraft.client.renderer.ActiveRenderInfo.updateRenderInfo(player,false);
+                RenderHelper.disableStandardItemLighting(); // Match world particle rendering, not lit GUI meshes.
+                mc.effectRenderer.renderParticles(player,1);
+                int particles=Integer.parseInt(mc.effectRenderer.getStatistics());
+                if(particles<(cold?100:200) || particles>CruiseEffects.MAX_PARTICLES) throw new IllegalStateException("Smoke budget: "+particles);
+            } finally { mc.effectRenderer.clearEffects(previousWorld);mc.world=previousWorld;mc.player=previousPlayer;mc.setRenderViewEntity(previousView); }
         }
     }
 }

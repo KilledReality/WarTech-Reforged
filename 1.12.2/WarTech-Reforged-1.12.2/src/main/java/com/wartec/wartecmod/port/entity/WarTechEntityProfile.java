@@ -22,13 +22,23 @@ public enum WarTechEntityProfile {
     MOBILE_AIR_DEFENSE(WarTechEntityType.GROUND_VEHICLE, 0.18D, 0.013D, 0.08D, 0.080D, 4.0F, 0, 3.10F, 3.00F, 200.0F, RadarTargetType.PLAYER),
     MOBILE_ARTILLERY(WarTechEntityType.GROUND_VEHICLE, 0.17D, 0.012D, 0.08D, 0.080D, 5.0F, 0, 3.00F, 2.35F, 500.0F, RadarTargetType.PLAYER),
     ELECTRONIC_WARFARE(WarTechEntityType.GROUND_VEHICLE, 0.19D, 0.013D, 0.09D, 0.080D, 3.5F, 0, 2.40F, 3.20F, 240.0F, RadarTargetType.PLAYER),
-    S400_RADAR(WarTechEntityType.GROUND_VEHICLE, 0.18D, 0.012D, 0.08D, 0.080D, 5.0F, 0, 4.60F, 4.20F, 300.0F, RadarTargetType.PLAYER),
+    S400_RADAR(WarTechEntityType.GROUND_VEHICLE, 0.18D, 0.012D, 0.08D, 0.080D, 5.0F, 0, 2.20F, 6.213F, 300.0F, RadarTargetType.PLAYER),
 
     // Appended to preserve every pre-existing profile ordinal in saved worlds.
     STRATEGIC_TOPOL_M(WarTechEntityType.GROUND_VEHICLE, 0.13D, 0.008D, 0.055D, 0.080D, 9.0F, 0, 4.80F, 3.80F, 1100.0F, RadarTargetType.PLAYER),
     STRATEGIC_YARS(WarTechEntityType.GROUND_VEHICLE, 0.13D, 0.008D, 0.055D, 0.080D, 9.0F, 0, 4.90F, 3.90F, 1200.0F, RadarTargetType.PLAYER),
     STRATEGIC_ORESHNIK(WarTechEntityType.GROUND_VEHICLE, 0.15D, 0.009D, 0.060D, 0.080D, 8.0F, 0, 4.70F, 3.70F, 1000.0F, RadarTargetType.PLAYER),
-    STRATEGIC_FLIGHT(WarTechEntityType.MISSILE, 2.80D, 0.085D, 0.035D, 0.0D, 0.0F, 1000, 1.25F, 5.50F, 160.0F, RadarTargetType.MISSILE_TIER3);
+    STRATEGIC_FLIGHT(WarTechEntityType.MISSILE, 2.80D, 0.085D, 0.035D, 0.0D, 0.0F, 1000, 1.25F, 5.50F, 160.0F, RadarTargetType.MISSILE_TIER3),
+    TACTICAL_ISKANDER(WarTechEntityType.GROUND_VEHICLE, .18D, .012D, .075D, .08D, 6F, 0, 3.4F, 3.8F, 850F, RadarTargetType.PLAYER),
+    MODERN_GRAD(WarTechEntityType.GROUND_VEHICLE,.46,.01,.08,.08,4,0,3.27F,3.1F,260,RadarTargetType.PLAYER),
+    MODERN_HIMARS(WarTechEntityType.GROUND_VEHICLE,.48,.01,.08,.08,4,0,3.30F,3.2F,300,RadarTargetType.PLAYER),
+    MODERN_URAGAN(WarTechEntityType.GROUND_VEHICLE,.38,.008,.07,.08,4,0,3.43F,3.67F,340,RadarTargetType.PLAYER),
+    MODERN_SMERCH(WarTechEntityType.GROUND_VEHICLE,.36,.008,.07,.08,4,0,4F,3.6F,380,RadarTargetType.PLAYER),
+    MODERN_BUK_M3(WarTechEntityType.GROUND_VEHICLE,.36,.01,.08,.08,4,0,3.44F,3.5F,320,RadarTargetType.PLAYER),
+    MODERN_OSA(WarTechEntityType.GROUND_VEHICLE,.42,.01,.08,.08,4,0,2.94F,3.3F,200,RadarTargetType.PLAYER),
+    MODERN_RADAR_9S18(WarTechEntityType.GROUND_VEHICLE,.32,.008,.07,.08,3,0,3.87F,3.8F,280,RadarTargetType.PLAYER),
+    ARTILLERY_D30(WarTechEntityType.GROUND_VEHICLE,0,0,0,.08,3,0,3.2F,2.3F,220,RadarTargetType.PLAYER),
+    ARTILLERY_CAESAR(WarTechEntityType.GROUND_VEHICLE,.44,.01,.08,.08,4,0,3.1F,3.5F,300,RadarTargetType.PLAYER);
 
     private final WarTechEntityType type;
     private final double speed;

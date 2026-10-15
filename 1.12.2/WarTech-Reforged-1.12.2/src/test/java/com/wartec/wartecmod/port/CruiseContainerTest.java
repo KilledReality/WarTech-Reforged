@@ -32,9 +32,9 @@ public class CruiseContainerTest {
         assertSame(CruisePartDefinition.ENGINE_STANDARD,WarTechContent.CRUISE_MODULE.getDefinition(tile.getStackInSlot(1)));
         assertTrue(container.transferStackInSlot(null,39).isEmpty());assertEquals(4,inventory.getStackInSlot(0).getCount());
     }
-    @Test public void cruiseTabDoesNotEnablePausedStrategicContent() {
+    @Test public void cruiseTabRemainsSeparateFromStrategicContent() {
         assertEquals(WarTechCreativeTabs.CUSTOM_CRUISE,WarTechContent.CRUISE_MODULE.getCreativeTab());
         assertEquals(WarTechCreativeTabs.CUSTOM_CRUISE,WarTechContent.ASSEMBLED_CRUISE.getCreativeTab());
-        assertFalse(StrategicFeature.isEnabled());
+        assertTrue(StrategicFeature.isEnabled());
     }
 }

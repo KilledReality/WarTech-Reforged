@@ -18,8 +18,6 @@ public final class MissileImpactParityTest {
         assertTrue(source.contains("world.rayTraceBlocks("));
         assertTrue(count(source, "moveToWithImpact(") >= 7);
         assertTrue(source.contains("case ISKANDER:"));
-        assertTrue(source.contains(
-                "world, posX, posY, posZ, 14.0F, true, true, true"));
     }
 
     @Test

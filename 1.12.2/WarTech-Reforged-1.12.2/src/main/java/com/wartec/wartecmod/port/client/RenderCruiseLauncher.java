@@ -11,6 +11,7 @@ public final class RenderCruiseLauncher extends TileEntitySpecialRenderer<TileEn
         if(tile.isEmpty() || tile.getWorld()==null || !(tile.getWorld().getBlockState(tile.getPos()).getBlock() instanceof CruiseLaunchPointBlock)) return;
         CruiseLaunchPointBlock block=(CruiseLaunchPointBlock)tile.getWorld().getBlockState(tile.getPos()).getBlock();
         CruiseBuild build=CruiseBuild.fromStack(tile.getStackInSlot(0));
+        if(build.isS8000()) build.set(com.wartec.wartecmod.port.cruise.CruiseSlot.LAUNCH,com.wartec.wartecmod.port.cruise.CruisePartDefinition.LAUNCH_BOOSTER);
         float lightX=net.minecraft.client.renderer.OpenGlHelper.lastBrightnessX,lightY=net.minecraft.client.renderer.OpenGlHelper.lastBrightnessY;
         int light=tile.getWorld().getCombinedLight(tile.getPos().up(),0);
         net.minecraft.client.renderer.OpenGlHelper.setLightmapTextureCoords(net.minecraft.client.renderer.OpenGlHelper.lightmapTexUnit,light&65535,light>>16);

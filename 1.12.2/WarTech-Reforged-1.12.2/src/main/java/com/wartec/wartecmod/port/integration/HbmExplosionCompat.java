@@ -416,6 +416,21 @@ public final class HbmExplosionCompat {
                 net.minecraft.util.SoundCategory.PLAYERS, 1000.0F, 0.72F);
     }
 
+    /** Shared by the actual Iskander projectile, including both TEL tubes. */
+    public static void iskanderImpact(World world,Entity source,double x,double y,double z) {
+        if(world==null || world.isRemote) return;
+        ExplosionLarge.explode(world,x,y,z,WeaponBalance.ISKANDER_BLAST_STRENGTH,true,true,true,source);
+        ExplosionLarge.spawnShock(world,x,y,z,24,3.2D);
+        ExplosionLarge.spawnParticlesRadial(world,x,y,z,40);
+        standardMush(world,x,y,z,14F);
+        if(world instanceof net.minecraft.world.WorldServer) {
+            net.minecraft.world.WorldServer server=(net.minecraft.world.WorldServer)world;
+            server.spawnParticle(net.minecraft.util.EnumParticleTypes.EXPLOSION_HUGE,true,x,y+1,z,1,0D,0D,0D,0D);
+            server.spawnParticle(net.minecraft.util.EnumParticleTypes.FLAME,true,x,y+1,z,64,4,2,4,.12);
+        }
+        world.playSound(null,x,y,z,net.minecraft.init.SoundEvents.ENTITY_GENERIC_EXPLODE,net.minecraft.util.SoundCategory.PLAYERS,120,.62F);
+    }
+
     /** Conventional Oreshnik re-entry impact: deep VNT crater and hot plume. */
     public static void strategicKinetic(World world, double x, double y,
             double z, int radius) {

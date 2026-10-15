@@ -13,6 +13,11 @@ public final class WarTechNetwork {
     }
 
     public static void register() {
+        CHANNEL.registerMessage(SiloActionMessage.Handler.class,SiloActionMessage.class,25,Side.SERVER);
+        CHANNEL.registerMessage(PlanningRequestMessage.Handler.class,PlanningRequestMessage.class,23,Side.SERVER);
+        CHANNEL.registerMessage(PlanningSnapshotMessage.Handler.class,PlanningSnapshotMessage.class,24,Side.CLIENT);
+        CHANNEL.registerMessage(ModernTargetMessage.Handler.class,ModernTargetMessage.class,22,Side.SERVER);
+        CHANNEL.registerMessage(TelTargetMessage.Handler.class,TelTargetMessage.class,21,Side.SERVER);
         CHANNEL.registerMessage(CruiseVisualEventMessage.Handler.class,CruiseVisualEventMessage.class,20,Side.CLIENT);
         CHANNEL.registerMessage(CruiseLauncherActionMessage.Handler.class,CruiseLauncherActionMessage.class,19,Side.SERVER);
         CHANNEL.registerMessage(CruiseFabricatorActionMessage.Handler.class,

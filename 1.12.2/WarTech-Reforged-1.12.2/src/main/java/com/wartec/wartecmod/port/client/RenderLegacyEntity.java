@@ -16,6 +16,18 @@ public final class RenderLegacyEntity<T extends EntityWarTechBase> extends Rende
 
     @Override
     public void doRender(T entity, double x, double y, double z, float entityYaw, float partialTicks) {
+        if(entity instanceof com.wartec.wartecmod.port.entity.EntityWarTechGroundVehicle) {
+            com.wartec.wartecmod.port.entity.EntityWarTechGroundVehicle vehicle=(com.wartec.wartecmod.port.entity.EntityWarTechGroundVehicle)entity;
+            net.minecraft.util.math.Vec3d point=vehicle.visualPosition(partialTicks);
+            x+=point.x-(entity.lastTickPosX+(entity.posX-entity.lastTickPosX)*partialTicks);
+            y+=point.y-(entity.lastTickPosY+(entity.posY-entity.lastTickPosY)*partialTicks);
+            z+=point.z-(entity.lastTickPosZ+(entity.posZ-entity.lastTickPosZ)*partialTicks);
+            if(VehicleCockpitCamera.inside(vehicle)) {
+                VehicleCockpitModel.render(vehicle,x,y,z,vehicle.visualYaw(partialTicks),vehicle.visualPitch(partialTicks));return;
+            }
+            LegacyRenderLibrary.renderEntity(entity,x,y,z,partialTicks,vehicle.visualYaw(partialTicks),vehicle.visualPitch(partialTicks));
+            super.doRender(entity,x,y,z,entityYaw,partialTicks);return;
+        }
         this.shadowSize=Math.max(.25F,Math.min(4.5F,entity.width*.55F));
         if (!RemoteControlClient.shouldHideControlledEntity(entity)) {
             RemoteControlClient.RemoteRenderPose pose =

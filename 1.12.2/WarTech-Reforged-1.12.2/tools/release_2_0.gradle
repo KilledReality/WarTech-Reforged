@@ -1,0 +1,8 @@
+allprojects { buildDir = file('build/release-2.0.0') }
+// Build provenance is kept locally; source-machine paths are not release content.
+allprojects {
+    tasks.withType(ProcessResources) {
+        exclude 'assets/wartecmod/models/modern_animated/source-manifest.json'
+        exclude 'assets/wartecmod/models/modern_animated/tube-artillery-manifest.json'
+    }
+}

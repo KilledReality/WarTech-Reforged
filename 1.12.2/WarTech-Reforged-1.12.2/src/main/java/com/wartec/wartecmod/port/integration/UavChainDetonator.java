@@ -48,6 +48,8 @@ public final class UavChainDetonator {
         if (isMultiDetonator(stack)) return;
         clear(stack);
         CruiseChainDetonator.clear(stack);
+        TelChainDetonator.clear(stack);
+        ModernPadDetonator.clear(stack);com.wartec.wartecmod.port.silo.SiloDetonator.clear(stack);
         NBTTagCompound tag = getOrCreateTag(stack);
         tag.removeTag("x");tag.removeTag("y");tag.removeTag("z");
     }
@@ -118,16 +120,18 @@ public final class UavChainDetonator {
     public static void onRightClickItem(PlayerInteractEvent.RightClickItem event) {
         ItemStack stack = event.getItemStack();
         boolean customData=stack.hasTagCompound() && (stack.getTagCompound().hasKey(LINKS_KEY,9)
-            || stack.getTagCompound().hasKey("WarTechCruiseLaunchers",9));
+            || stack.getTagCompound().hasKey("WarTechCruiseLaunchers",9) || stack.getTagCompound().hasKey(TelChainDetonator.KEY,9) || stack.getTagCompound().hasKey(ModernPadDetonator.KEY,9) || stack.getTagCompound().hasKey(com.wartec.wartecmod.port.silo.SiloDetonator.KEY,9));
         if (!isDetonator(stack) || !customData) return;
 
         boolean hasNtmBlockLinks = isMultiDetonator(stack) && ItemMultiDetonator.getLocations(stack) != null;
         EntityPlayer player = event.getEntityPlayer();
         if (!event.getWorld().isRemote) {
             if (player.isSneaking()) {
-                int removed = linkCount(stack)+CruiseChainDetonator.count(stack);
+                int removed = linkCount(stack)+CruiseChainDetonator.count(stack)+TelChainDetonator.count(stack)+ModernPadDetonator.count(stack)+com.wartec.wartecmod.port.silo.SiloDetonator.count(stack);
                 clear(stack);
                 CruiseChainDetonator.clear(stack);
+                TelChainDetonator.clear(stack);
+                ModernPadDetonator.clear(stack);com.wartec.wartecmod.port.silo.SiloDetonator.clear(stack);
                 if(stack.hasTagCompound() && stack.getTagCompound().hasNoTags()) stack.setTagCompound(null);
                 message(player, "uav.chain.cleared", removed);
             } else {
@@ -145,20 +149,41 @@ public final class UavChainDetonator {
 
     public static void activate(EntityPlayer player, ItemStack stack) {
         if (!(player instanceof EntityPlayerMP) || player.world.isRemote || !isDetonator(stack)) return;
-        if (linkCount(stack)+CruiseChainDetonator.count(stack)==0) {
+        if (linkCount(stack)+CruiseChainDetonator.count(stack)+TelChainDetonator.count(stack)+ModernPadDetonator.count(stack)+com.wartec.wartecmod.port.silo.SiloDetonator.count(stack)==0) {
             message(player,"uav.chain.bind_hint");return;
         }
         if(linkCount(stack)>0) launchChain((EntityPlayerMP)player,stack);
         if(CruiseChainDetonator.count(stack)>0) CruiseChainDetonator.launch((EntityPlayerMP)player,stack);
+        if(TelChainDetonator.count(stack)>0) TelChainDetonator.launch((EntityPlayerMP)player,stack);
+        if(ModernPadDetonator.count(stack)>0) ModernPadDetonator.launch((EntityPlayerMP)player,stack);
+        if(com.wartec.wartecmod.port.silo.SiloDetonator.count(stack)>0) com.wartec.wartecmod.port.silo.SiloDetonator.launch((EntityPlayerMP)player,stack);
     }
 
     @SubscribeEvent
     public static void onLaunchPoint(PlayerInteractEvent.RightClickBlock event) {
+        if(isDetonator(event.getItemStack()) && event.getWorld().getTileEntity(event.getPos()) instanceof com.wartec.wartecmod.port.gameplay.TileEntityMissileSilo){
+            event.setCanceled(true);event.setCancellationResult(EnumActionResult.SUCCESS);
+            if(!event.getWorld().isRemote){com.wartec.wartecmod.port.gameplay.TileEntityMissileSilo t=(com.wartec.wartecmod.port.gameplay.TileEntityMissileSilo)event.getWorld().getTileEntity(event.getPos());t=t.core();
+                if(t!=null){if(event.getEntityPlayer().isSneaking())com.wartec.wartecmod.port.silo.SiloDetonator.bind(event.getEntityPlayer(),event.getItemStack(),t);else activate(event.getEntityPlayer(),event.getItemStack());}}
+            return;
+        }
+        if(isDetonator(event.getItemStack())) {
+            com.wartec.wartecmod.port.gameplay.TileEntityWarTechMachine tile=ModernPadDetonator.site(event.getWorld(),event.getPos());
+            if(tile!=null && (!tile.getStackInSlot(0).isEmpty() && (tile.getStackInSlot(0).getItem()==com.wartec.wartecmod.port.content.WarTechContent.FP5_MISSILE
+                    || tile.getStackInSlot(0).getItem()==com.wartec.wartecmod.port.content.WarTechContent.FP7_MISSILE))) {
+                event.setCanceled(true);event.setCancellationResult(EnumActionResult.SUCCESS);
+                if(!event.getWorld().isRemote) {
+                    if(event.getEntityPlayer().isSneaking()) ModernPadDetonator.bind(event.getEntityPlayer(),event.getItemStack(),tile);
+                    else activate(event.getEntityPlayer(),event.getItemStack());
+                }
+                return;
+            }
+        }
         if(isDetonator(event.getItemStack()) && !isMultiDetonator(event.getItemStack())
                 && event.getEntityPlayer().isSneaking() && !event.getWorld().isRemote
                 && event.getWorld().getBlockState(event.getPos()).getBlock()!=com.wartec.wartecmod.port.content.WarTechContent.UAV_LAUNCH_POINT
                 && !(event.getWorld().getTileEntity(event.getPos()) instanceof com.wartec.wartecmod.port.gameplay.TileEntityCruiseLauncher)) {
-            clear(event.getItemStack());CruiseChainDetonator.clear(event.getItemStack());
+            clear(event.getItemStack());CruiseChainDetonator.clear(event.getItemStack());TelChainDetonator.clear(event.getItemStack());ModernPadDetonator.clear(event.getItemStack());com.wartec.wartecmod.port.silo.SiloDetonator.clear(event.getItemStack());
         }
         if (!isDetonator(event.getItemStack()) || event.getWorld().getBlockState(event.getPos()).getBlock()
                 != com.wartec.wartecmod.port.content.WarTechContent.UAV_LAUNCH_POINT) return;

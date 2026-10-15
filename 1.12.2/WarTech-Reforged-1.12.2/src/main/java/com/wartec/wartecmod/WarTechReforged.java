@@ -35,7 +35,12 @@ import org.apache.logging.log4j.Logger;
 public final class WarTechReforged {
     public static final String MODID = "wartecmod";
     public static final String NAME = "WarTech Reforged";
-    public static final String VERSION = "1.6.0-experimental";
+    public static final String VERSION = "2.0.0";
+
+    @net.minecraftforge.fml.common.network.NetworkCheckHandler
+    public boolean compatibleNetwork(java.util.Map<String,String> remote,net.minecraftforge.fml.relauncher.Side side) {
+        return VERSION.equals(remote.get(MODID));
+    }
 
     @Instance(MODID)
     public static WarTechReforged instance;
@@ -61,7 +66,7 @@ public final class WarTechReforged {
         NetworkRegistry.INSTANCE.registerGuiHandler(this, new WarTechGuiHandler());
         ContentHooks.setHandler(new GameplayIntentHandler());
         proxy.preInit();
-        logger.info("Loading WarTech Reforged {} for NTM Extended", VERSION);
+        logger.info("Loading WarTech Reforged {} for NTM Community Edition 2.6.1.0", VERSION);
     }
 
     @EventHandler
@@ -73,7 +78,7 @@ public final class WarTechReforged {
     public void postInit(FMLPostInitializationEvent event) {
         WarTechRecipeRegistration.registerRuntimeIntegration();
         WarTechSatelliteRegistration.register();
-        logger.info("Registered the dev66 crafting, NTM machine and hazard progression");
+        logger.info("Registered complete HBM CE industrial production and hazard progression");
     }
 
     @EventHandler

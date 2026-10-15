@@ -50,6 +50,7 @@ public final class WarTechCreativeTabs {
     public static int group(ItemStack stack) {
         Item item=stack.getItem();
         String name=item.getRegistryName()==null?"":item.getRegistryName().getResourcePath();
+        if(name.equals("missilesilo") || name.startsWith("silo")) return 25;
         if(name.contains("fabricator")) return 0;
         if(item instanceof DeployableItem) return 10;
         if(name.equals("cruisemodule") || name.equals("uavmodule")) return 10;

@@ -20,7 +20,7 @@ public final class VehicleDimensions {
             case MOBILE_AIR_DEFENSE: return 1.12F;
             case ELECTRONIC_WARFARE: return 1.15F;
             case RADAR_TRUCK: return .95F;
-            case S400_RADAR: return 1.05F;
+            case S400_RADAR: return 1.50F;
             default: return 1;
         }
     }
@@ -34,7 +34,7 @@ public final class VehicleDimensions {
         if (id.startsWith("micro_") || "asat".equals(id)) return .70F;
         if ("cj10".equals(id)) return .58F;
         if ("kalibr".equals(id)) return .90F;
-        if ("iskander".equals(id)) return .75F;
+        if ("iskander".equals(id)) return 1F;
         if ("tomahawk".equals(id) || id.startsWith("cruise_")) return .85F;
         // Already substantial ballistic and multi-stage models are deliberately not enlarged.
         if ("slbm".equals(id) || "lrhw".equals(id)
@@ -56,7 +56,7 @@ public final class VehicleDimensions {
     }
     public static float blockScale(String name) {
         return "geranlauncher".equals(name)?1.20F:
-            "patriotlauncher".equals(name)?.70F:"s400launcher".equals(name)?.72F:1;
+            "patriotlauncher".equals(name)?.95F:"s400launcher".equals(name)?1.0F:1;
     }
     public static float remoteScale(int type) {
         return type==8?1.0F:type==1?scale(WarTechEntityProfile.GERAN_2):type==2?scale(WarTechEntityProfile.F_16C):

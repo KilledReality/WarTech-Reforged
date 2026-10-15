@@ -134,7 +134,7 @@ public final class ManualGeranQa {
             if(phase==79) { if(drone!=null) drone.setDead();scenario++; }
         }
         if(tick==1000) {
-            check("resources_released",OperationalChunks.pending(world)==0 && MissileChunkLoader.diagnostics(world).contains("flights=0/32")
+            check("resources_released",OperationalChunks.pending(world)==0 && MissileChunkLoader.diagnostics(world).contains("flights=0/")
                 && MissileChunkLoader.diagnostics(world).contains("queue=0 chunks/0 owners"),MissileChunkLoader.diagnostics(world));
             JsonObject result=new JsonObject();result.addProperty("complete",true);result.add("cases",cases);result.add("failures",new Gson().toJsonTree(failures));
             result.addProperty("resources",MissileChunkLoader.diagnostics(world));

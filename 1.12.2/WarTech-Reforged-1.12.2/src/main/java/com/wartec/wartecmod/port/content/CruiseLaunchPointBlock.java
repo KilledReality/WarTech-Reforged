@@ -35,7 +35,7 @@ public final class CruiseLaunchPointBlock extends net.minecraft.block.BlockConta
         if(!(value instanceof com.wartec.wartecmod.port.gameplay.TileEntityCruiseLauncher)) return false;
         com.wartec.wartecmod.port.gameplay.TileEntityCruiseLauncher tile=(com.wartec.wartecmod.port.gameplay.TileEntityCruiseLauncher)value;
         if(!tile.mayUse(player)) { com.wartec.wartecmod.port.cruise.CruiseText.tell(player,"error.owner");return true; }
-        if(player.getHeldItem(hand).getItem()==WarTechContent.ASSEMBLED_CRUISE) {
+        if(com.wartec.wartecmod.port.cruise.CruiseBuild.isStore(player.getHeldItem(hand))) {
             if(player.canPlayerEdit(pos,facing,player.getHeldItem(hand)) && world.isBlockModifiable(player,pos)) tile.load(player,player.getHeldItem(hand));
         }
         else player.openGui(com.wartec.wartecmod.WarTechReforged.instance,com.wartec.wartecmod.port.gui.WarTechGuiHandler.GUI_CRUISE_LAUNCHER,world,pos.getX(),pos.getY(),pos.getZ());

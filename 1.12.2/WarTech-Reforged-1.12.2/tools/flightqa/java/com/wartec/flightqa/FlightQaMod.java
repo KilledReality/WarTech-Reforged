@@ -26,7 +26,17 @@ import net.minecraftforge.fml.common.FMLCommonHandler;
 @Mod(modid="wartechflightqa",name="WarTech isolated flight QA",version="dev65",dependencies="required-after:wartecmod",acceptableRemoteVersions="*")
 public final class FlightQaMod {
     @Mod.EventHandler public void init(net.minecraftforge.fml.common.event.FMLInitializationEvent event) {
-        if(event.getSide().isClient() && Boolean.getBoolean("wartech.uiqa")) ClientUiQa.register();
+        if(Boolean.getBoolean("wartech.connectedmpqa")){ConnectedMpQa.register(event.getSide().isClient());return;}
+        if(event.getSide().isClient() && Boolean.getBoolean("wartech.productionuiqa")){ProductionClientQa.register();return;}
+        if(event.getSide().isClient() && Boolean.getBoolean("wartech.commanduiqa")){CommandClientQa.register();return;}
+        if(event.getSide().isClient() && Boolean.getBoolean("wartech.silouiqa")) { SiloClientQa.register();return; }
+        if(event.getSide().isClient() && Boolean.getBoolean("wartech.planninguiqa")) { PlanningClientQa.register();return; }
+        if(event.getSide().isClient() && Boolean.getBoolean("wartech.modernexituiqa")) { ModernExitClientQa.register();return; }
+        if(event.getSide().isClient() && Boolean.getBoolean("wartech.shoraduiqa")) { ShoradClientQa.register();return; }
+        if(event.getSide().isClient() && Boolean.getBoolean("wartech.samuiqa")) { SamClientQa.register();return; }
+        if(event.getSide().isClient() && Boolean.getBoolean("wartech.uiqa")) {
+            if(Boolean.getBoolean("wartech.vehicleuiqa"))VehicleClientQa.register();else ClientUiQa.register();
+        }
     }
     private final Path report=Paths.get("flightqa-report.json"),checkpoint=Paths.get("flightqa-checkpoint.json");
     private final Gson gson=new GsonBuilder().setPrettyPrinting().create();
@@ -39,6 +49,31 @@ public final class FlightQaMod {
     private MinecraftServer server;private WorldServer world;
     private int tick,doneAt=-1;private long tickStart;private boolean resumed,stopping;
     @Mod.EventHandler public void started(FMLServerStartedEvent event) throws Exception {
+        if(Boolean.getBoolean("wartech.connectedmpqa")){ConnectedMpQa.startServer();return;}
+        if(Boolean.getBoolean("wartech.productionqa")){new ProductionQa().started();return;}
+        if(Boolean.getBoolean("wartech.recipecatalog")){new RecipeCatalogQa().started();return;}
+        if(Boolean.getBoolean("wartech.commandfixqa")){new CommandReliabilityQa().started();return;}
+        if(Boolean.getBoolean("wartech.commandauditqa")){new CommandAuditQa().started();return;}
+        if(Boolean.getBoolean("wartech.commandcenterqa")){new CommandCenterQa().started();return;}
+        if(Boolean.getBoolean("wartech.siloabmrestartqa")) { new SiloAbmRestartQa().started();return; }
+        if(Boolean.getBoolean("wartech.tubeqa")){new TubeArtilleryQa().started();return;}
+        if(Boolean.getBoolean("wartech.siloabmqa")) { new SiloAbmQa().started();return; }
+        if(Boolean.getBoolean("wartech.silorestartqa")) { new SiloRestartQa().started();return; }
+        if(Boolean.getBoolean("wartech.siloqa")) { new SiloQa().started();return; }
+        if(Boolean.getBoolean("wartech.planningrestartqa")) { new PlanningRestartQa().started();return; }
+        if(Boolean.getBoolean("wartech.planningqa")) { new PlanningQa().started();return; }
+        if(Boolean.getBoolean("wartech.modernexitqa")) { new ModernExitQa().started();return; }
+        if(Boolean.getBoolean("wartech.raidqa")) { new RaidQa().started();return; }
+        if(Boolean.getBoolean("wartech.engagementqa")) { new EngagementQa().started();return; }
+        if(Boolean.getBoolean("wartech.commandqa")) { new CommandQa().started();return; }
+        if(Boolean.getBoolean("wartech.controlsqa")) { new ControlsQa().started();return; }
+        if(Boolean.getBoolean("wartech.shoradqa")) { new ShoradQa().started();return; }
+        if(Boolean.getBoolean("wartech.samqa")) { new LegacySamQa().started();return; }
+        if(Boolean.getBoolean("wartech.modernqa")) { new ModernQa().started();return; }
+        if(Boolean.getBoolean("wartech.vehicleqa")) {new VehicleQa().started();return;}
+        if(Boolean.getBoolean("wartech.teltargetqa")) { new TelTargetQa().started();return; }
+        if(Boolean.getBoolean("wartech.strategicrestartqa")) { new StrategicRestartQa().started();return; }
+        if(Boolean.getBoolean("wartech.strategicqa")) { new StrategicQa().started();return; }
         if(Boolean.getBoolean("wartech.manualgeranqa")) { new ManualGeranQa().started();return; }
         if(Boolean.getBoolean("wartech.geran5qa")) { new Geran5Qa().started();return; }
         if(Boolean.getBoolean("wartech.interceptorqa")) { new InterceptorQa().started();return; }
@@ -94,7 +129,7 @@ public final class FlightQaMod {
         if(tick>14000) { failures.add("Timed out");doneAt=tick-201; }
         if(doneAt>=0 && tick-doneAt>=200) {
             String state=MissileChunkLoader.diagnostics(world);
-            if(!state.contains("flights=0/32") || !state.contains("server queue=0 chunks/0 owners")) failures.add("Leaked loader resources: "+state);
+            if(!state.contains("flights=0/") || !state.contains("server queue=0 chunks/0 owners")) failures.add("Leaked loader resources: "+state);
             writeReport(true);System.out.println("FLIGHTQA FINISHED failures="+failures);stopping=true;server.initiateShutdown();
         }
     }

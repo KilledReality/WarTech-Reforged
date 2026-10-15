@@ -19,7 +19,7 @@ public class VehicleDimensionsTest {
     }
     @Test public void everyActiveProfileHasBoundedFiniteScale() {
         for(WarTechEntityProfile p:WarTechEntityProfile.values()) {
-            assertTrue(VehicleDimensions.scale(p)>=.75 && VehicleDimensions.scale(p)<=1.25);
+            assertTrue(VehicleDimensions.scale(p)>=.75 && VehicleDimensions.scale(p)<=(p==WarTechEntityProfile.S400_RADAR?1.5:1.25));
             assertTrue(Float.isFinite(p.getWidth()) && p.getWidth()>0);
             assertTrue(Float.isFinite(p.getHeight()) && p.getHeight()>0);
         }

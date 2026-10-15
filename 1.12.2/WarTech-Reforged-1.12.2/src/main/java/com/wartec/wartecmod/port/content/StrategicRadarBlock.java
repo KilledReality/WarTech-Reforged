@@ -77,6 +77,7 @@ public final class StrategicRadarBlock extends BlockContainer {
                 WarTechContent.STRATEGIC_RADAR_STRUCTURE);
         if (tile instanceof TileEntityWarTechMachine) {
             ((TileEntityWarTechMachine) tile).setStructureFormed(true);
+            com.wartec.wartecmod.port.production.ProductionState.apply(tile,stack);
         }
         world.playSound(null, pos, net.minecraft.init.SoundEvents.BLOCK_ANVIL_USE,
                 net.minecraft.util.SoundCategory.BLOCKS, 1.0F, 0.65F);
@@ -99,6 +100,7 @@ public final class StrategicRadarBlock extends BlockContainer {
         if (player.isSneaking() && !held.isEmpty()
                 && held.getItem() == WarTechContent.WARTECH_IFF_CONFIGURATOR) {
             if (!world.isRemote) {
+                if (!com.wartec.wartecmod.port.integration.OwnershipAccess.mayRebind(player,((TileEntityWarTechMachine)tile).getOwnerTeam())) return true;
                 String team = PlayerTeamPersistence.getPlayerTeam(player);
                 ((TileEntityWarTechMachine) tile).setOwnerTeam(team);
                 player.sendMessage(new TextComponentString(

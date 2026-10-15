@@ -16,10 +16,12 @@ public final class CruiseVisuals {
     }
     public static float radialScale(CruiseBuild build) { return 1; }
     public static double engineEnd(CruiseBuild build) {
+        if(build.isS8000()) return 1.592;
         return new double[]{1.80000007,2.60621643,2.6,2.4}[family(build.getAirframe())];
     }
     public static double engineY(CruisePartDefinition body) { return new double[]{0,.0369,.0872,.2232}[family(body)]; }
     public static Vec3d exhaust(CruiseBuild build,boolean booster) {
+        if(build.isS8000()) return new Vec3d(0,0,-1.592);
         double scale=CruiseAirframes.modelScale(build.getAirframe());
         return new Vec3d(0,engineY(build.getAirframe())*scale,(-engineEnd(build)-.025)*scale);
     }
@@ -29,11 +31,13 @@ public final class CruiseVisuals {
         return new Vec3d(local.x*Math.cos(a)-z*Math.sin(a),y,local.x*Math.sin(a)+z*Math.cos(a));
     }
     public static double noseOffset(CruiseBuild build) {
+        if(build.isS8000()) return 1.6;
         double tip=new double[]{1.8,2.5586,2.6,2.4}[family(build.getAirframe())];
         return tip*CruiseAirframes.modelScale(build.getAirframe());
     }
     /** Native OBJ support vertex; minimum rotated Y at the actual launch angle. */
     public static Vec3d supportPoint(CruiseBuild build) {
+        if(build.isS8000()) return new Vec3d(0,-.9794,-5.000003).scale(.32);
         double[][] boosted={{0,-.07669187,-1.80000007},{.17145529,-.16747379,-2.60351396},
             {0,-.01476803,-2.6},{0,.17429848,-2.3994801}};
         double[][] rail={{0,-.08002630,-1.78999674},{.39302966,-.35849226,-2.38097572},
@@ -54,6 +58,7 @@ public final class CruiseVisuals {
         double[][] max={{1.7822,.4409,1.8},{.4975,.535,2.5586},
             {1.17548441,.38287117,2.6},{.65607321,.61350954,2.39999986}};
         int f=family(build.getAirframe());double scale=CruiseAirframes.modelScale(build.getAirframe());
+        if(build.isS8000()) { min[f]=new double[]{-1.645926,-.9794,-5.000003};max[f]=new double[]{1.645926,.9753,4.998743};scale=.32; }
         float pitch=build.get(CruiseSlot.LAUNCH)==CruisePartDefinition.LAUNCH_BOOSTER?-65:-12;
         double x0=Double.POSITIVE_INFINITY,y0=x0,z0=x0,x1=-x0,y1=-x0,z1=-x0;
         for(int corner=0;corner<8;corner++) {

@@ -126,7 +126,7 @@ public class GuiLegacyAircraft extends GuiContainer {
         }
         drawDefaultBackground();super.drawScreen(mouseX,mouseY,partial);renderHoveredToolTip(mouseX,mouseY);
         ItemStack cursor=mc.player.inventory.getItemStack();
-        if(cursor.getItem()==com.wartec.wartecmod.port.content.WarTechContent.ASSEMBLED_CRUISE && isPointInRegion(75,82,126,18,mouseX,mouseY)) {
+        if(com.wartec.wartecmod.port.cruise.CruiseBuild.isStore(cursor) && isPointInRegion(75,82,126,18,mouseX,mouseY)) {
             CruiseBuild build=CruiseBuild.fromStack(cursor);String error=null;Object[] args=new Object[0];
             if(uav()!=null) { error=com.wartec.wartecmod.port.uav.UavCruiseCarriage.error(uav().getBuild(),build);args=com.wartec.wartecmod.port.uav.UavCruiseCarriage.errorArguments(uav().getBuild(),build,error); }
             else if(plane()!=null) error=plane().getCruiseLoadError(Math.max(0,Math.min(5,(mouseX-guiLeft-75)/21)),cursor);

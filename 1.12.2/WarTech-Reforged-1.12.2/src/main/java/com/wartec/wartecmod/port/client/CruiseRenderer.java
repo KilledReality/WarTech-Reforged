@@ -22,9 +22,13 @@ final class CruiseRenderer {
     static void renderEntity(EntityCustomCruise entity,float yaw,float pitch,float partial) {
         GL11.glRotatef(-yaw,0,1,0);GL11.glRotatef(pitch,1,0,0);
         CruiseBuild build=entity.getBuild();float age=entity.getVisualFlightTicks(partial);
-        render(build);
+        if(build.isS8000()) ModernModelRenderer.renderBody(com.wartec.wartecmod.port.entity.ModernMissileProfile.S8000,0,0,age,1);
+        else render(build);
         boolean boost=entity.getFlightStage()==0 && build.get(CruiseSlot.LAUNCH)==CruisePartDefinition.LAUNCH_BOOSTER;
-        if(CruiseVisuals.burning(build,age,entity.getFlightStage())) CruiseExhaustRenderer.render(build,boost,age);
+        if(CruiseVisuals.burning(build,age,entity.getFlightStage())) {
+            if(build.isS8000()) ModernModelRenderer.renderNativeExhaust(com.wartec.wartecmod.port.entity.ModernMissileProfile.S8000,age,boost);
+            else CruiseExhaustRenderer.render(build,boost,age);
+        }
     }
     static void renderItem(CruiseBuild build,ItemCameraTransforms.TransformType type) {
         GL11.glRotatef(24,1,0,0);GL11.glRotatef(-55,0,1,0);
@@ -49,6 +53,7 @@ final class CruiseRenderer {
         Minecraft.getMinecraft().getTextureManager().bindTexture(new ResourceLocation("wartecmod",name));
     }
     private static void render(CruiseBuild build) {
+        if(build.isS8000()) { ModernModelRenderer.renderBody(com.wartec.wartecmod.port.entity.ModernMissileProfile.S8000,0,0,0,1);return; }
         CruisePartDefinition body=build.getAirframe();if(body==null) return;
         int previousTexture=GL11.glGetInteger(GL11.GL_TEXTURE_BINDING_2D);
         GL11.glPushMatrix();GL11.glPushAttrib(GL11.GL_ALL_ATTRIB_BITS);

@@ -53,9 +53,11 @@ public class PortBlock extends Block {
     public void onBlockPlacedBy(World world, BlockPos pos, IBlockState state,
             EntityLivingBase placer, ItemStack stack) {
         super.onBlockPlacedBy(world, pos, state, placer, stack);
+        if(!world.isRemote)com.wartec.wartecmod.port.production.ProductionState.apply(world.getTileEntity(pos),stack);
         if (!world.isRemote && placer instanceof EntityPlayer) {
             TileEntity tile = world.getTileEntity(pos);
             if (tile instanceof TileEntityWarTechMachine) {
+                com.wartec.wartecmod.port.planning.PlanningAccessPolicy.claim(tile,(EntityPlayer)placer);
                 ((TileEntityWarTechMachine) tile).setOwnerTeam(
                         OwnerTeamNbt.resolvePlacementTeam(stack,
                                 (EntityPlayer) placer));
@@ -106,6 +108,7 @@ public class PortBlock extends Block {
                 if (player.isSneaking() && !held.isEmpty()
                         && held.getItem()
                                 == WarTechContent.WARTECH_IFF_CONFIGURATOR) {
+                    if (!com.wartec.wartecmod.port.integration.OwnershipAccess.mayRebind(player,machine.getOwnerTeam())) return true;
                     machine.setOwnerTeam(
                             PlayerTeamPersistence.getPlayerTeam(player));
                     player.sendMessage(new TextComponentString(

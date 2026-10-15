@@ -1,0 +1,1924 @@
+{
+  "asset": "Smerch",
+  "source_part_assignment": {
+    "assignment": {
+      "BM-30 SMERCH__000": "Wheel_L_225",
+      "BM-30 SMERCH__001": "Wheel_R_-253",
+      "BM-30 SMERCH__002": "Wheel_L_-253",
+      "BM-30 SMERCH__003": "Wheel_L_-76",
+      "BM-30 SMERCH__004": "Wheel_L_398",
+      "BM-30 SMERCH__005": "Wheel_R_-76",
+      "BM-30 SMERCH__006": "Wheel_R_398",
+      "BM-30 SMERCH__007": "Wheel_R_225",
+      "BM-30 SMERCH__008": "Chassis",
+      "BM-30 SMERCH__009": "Chassis",
+      "BM-30 SMERCH__010": "Rebuilt lift mechanism",
+      "BM-30 SMERCH__011": "Rebuilt lift mechanism",
+      "BM-30 SMERCH__012": "Rebuilt lift mechanism",
+      "BM-30 SMERCH__013": "Chassis",
+      "BM-30 SMERCH__014": "Chassis",
+      "BM-30 SMERCH__015": "Chassis",
+      "BM-30 SMERCH__016": "Chassis",
+      "BM-30 SMERCH__017": "Chassis",
+      "BM-30 SMERCH__018": "Chassis",
+      "BM-30 SMERCH__019": "Chassis",
+      "BM-30 SMERCH__020": "Rebuilt straight open tube",
+      "BM-30 SMERCH__021": "Chassis",
+      "BM-30 SMERCH__022": "Chassis",
+      "BM-30 SMERCH__023": "Rebuilt straight open tube",
+      "BM-30 SMERCH__024": "Rebuilt straight open tube",
+      "BM-30 SMERCH__025": "Chassis",
+      "BM-30 SMERCH__026": "Rebuilt straight open tube",
+      "BM-30 SMERCH__027": "Rebuilt straight open tube",
+      "BM-30 SMERCH__028": "Chassis",
+      "BM-30 SMERCH__029": "Rebuilt straight open tube",
+      "BM-30 SMERCH__030": "Rebuilt straight open tube",
+      "BM-30 SMERCH__031": "Rebuilt straight open tube",
+      "BM-30 SMERCH__032": "Rebuilt straight open tube",
+      "BM-30 SMERCH__033": "Rebuilt straight open tube",
+      "BM-30 SMERCH__034": "Rebuilt lift mechanism",
+      "BM-30 SMERCH__035": "Rebuilt straight open tube",
+      "BM-30 SMERCH__036": "Rebuilt straight open tube",
+      "BM-30 SMERCH__037": "Chassis",
+      "BM-30 SMERCH__038": "Chassis",
+      "BM-30 SMERCH__039": "Chassis",
+      "BM-30 SMERCH__040": "Chassis",
+      "BM-30 SMERCH__041": "Chassis",
+      "BM-30 SMERCH__042": "Chassis",
+      "BM-30 SMERCH__043": "Chassis",
+      "BM-30 SMERCH__044": "Chassis",
+      "BM-30 SMERCH__045": "Chassis",
+      "BM-30 SMERCH__046": "Chassis",
+      "BM-30 SMERCH__047": "Chassis",
+      "BM-30 SMERCH__048": "Chassis",
+      "BM-30 SMERCH__049": "Rebuilt lift mechanism",
+      "BM-30 SMERCH__050": "Wheel_L_-253",
+      "BM-30 SMERCH__051": "Wheel_L_-76",
+      "BM-30 SMERCH__052": "Wheel_L_225",
+      "BM-30 SMERCH__053": "Wheel_L_398",
+      "BM-30 SMERCH__054": "Chassis",
+      "BM-30 SMERCH__055": "Chassis",
+      "BM-30 SMERCH__056": "Rebuilt lift mechanism",
+      "BM-30 SMERCH__057": "Chassis",
+      "BM-30 SMERCH__058": "Chassis",
+      "BM-30 SMERCH__059": "Chassis",
+      "BM-30 SMERCH__060": "Wheel_R_-253",
+      "BM-30 SMERCH__061": "Wheel_R_-76",
+      "BM-30 SMERCH__062": "Wheel_R_225",
+      "BM-30 SMERCH__063": "Wheel_R_398",
+      "BM-30 SMERCH__064": "Chassis",
+      "BM-30 SMERCH__065": "LauncherPitch",
+      "BM-30 SMERCH__066": "LauncherPitch",
+      "BM-30 SMERCH__067": "Chassis",
+      "BM-30 SMERCH__068": "LauncherPitch",
+      "BM-30 SMERCH__069": "Chassis",
+      "BM-30 SMERCH__070": "LauncherPitch",
+      "BM-30 SMERCH__071": "Rebuilt lift mechanism",
+      "BM-30 SMERCH__072": "Chassis",
+      "BM-30 SMERCH__073": "Chassis",
+      "BM-30 SMERCH__074": "LauncherPitch",
+      "BM-30 SMERCH__075": "Chassis",
+      "BM-30 SMERCH__076": "LauncherPitch",
+      "BM-30 SMERCH__077": "Chassis",
+      "BM-30 SMERCH__078": "Chassis",
+      "BM-30 SMERCH__079": "Chassis",
+      "BM-30 SMERCH__080": "Chassis",
+      "BM-30 SMERCH__081": "Chassis",
+      "BM-30 SMERCH__082": "Chassis",
+      "BM-30 SMERCH__083": "Chassis",
+      "BM-30 SMERCH__084": "LauncherPitch",
+      "BM-30 SMERCH__085": "LauncherPitch",
+      "BM-30 SMERCH__086": "Chassis",
+      "BM-30 SMERCH__087": "Chassis",
+      "BM-30 SMERCH__088": "Chassis",
+      "BM-30 SMERCH__089": "Chassis",
+      "BM-30 SMERCH__090": "Chassis",
+      "BM-30 SMERCH__091": "LauncherPitch",
+      "BM-30 SMERCH__092": "LauncherPitch",
+      "BM-30 SMERCH__093": "LauncherPitch",
+      "BM-30 SMERCH__094": "Chassis",
+      "BM-30 SMERCH__095": "Chassis",
+      "BM-30 SMERCH__096": "Chassis",
+      "BM-30 SMERCH__097": "Chassis",
+      "BM-30 SMERCH__098": "LauncherPitch",
+      "BM-30 SMERCH__099": "Chassis",
+      "BM-30 SMERCH__100": "Chassis",
+      "BM-30 SMERCH__101": "Chassis",
+      "BM-30 SMERCH__102": "Chassis",
+      "BM-30 SMERCH__103": "LauncherPitch",
+      "BM-30 SMERCH__104": "Chassis",
+      "BM-30 SMERCH__105": "Chassis",
+      "BM-30 SMERCH__106": "Wheel_L_-253",
+      "BM-30 SMERCH__107": "Wheel_L_-76",
+      "BM-30 SMERCH__108": "Wheel_L_225",
+      "BM-30 SMERCH__109": "Wheel_L_398",
+      "BM-30 SMERCH__110": "Chassis",
+      "BM-30 SMERCH__111": "Chassis",
+      "BM-30 SMERCH__112": "Chassis",
+      "BM-30 SMERCH__113": "Wheel_R_-253",
+      "BM-30 SMERCH__114": "Wheel_R_-76",
+      "BM-30 SMERCH__115": "Wheel_R_225",
+      "BM-30 SMERCH__116": "Wheel_R_398",
+      "BM-30 SMERCH__117": "Chassis",
+      "BM-30 SMERCH__118": "Chassis",
+      "BM-30 SMERCH__119": "Chassis",
+      "BM-30 SMERCH__120": "LauncherPitch",
+      "BM-30 SMERCH__121": "Chassis",
+      "BM-30 SMERCH__122": "Chassis",
+      "BM-30 SMERCH__123": "Chassis",
+      "BM-30 SMERCH__124": "Chassis",
+      "BM-30 SMERCH__125": "Chassis",
+      "BM-30 SMERCH__126": "Chassis",
+      "BM-30 SMERCH__127": "Chassis",
+      "BM-30 SMERCH__128": "Chassis",
+      "BM-30 SMERCH__129": "Chassis",
+      "BM-30 SMERCH__130": "Chassis",
+      "BM-30 SMERCH__131": "Chassis",
+      "BM-30 SMERCH__132": "Chassis",
+      "BM-30 SMERCH__133": "LauncherPitch",
+      "BM-30 SMERCH__134": "Chassis",
+      "BM-30 SMERCH__135": "Chassis",
+      "BM-30 SMERCH__136": "Chassis",
+      "BM-30 SMERCH__137": "Chassis",
+      "BM-30 SMERCH__138": "Chassis",
+      "BM-30 SMERCH__139": "Chassis",
+      "BM-30 SMERCH__140": "LauncherPitch",
+      "BM-30 SMERCH__141": "Chassis",
+      "BM-30 SMERCH__142": "Chassis",
+      "BM-30 SMERCH__143": "Chassis",
+      "BM-30 SMERCH__144": "Chassis",
+      "BM-30 SMERCH__145": "Chassis",
+      "BM-30 SMERCH__146": "Chassis",
+      "BM-30 SMERCH__147": "Chassis",
+      "BM-30 SMERCH__148": "Chassis",
+      "BM-30 SMERCH__149": "Chassis",
+      "BM-30 SMERCH__150": "Chassis",
+      "BM-30 SMERCH__151": "Chassis",
+      "BM-30 SMERCH__152": "Chassis",
+      "BM-30 SMERCH__153": "Chassis",
+      "BM-30 SMERCH__154": "Chassis",
+      "BM-30 SMERCH__155": "Chassis",
+      "BM-30 SMERCH__156": "Chassis",
+      "BM-30 SMERCH__157": "Chassis",
+      "BM-30 SMERCH__158": "Chassis",
+      "BM-30 SMERCH__159": "Chassis",
+      "BM-30 SMERCH__160": "Chassis",
+      "BM-30 SMERCH__161": "Chassis",
+      "BM-30 SMERCH__162": "Chassis",
+      "BM-30 SMERCH__163": "Chassis",
+      "BM-30 SMERCH__164": "Chassis",
+      "BM-30 SMERCH__165": "Chassis",
+      "BM-30 SMERCH__166": "Chassis",
+      "BM-30 SMERCH__167": "Chassis",
+      "BM-30 SMERCH__168": "Chassis",
+      "BM-30 SMERCH__169": "Chassis",
+      "BM-30 SMERCH__170": "LauncherPitch",
+      "BM-30 SMERCH__171": "Chassis",
+      "BM-30 SMERCH__172": "Chassis",
+      "BM-30 SMERCH__173": "Chassis",
+      "BM-30 SMERCH__174": "Chassis",
+      "BM-30 SMERCH__175": "Chassis",
+      "BM-30 SMERCH__176": "LauncherPitch",
+      "BM-30 SMERCH__177": "Chassis",
+      "BM-30 SMERCH__178": "Chassis",
+      "BM-30 SMERCH__179": "Chassis",
+      "BM-30 SMERCH__180": "Chassis",
+      "BM-30 SMERCH__181": "Chassis",
+      "BM-30 SMERCH__182": "Chassis",
+      "BM-30 SMERCH__183": "Chassis",
+      "BM-30 SMERCH__184": "Chassis",
+      "BM-30 SMERCH__185": "Chassis",
+      "BM-30 SMERCH__186": "Chassis",
+      "BM-30 SMERCH__187": "Chassis",
+      "BM-30 SMERCH__188": "Chassis",
+      "BM-30 SMERCH__189": "Chassis",
+      "BM-30 SMERCH__190": "Chassis",
+      "BM-30 SMERCH__191": "Chassis",
+      "BM-30 SMERCH__192": "Chassis",
+      "BM-30 SMERCH__193": "Chassis",
+      "BM-30 SMERCH__194": "Chassis",
+      "BM-30 SMERCH__195": "Chassis",
+      "BM-30 SMERCH__196": "Chassis",
+      "BM-30 SMERCH__197": "Chassis",
+      "BM-30 SMERCH__198": "Chassis",
+      "BM-30 SMERCH__199": "Chassis",
+      "BM-30 SMERCH__200": "Chassis",
+      "BM-30 SMERCH__201": "Chassis",
+      "BM-30 SMERCH__202": "Chassis",
+      "BM-30 SMERCH__203": "Chassis",
+      "BM-30 SMERCH__204": "Chassis",
+      "BM-30 SMERCH__205": "Chassis",
+      "BM-30 SMERCH__206": "Chassis",
+      "BM-30 SMERCH__207": "Chassis",
+      "BM-30 SMERCH__208": "Chassis",
+      "BM-30 SMERCH__209": "Chassis",
+      "BM-30 SMERCH__210": "Chassis",
+      "BM-30 SMERCH__211": "Chassis",
+      "BM-30 SMERCH__212": "Chassis",
+      "BM-30 SMERCH__213": "Chassis",
+      "BM-30 SMERCH__214": "Chassis",
+      "BM-30 SMERCH__215": "Chassis",
+      "BM-30 SMERCH__216": "Chassis",
+      "BM-30 SMERCH__217": "Chassis",
+      "BM-30 SMERCH__218": "Chassis",
+      "BM-30 SMERCH__219": "Chassis",
+      "BM-30 SMERCH__220": "Chassis",
+      "BM-30 SMERCH__221": "Chassis",
+      "BM-30 SMERCH__222": "Chassis",
+      "BM-30 SMERCH__223": "Chassis",
+      "BM-30 SMERCH__224": "Chassis",
+      "BM-30 SMERCH__225": "Chassis",
+      "BM-30 SMERCH__226": "Chassis",
+      "BM-30 SMERCH__227": "Chassis",
+      "BM-30 SMERCH__228": "Chassis",
+      "BM-30 SMERCH__229": "Chassis",
+      "BM-30 SMERCH__230": "Chassis",
+      "BM-30 SMERCH__231": "Chassis",
+      "BM-30 SMERCH__232": "Chassis",
+      "BM-30 SMERCH__233": "Chassis",
+      "BM-30 SMERCH__234": "Chassis",
+      "BM-30 SMERCH__235": "Chassis",
+      "BM-30 SMERCH__236": "Chassis"
+    },
+    "source_piece_lookup": {
+      "0": "BM-30 SMERCH__000",
+      "1": "BM-30 SMERCH__001",
+      "2": "BM-30 SMERCH__002",
+      "3": "BM-30 SMERCH__003",
+      "4": "BM-30 SMERCH__004",
+      "5": "BM-30 SMERCH__005",
+      "6": "BM-30 SMERCH__006",
+      "7": "BM-30 SMERCH__007",
+      "8": "BM-30 SMERCH__008",
+      "9": "BM-30 SMERCH__009",
+      "10": "BM-30 SMERCH__010",
+      "11": "BM-30 SMERCH__011",
+      "12": "BM-30 SMERCH__012",
+      "13": "BM-30 SMERCH__013",
+      "14": "BM-30 SMERCH__014",
+      "15": "BM-30 SMERCH__015",
+      "16": "BM-30 SMERCH__016",
+      "17": "BM-30 SMERCH__017",
+      "18": "BM-30 SMERCH__018",
+      "19": "BM-30 SMERCH__019",
+      "20": "BM-30 SMERCH__020",
+      "21": "BM-30 SMERCH__021",
+      "22": "BM-30 SMERCH__022",
+      "23": "BM-30 SMERCH__023",
+      "24": "BM-30 SMERCH__024",
+      "25": "BM-30 SMERCH__025",
+      "26": "BM-30 SMERCH__026",
+      "27": "BM-30 SMERCH__027",
+      "28": "BM-30 SMERCH__028",
+      "29": "BM-30 SMERCH__029",
+      "30": "BM-30 SMERCH__030",
+      "31": "BM-30 SMERCH__031",
+      "32": "BM-30 SMERCH__032",
+      "33": "BM-30 SMERCH__033",
+      "34": "BM-30 SMERCH__034",
+      "35": "BM-30 SMERCH__035",
+      "36": "BM-30 SMERCH__036",
+      "37": "BM-30 SMERCH__037",
+      "38": "BM-30 SMERCH__038",
+      "39": "BM-30 SMERCH__039",
+      "40": "BM-30 SMERCH__040",
+      "41": "BM-30 SMERCH__041",
+      "42": "BM-30 SMERCH__042",
+      "43": "BM-30 SMERCH__043",
+      "44": "BM-30 SMERCH__044",
+      "45": "BM-30 SMERCH__045",
+      "46": "BM-30 SMERCH__046",
+      "47": "BM-30 SMERCH__047",
+      "48": "BM-30 SMERCH__048",
+      "49": "BM-30 SMERCH__049",
+      "50": "BM-30 SMERCH__050",
+      "51": "BM-30 SMERCH__051",
+      "52": "BM-30 SMERCH__052",
+      "53": "BM-30 SMERCH__053",
+      "54": "BM-30 SMERCH__054",
+      "55": "BM-30 SMERCH__055",
+      "56": "BM-30 SMERCH__056",
+      "57": "BM-30 SMERCH__057",
+      "58": "BM-30 SMERCH__058",
+      "59": "BM-30 SMERCH__059",
+      "60": "BM-30 SMERCH__060",
+      "61": "BM-30 SMERCH__061",
+      "62": "BM-30 SMERCH__062",
+      "63": "BM-30 SMERCH__063",
+      "64": "BM-30 SMERCH__064",
+      "65": "BM-30 SMERCH__065",
+      "66": "BM-30 SMERCH__066",
+      "67": "BM-30 SMERCH__067",
+      "68": "BM-30 SMERCH__068",
+      "69": "BM-30 SMERCH__069",
+      "70": "BM-30 SMERCH__070",
+      "71": "BM-30 SMERCH__071",
+      "72": "BM-30 SMERCH__072",
+      "73": "BM-30 SMERCH__073",
+      "74": "BM-30 SMERCH__074",
+      "75": "BM-30 SMERCH__075",
+      "76": "BM-30 SMERCH__076",
+      "77": "BM-30 SMERCH__077",
+      "78": "BM-30 SMERCH__078",
+      "79": "BM-30 SMERCH__079",
+      "80": "BM-30 SMERCH__080",
+      "81": "BM-30 SMERCH__081",
+      "82": "BM-30 SMERCH__082",
+      "83": "BM-30 SMERCH__083",
+      "84": "BM-30 SMERCH__084",
+      "85": "BM-30 SMERCH__085",
+      "86": "BM-30 SMERCH__086",
+      "87": "BM-30 SMERCH__087",
+      "88": "BM-30 SMERCH__088",
+      "89": "BM-30 SMERCH__089",
+      "90": "BM-30 SMERCH__090",
+      "91": "BM-30 SMERCH__091",
+      "92": "BM-30 SMERCH__092",
+      "93": "BM-30 SMERCH__093",
+      "94": "BM-30 SMERCH__094",
+      "95": "BM-30 SMERCH__095",
+      "96": "BM-30 SMERCH__096",
+      "97": "BM-30 SMERCH__097",
+      "98": "BM-30 SMERCH__098",
+      "99": "BM-30 SMERCH__099",
+      "100": "BM-30 SMERCH__100",
+      "101": "BM-30 SMERCH__101",
+      "102": "BM-30 SMERCH__102",
+      "103": "BM-30 SMERCH__103",
+      "104": "BM-30 SMERCH__104",
+      "105": "BM-30 SMERCH__105",
+      "106": "BM-30 SMERCH__106",
+      "107": "BM-30 SMERCH__107",
+      "108": "BM-30 SMERCH__108",
+      "109": "BM-30 SMERCH__109",
+      "110": "BM-30 SMERCH__110",
+      "111": "BM-30 SMERCH__111",
+      "112": "BM-30 SMERCH__112",
+      "113": "BM-30 SMERCH__113",
+      "114": "BM-30 SMERCH__114",
+      "115": "BM-30 SMERCH__115",
+      "116": "BM-30 SMERCH__116",
+      "117": "BM-30 SMERCH__117",
+      "118": "BM-30 SMERCH__118",
+      "119": "BM-30 SMERCH__119",
+      "120": "BM-30 SMERCH__120",
+      "121": "BM-30 SMERCH__121",
+      "122": "BM-30 SMERCH__122",
+      "123": "BM-30 SMERCH__123",
+      "124": "BM-30 SMERCH__124",
+      "125": "BM-30 SMERCH__125",
+      "126": "BM-30 SMERCH__126",
+      "127": "BM-30 SMERCH__127",
+      "128": "BM-30 SMERCH__128",
+      "129": "BM-30 SMERCH__129",
+      "130": "BM-30 SMERCH__130",
+      "131": "BM-30 SMERCH__131",
+      "132": "BM-30 SMERCH__132",
+      "133": "BM-30 SMERCH__133",
+      "134": "BM-30 SMERCH__134",
+      "135": "BM-30 SMERCH__135",
+      "136": "BM-30 SMERCH__136",
+      "137": "BM-30 SMERCH__137",
+      "138": "BM-30 SMERCH__138",
+      "139": "BM-30 SMERCH__139",
+      "140": "BM-30 SMERCH__140",
+      "141": "BM-30 SMERCH__141",
+      "142": "BM-30 SMERCH__142",
+      "143": "BM-30 SMERCH__143",
+      "144": "BM-30 SMERCH__144",
+      "145": "BM-30 SMERCH__145",
+      "146": "BM-30 SMERCH__146",
+      "147": "BM-30 SMERCH__147",
+      "148": "BM-30 SMERCH__148",
+      "149": "BM-30 SMERCH__149",
+      "150": "BM-30 SMERCH__150",
+      "151": "BM-30 SMERCH__151",
+      "152": "BM-30 SMERCH__152",
+      "153": "BM-30 SMERCH__153",
+      "154": "BM-30 SMERCH__154",
+      "155": "BM-30 SMERCH__155",
+      "156": "BM-30 SMERCH__156",
+      "157": "BM-30 SMERCH__157",
+      "158": "BM-30 SMERCH__158",
+      "159": "BM-30 SMERCH__159",
+      "160": "BM-30 SMERCH__160",
+      "161": "BM-30 SMERCH__161",
+      "162": "BM-30 SMERCH__162",
+      "163": "BM-30 SMERCH__163",
+      "164": "BM-30 SMERCH__164",
+      "165": "BM-30 SMERCH__165",
+      "166": "BM-30 SMERCH__166",
+      "167": "BM-30 SMERCH__167",
+      "168": "BM-30 SMERCH__168",
+      "169": "BM-30 SMERCH__169",
+      "170": "BM-30 SMERCH__170",
+      "171": "BM-30 SMERCH__171",
+      "172": "BM-30 SMERCH__172",
+      "173": "BM-30 SMERCH__173",
+      "174": "BM-30 SMERCH__174",
+      "175": "BM-30 SMERCH__175",
+      "176": "BM-30 SMERCH__176",
+      "177": "BM-30 SMERCH__177",
+      "178": "BM-30 SMERCH__178",
+      "179": "BM-30 SMERCH__179",
+      "180": "BM-30 SMERCH__180",
+      "181": "BM-30 SMERCH__181",
+      "182": "BM-30 SMERCH__182",
+      "183": "BM-30 SMERCH__183",
+      "184": "BM-30 SMERCH__184",
+      "185": "BM-30 SMERCH__185",
+      "186": "BM-30 SMERCH__186",
+      "187": "BM-30 SMERCH__187",
+      "188": "BM-30 SMERCH__188",
+      "189": "BM-30 SMERCH__189",
+      "190": "BM-30 SMERCH__190",
+      "191": "BM-30 SMERCH__191",
+      "192": "BM-30 SMERCH__192",
+      "193": "BM-30 SMERCH__193",
+      "194": "BM-30 SMERCH__194",
+      "195": "BM-30 SMERCH__195",
+      "196": "BM-30 SMERCH__196",
+      "197": "BM-30 SMERCH__197",
+      "198": "BM-30 SMERCH__198",
+      "199": "BM-30 SMERCH__199",
+      "200": "BM-30 SMERCH__200",
+      "201": "BM-30 SMERCH__201",
+      "202": "BM-30 SMERCH__202",
+      "203": "BM-30 SMERCH__203",
+      "204": "BM-30 SMERCH__204",
+      "205": "BM-30 SMERCH__205",
+      "206": "BM-30 SMERCH__206",
+      "207": "BM-30 SMERCH__207",
+      "208": "BM-30 SMERCH__208",
+      "209": "BM-30 SMERCH__209",
+      "210": "BM-30 SMERCH__210",
+      "211": "BM-30 SMERCH__211",
+      "212": "BM-30 SMERCH__212",
+      "213": "BM-30 SMERCH__213",
+      "214": "BM-30 SMERCH__214",
+      "215": "BM-30 SMERCH__215",
+      "216": "BM-30 SMERCH__216",
+      "217": "BM-30 SMERCH__217",
+      "218": "BM-30 SMERCH__218",
+      "219": "BM-30 SMERCH__219",
+      "220": "BM-30 SMERCH__220",
+      "221": "BM-30 SMERCH__221",
+      "222": "BM-30 SMERCH__222",
+      "223": "BM-30 SMERCH__223",
+      "224": "BM-30 SMERCH__224",
+      "225": "BM-30 SMERCH__225",
+      "226": "BM-30 SMERCH__226",
+      "227": "BM-30 SMERCH__227",
+      "228": "BM-30 SMERCH__228",
+      "229": "BM-30 SMERCH__229",
+      "230": "BM-30 SMERCH__230",
+      "231": "BM-30 SMERCH__231",
+      "232": "BM-30 SMERCH__232",
+      "233": "BM-30 SMERCH__233",
+      "234": "BM-30 SMERCH__234",
+      "235": "BM-30 SMERCH__235",
+      "236": "BM-30 SMERCH__236"
+    },
+    "pitch_degrees": 50.0,
+    "yaw_degrees": 22.0,
+    "hinge": [
+      0,
+      4.54,
+      2.09
+    ],
+    "launch_sockets": [
+      {
+        "id": 1,
+        "node": "LaunchSocket_01",
+        "parent": "LauncherPitch",
+        "scale": [
+          1.2355792358003377,
+          4.928000000000001,
+          1.2355792358003377
+        ],
+        "length": 4.928000000000001,
+        "bore_inradius": 0.13112,
+        "envelope_radius": 0.10751839999999999,
+        "clearance": 0.0236016,
+        "lip_world_blender": [
+          0.5843421220779419,
+          -1.1600000429153443,
+          2.969597339630127
+        ],
+        "direction_world_blender": [
+          0,
+          -1,
+          0
+        ],
+        "tube_length": 6.16,
+        "socket_translation": [
+          0.5843421220779419,
+          0.8795974254608154,
+          5.699999809265137
+        ],
+        "socket_rotation_xyzw": [
+          0.7071067690849304,
+          0.0,
+          0.0,
+          0.7071067690849304
+        ]
+      },
+      {
+        "id": 2,
+        "node": "LaunchSocket_02",
+        "parent": "LauncherPitch",
+        "scale": [
+          1.2355792358003377,
+          4.928000000000001,
+          1.2355792358003377
+        ],
+        "length": 4.928000000000001,
+        "bore_inradius": 0.13112,
+        "envelope_radius": 0.10751839999999999,
+        "clearance": 0.0236016,
+        "lip_world_blender": [
+          0.16540874540805817,
+          -1.1600000429153443,
+          2.967205047607422
+        ],
+        "direction_world_blender": [
+          0,
+          -1,
+          0
+        ],
+        "tube_length": 6.16,
+        "socket_translation": [
+          0.16540874540805817,
+          0.8772051334381104,
+          5.699999809265137
+        ],
+        "socket_rotation_xyzw": [
+          0.7071067690849304,
+          0.0,
+          0.0,
+          0.7071067690849304
+        ]
+      },
+      {
+        "id": 3,
+        "node": "LaunchSocket_03",
+        "parent": "LauncherPitch",
+        "scale": [
+          1.2355792358003377,
+          4.928000000000001,
+          1.2355792358003377
+        ],
+        "length": 4.928000000000001,
+        "bore_inradius": 0.13112,
+        "envelope_radius": 0.10751839999999999,
+        "clearance": 0.0236016,
+        "lip_world_blender": [
+          -0.2751936912536621,
+          -1.1600000429153443,
+          2.967205047607422
+        ],
+        "direction_world_blender": [
+          0,
+          -1,
+          0
+        ],
+        "tube_length": 6.16,
+        "socket_translation": [
+          -0.2751936912536621,
+          0.8772051334381104,
+          5.699999809265137
+        ],
+        "socket_rotation_xyzw": [
+          0.7071067690849304,
+          0.0,
+          0.0,
+          0.7071067690849304
+        ]
+      },
+      {
+        "id": 4,
+        "node": "LaunchSocket_04",
+        "parent": "LauncherPitch",
+        "scale": [
+          1.2355792358003377,
+          4.928000000000001,
+          1.2355792358003377
+        ],
+        "length": 4.928000000000001,
+        "bore_inradius": 0.13112,
+        "envelope_radius": 0.10751839999999999,
+        "clearance": 0.0236016,
+        "lip_world_blender": [
+          -0.698305606842041,
+          -1.1600000429153443,
+          2.969597339630127
+        ],
+        "direction_world_blender": [
+          0,
+          -1,
+          0
+        ],
+        "tube_length": 6.16,
+        "socket_translation": [
+          -0.698305606842041,
+          0.8795974254608154,
+          5.699999809265137
+        ],
+        "socket_rotation_xyzw": [
+          0.7071067690849304,
+          0.0,
+          0.0,
+          0.7071067690849304
+        ]
+      },
+      {
+        "id": 5,
+        "node": "LaunchSocket_05",
+        "parent": "LauncherPitch",
+        "scale": [
+          1.2355792358003377,
+          4.928000000000001,
+          1.2355792358003377
+        ],
+        "length": 4.928000000000001,
+        "bore_inradius": 0.13112,
+        "envelope_radius": 0.10751839999999999,
+        "clearance": 0.0236016,
+        "lip_world_blender": [
+          1.016223669052124,
+          -1.1600000429153443,
+          2.673114061355591
+        ],
+        "direction_world_blender": [
+          0,
+          -1,
+          0
+        ],
+        "tube_length": 6.16,
+        "socket_translation": [
+          1.016223669052124,
+          0.5831141471862793,
+          5.699999809265137
+        ],
+        "socket_rotation_xyzw": [
+          0.7071067690849304,
+          0.0,
+          0.0,
+          0.7071067690849304
+        ]
+      },
+      {
+        "id": 6,
+        "node": "LaunchSocket_06",
+        "parent": "LauncherPitch",
+        "scale": [
+          1.2355792358003377,
+          4.928000000000001,
+          1.2355792358003377
+        ],
+        "length": 4.928000000000001,
+        "bore_inradius": 0.13112,
+        "envelope_radius": 0.10751839999999999,
+        "clearance": 0.0236016,
+        "lip_world_blender": [
+          0.5843421220779419,
+          -1.1600000429153443,
+          2.673114061355591
+        ],
+        "direction_world_blender": [
+          0,
+          -1,
+          0
+        ],
+        "tube_length": 6.16,
+        "socket_translation": [
+          0.5843421220779419,
+          0.5831141471862793,
+          5.699999809265137
+        ],
+        "socket_rotation_xyzw": [
+          0.7071067690849304,
+          0.0,
+          0.0,
+          0.7071067690849304
+        ]
+      },
+      {
+        "id": 7,
+        "node": "LaunchSocket_07",
+        "parent": "LauncherPitch",
+        "scale": [
+          1.2355792358003377,
+          4.928000000000001,
+          1.2355792358003377
+        ],
+        "length": 4.928000000000001,
+        "bore_inradius": 0.13112,
+        "envelope_radius": 0.10751839999999999,
+        "clearance": 0.0236016,
+        "lip_world_blender": [
+          -0.6983060836791992,
+          -1.1600000429153443,
+          2.673114061355591
+        ],
+        "direction_world_blender": [
+          0,
+          -1,
+          0
+        ],
+        "tube_length": 6.16,
+        "socket_translation": [
+          -0.6983060836791992,
+          0.5831141471862793,
+          5.699999809265137
+        ],
+        "socket_rotation_xyzw": [
+          0.7071067690849304,
+          0.0,
+          0.0,
+          0.7071067690849304
+        ]
+      },
+      {
+        "id": 8,
+        "node": "LaunchSocket_08",
+        "parent": "LauncherPitch",
+        "scale": [
+          1.2355792358003377,
+          4.928000000000001,
+          1.2355792358003377
+        ],
+        "length": 4.928000000000001,
+        "bore_inradius": 0.13112,
+        "envelope_radius": 0.10751839999999999,
+        "clearance": 0.0236016,
+        "lip_world_blender": [
+          -1.1302393674850464,
+          -1.1600000429153443,
+          2.673114061355591
+        ],
+        "direction_world_blender": [
+          0,
+          -1,
+          0
+        ],
+        "tube_length": 6.16,
+        "socket_translation": [
+          -1.1302393674850464,
+          0.5831141471862793,
+          5.699999809265137
+        ],
+        "socket_rotation_xyzw": [
+          0.7071067690849304,
+          0.0,
+          0.0,
+          0.7071067690849304
+        ]
+      },
+      {
+        "id": 9,
+        "node": "LaunchSocket_09",
+        "parent": "LauncherPitch",
+        "scale": [
+          1.2355792358003377,
+          4.928000000000001,
+          1.2355792358003377
+        ],
+        "length": 4.928000000000001,
+        "bore_inradius": 0.13112,
+        "envelope_radius": 0.10751839999999999,
+        "clearance": 0.0236016,
+        "lip_world_blender": [
+          1.016223669052124,
+          -1.1600000429153443,
+          2.3735311031341553
+        ],
+        "direction_world_blender": [
+          0,
+          -1,
+          0
+        ],
+        "tube_length": 6.16,
+        "socket_translation": [
+          1.016223669052124,
+          0.28353118896484375,
+          5.699999809265137
+        ],
+        "socket_rotation_xyzw": [
+          0.7071067690849304,
+          0.0,
+          0.0,
+          0.7071067690849304
+        ]
+      },
+      {
+        "id": 10,
+        "node": "LaunchSocket_10",
+        "parent": "LauncherPitch",
+        "scale": [
+          1.2355792358003377,
+          4.928000000000001,
+          1.2355792358003377
+        ],
+        "length": 4.928000000000001,
+        "bore_inradius": 0.13112,
+        "envelope_radius": 0.10751839999999999,
+        "clearance": 0.0236016,
+        "lip_world_blender": [
+          0.5843421220779419,
+          -1.1600000429153443,
+          2.3735311031341553
+        ],
+        "direction_world_blender": [
+          0,
+          -1,
+          0
+        ],
+        "tube_length": 6.16,
+        "socket_translation": [
+          0.5843421220779419,
+          0.28353118896484375,
+          5.699999809265137
+        ],
+        "socket_rotation_xyzw": [
+          0.7071067690849304,
+          0.0,
+          0.0,
+          0.7071067690849304
+        ]
+      },
+      {
+        "id": 11,
+        "node": "LaunchSocket_11",
+        "parent": "LauncherPitch",
+        "scale": [
+          1.2355792358003377,
+          4.928000000000001,
+          1.2355792358003377
+        ],
+        "length": 4.928000000000001,
+        "bore_inradius": 0.13112,
+        "envelope_radius": 0.10751839999999999,
+        "clearance": 0.0236016,
+        "lip_world_blender": [
+          -0.698305606842041,
+          -1.1600000429153443,
+          2.3735311031341553
+        ],
+        "direction_world_blender": [
+          0,
+          -1,
+          0
+        ],
+        "tube_length": 6.16,
+        "socket_translation": [
+          -0.698305606842041,
+          0.28353118896484375,
+          5.699999809265137
+        ],
+        "socket_rotation_xyzw": [
+          0.7071067690849304,
+          0.0,
+          0.0,
+          0.7071067690849304
+        ]
+      },
+      {
+        "id": 12,
+        "node": "LaunchSocket_12",
+        "parent": "LauncherPitch",
+        "scale": [
+          1.2355792358003377,
+          4.928000000000001,
+          1.2355792358003377
+        ],
+        "length": 4.928000000000001,
+        "bore_inradius": 0.13112,
+        "envelope_radius": 0.10751839999999999,
+        "clearance": 0.0236016,
+        "lip_world_blender": [
+          -1.1302393674850464,
+          -1.1600000429153443,
+          2.3735311031341553
+        ],
+        "direction_world_blender": [
+          0,
+          -1,
+          0
+        ],
+        "tube_length": 6.16,
+        "socket_translation": [
+          -1.1302393674850464,
+          0.28353118896484375,
+          5.699999809265137
+        ],
+        "socket_rotation_xyzw": [
+          0.7071067690849304,
+          0.0,
+          0.0,
+          0.7071067690849304
+        ]
+      }
+    ],
+    "articulation": "visual game-art assembly; no physical weapon specifications"
+  },
+  "textures": [
+    {
+      "file": "Original_02.png",
+      "size": [
+        16,
+        16
+      ]
+    },
+    {
+      "file": "Original_03.png",
+      "size": [
+        2048,
+        2048
+      ]
+    },
+    {
+      "file": "Original_00.png",
+      "size": [
+        256,
+        256
+      ]
+    },
+    {
+      "file": "Original_01.png",
+      "size": [
+        1024,
+        1024
+      ]
+    }
+  ],
+  "launch_sockets": [
+    {
+      "id": 1,
+      "node": "LaunchSocket_01",
+      "parent": "LauncherPitch",
+      "scale": [
+        1.2355792358003377,
+        4.928000000000001,
+        1.2355792358003377
+      ],
+      "length": 4.928000000000001,
+      "bore_inradius": 0.13112,
+      "envelope_radius": 0.10751839999999999,
+      "clearance": 0.0236016,
+      "lip_world_blender": [
+        0.5843421220779419,
+        -1.1600000429153443,
+        2.969597339630127
+      ],
+      "direction_world_blender": [
+        0,
+        -1,
+        0
+      ],
+      "tube_length": 6.16,
+      "socket_translation": [
+        0.5843421220779419,
+        0.8795974254608154,
+        5.699999809265137
+      ],
+      "socket_rotation_xyzw": [
+        0.7071067690849304,
+        0.0,
+        0.0,
+        0.7071067690849304
+      ]
+    },
+    {
+      "id": 2,
+      "node": "LaunchSocket_02",
+      "parent": "LauncherPitch",
+      "scale": [
+        1.2355792358003377,
+        4.928000000000001,
+        1.2355792358003377
+      ],
+      "length": 4.928000000000001,
+      "bore_inradius": 0.13112,
+      "envelope_radius": 0.10751839999999999,
+      "clearance": 0.0236016,
+      "lip_world_blender": [
+        0.16540874540805817,
+        -1.1600000429153443,
+        2.967205047607422
+      ],
+      "direction_world_blender": [
+        0,
+        -1,
+        0
+      ],
+      "tube_length": 6.16,
+      "socket_translation": [
+        0.16540874540805817,
+        0.8772051334381104,
+        5.699999809265137
+      ],
+      "socket_rotation_xyzw": [
+        0.7071067690849304,
+        0.0,
+        0.0,
+        0.7071067690849304
+      ]
+    },
+    {
+      "id": 3,
+      "node": "LaunchSocket_03",
+      "parent": "LauncherPitch",
+      "scale": [
+        1.2355792358003377,
+        4.928000000000001,
+        1.2355792358003377
+      ],
+      "length": 4.928000000000001,
+      "bore_inradius": 0.13112,
+      "envelope_radius": 0.10751839999999999,
+      "clearance": 0.0236016,
+      "lip_world_blender": [
+        -0.2751936912536621,
+        -1.1600000429153443,
+        2.967205047607422
+      ],
+      "direction_world_blender": [
+        0,
+        -1,
+        0
+      ],
+      "tube_length": 6.16,
+      "socket_translation": [
+        -0.2751936912536621,
+        0.8772051334381104,
+        5.699999809265137
+      ],
+      "socket_rotation_xyzw": [
+        0.7071067690849304,
+        0.0,
+        0.0,
+        0.7071067690849304
+      ]
+    },
+    {
+      "id": 4,
+      "node": "LaunchSocket_04",
+      "parent": "LauncherPitch",
+      "scale": [
+        1.2355792358003377,
+        4.928000000000001,
+        1.2355792358003377
+      ],
+      "length": 4.928000000000001,
+      "bore_inradius": 0.13112,
+      "envelope_radius": 0.10751839999999999,
+      "clearance": 0.0236016,
+      "lip_world_blender": [
+        -0.698305606842041,
+        -1.1600000429153443,
+        2.969597339630127
+      ],
+      "direction_world_blender": [
+        0,
+        -1,
+        0
+      ],
+      "tube_length": 6.16,
+      "socket_translation": [
+        -0.698305606842041,
+        0.8795974254608154,
+        5.699999809265137
+      ],
+      "socket_rotation_xyzw": [
+        0.7071067690849304,
+        0.0,
+        0.0,
+        0.7071067690849304
+      ]
+    },
+    {
+      "id": 5,
+      "node": "LaunchSocket_05",
+      "parent": "LauncherPitch",
+      "scale": [
+        1.2355792358003377,
+        4.928000000000001,
+        1.2355792358003377
+      ],
+      "length": 4.928000000000001,
+      "bore_inradius": 0.13112,
+      "envelope_radius": 0.10751839999999999,
+      "clearance": 0.0236016,
+      "lip_world_blender": [
+        1.016223669052124,
+        -1.1600000429153443,
+        2.673114061355591
+      ],
+      "direction_world_blender": [
+        0,
+        -1,
+        0
+      ],
+      "tube_length": 6.16,
+      "socket_translation": [
+        1.016223669052124,
+        0.5831141471862793,
+        5.699999809265137
+      ],
+      "socket_rotation_xyzw": [
+        0.7071067690849304,
+        0.0,
+        0.0,
+        0.7071067690849304
+      ]
+    },
+    {
+      "id": 6,
+      "node": "LaunchSocket_06",
+      "parent": "LauncherPitch",
+      "scale": [
+        1.2355792358003377,
+        4.928000000000001,
+        1.2355792358003377
+      ],
+      "length": 4.928000000000001,
+      "bore_inradius": 0.13112,
+      "envelope_radius": 0.10751839999999999,
+      "clearance": 0.0236016,
+      "lip_world_blender": [
+        0.5843421220779419,
+        -1.1600000429153443,
+        2.673114061355591
+      ],
+      "direction_world_blender": [
+        0,
+        -1,
+        0
+      ],
+      "tube_length": 6.16,
+      "socket_translation": [
+        0.5843421220779419,
+        0.5831141471862793,
+        5.699999809265137
+      ],
+      "socket_rotation_xyzw": [
+        0.7071067690849304,
+        0.0,
+        0.0,
+        0.7071067690849304
+      ]
+    },
+    {
+      "id": 7,
+      "node": "LaunchSocket_07",
+      "parent": "LauncherPitch",
+      "scale": [
+        1.2355792358003377,
+        4.928000000000001,
+        1.2355792358003377
+      ],
+      "length": 4.928000000000001,
+      "bore_inradius": 0.13112,
+      "envelope_radius": 0.10751839999999999,
+      "clearance": 0.0236016,
+      "lip_world_blender": [
+        -0.6983060836791992,
+        -1.1600000429153443,
+        2.673114061355591
+      ],
+      "direction_world_blender": [
+        0,
+        -1,
+        0
+      ],
+      "tube_length": 6.16,
+      "socket_translation": [
+        -0.6983060836791992,
+        0.5831141471862793,
+        5.699999809265137
+      ],
+      "socket_rotation_xyzw": [
+        0.7071067690849304,
+        0.0,
+        0.0,
+        0.7071067690849304
+      ]
+    },
+    {
+      "id": 8,
+      "node": "LaunchSocket_08",
+      "parent": "LauncherPitch",
+      "scale": [
+        1.2355792358003377,
+        4.928000000000001,
+        1.2355792358003377
+      ],
+      "length": 4.928000000000001,
+      "bore_inradius": 0.13112,
+      "envelope_radius": 0.10751839999999999,
+      "clearance": 0.0236016,
+      "lip_world_blender": [
+        -1.1302393674850464,
+        -1.1600000429153443,
+        2.673114061355591
+      ],
+      "direction_world_blender": [
+        0,
+        -1,
+        0
+      ],
+      "tube_length": 6.16,
+      "socket_translation": [
+        -1.1302393674850464,
+        0.5831141471862793,
+        5.699999809265137
+      ],
+      "socket_rotation_xyzw": [
+        0.7071067690849304,
+        0.0,
+        0.0,
+        0.7071067690849304
+      ]
+    },
+    {
+      "id": 9,
+      "node": "LaunchSocket_09",
+      "parent": "LauncherPitch",
+      "scale": [
+        1.2355792358003377,
+        4.928000000000001,
+        1.2355792358003377
+      ],
+      "length": 4.928000000000001,
+      "bore_inradius": 0.13112,
+      "envelope_radius": 0.10751839999999999,
+      "clearance": 0.0236016,
+      "lip_world_blender": [
+        1.016223669052124,
+        -1.1600000429153443,
+        2.3735311031341553
+      ],
+      "direction_world_blender": [
+        0,
+        -1,
+        0
+      ],
+      "tube_length": 6.16,
+      "socket_translation": [
+        1.016223669052124,
+        0.28353118896484375,
+        5.699999809265137
+      ],
+      "socket_rotation_xyzw": [
+        0.7071067690849304,
+        0.0,
+        0.0,
+        0.7071067690849304
+      ]
+    },
+    {
+      "id": 10,
+      "node": "LaunchSocket_10",
+      "parent": "LauncherPitch",
+      "scale": [
+        1.2355792358003377,
+        4.928000000000001,
+        1.2355792358003377
+      ],
+      "length": 4.928000000000001,
+      "bore_inradius": 0.13112,
+      "envelope_radius": 0.10751839999999999,
+      "clearance": 0.0236016,
+      "lip_world_blender": [
+        0.5843421220779419,
+        -1.1600000429153443,
+        2.3735311031341553
+      ],
+      "direction_world_blender": [
+        0,
+        -1,
+        0
+      ],
+      "tube_length": 6.16,
+      "socket_translation": [
+        0.5843421220779419,
+        0.28353118896484375,
+        5.699999809265137
+      ],
+      "socket_rotation_xyzw": [
+        0.7071067690849304,
+        0.0,
+        0.0,
+        0.7071067690849304
+      ]
+    },
+    {
+      "id": 11,
+      "node": "LaunchSocket_11",
+      "parent": "LauncherPitch",
+      "scale": [
+        1.2355792358003377,
+        4.928000000000001,
+        1.2355792358003377
+      ],
+      "length": 4.928000000000001,
+      "bore_inradius": 0.13112,
+      "envelope_radius": 0.10751839999999999,
+      "clearance": 0.0236016,
+      "lip_world_blender": [
+        -0.698305606842041,
+        -1.1600000429153443,
+        2.3735311031341553
+      ],
+      "direction_world_blender": [
+        0,
+        -1,
+        0
+      ],
+      "tube_length": 6.16,
+      "socket_translation": [
+        -0.698305606842041,
+        0.28353118896484375,
+        5.699999809265137
+      ],
+      "socket_rotation_xyzw": [
+        0.7071067690849304,
+        0.0,
+        0.0,
+        0.7071067690849304
+      ]
+    },
+    {
+      "id": 12,
+      "node": "LaunchSocket_12",
+      "parent": "LauncherPitch",
+      "scale": [
+        1.2355792358003377,
+        4.928000000000001,
+        1.2355792358003377
+      ],
+      "length": 4.928000000000001,
+      "bore_inradius": 0.13112,
+      "envelope_radius": 0.10751839999999999,
+      "clearance": 0.0236016,
+      "lip_world_blender": [
+        -1.1302393674850464,
+        -1.1600000429153443,
+        2.3735311031341553
+      ],
+      "direction_world_blender": [
+        0,
+        -1,
+        0
+      ],
+      "tube_length": 6.16,
+      "socket_translation": [
+        -1.1302393674850464,
+        0.28353118896484375,
+        5.699999809265137
+      ],
+      "socket_rotation_xyzw": [
+        0.7071067690849304,
+        0.0,
+        0.0,
+        0.7071067690849304
+      ]
+    }
+  ],
+  "clip_nodes": {
+    "Prepare": [
+      "LauncherPitch",
+      "LauncherYaw",
+      "LiftBarrel_L_Transform",
+      "LiftBarrel_L",
+      "LiftRod_L_Transform",
+      "LiftRod_L",
+      "LiftCollar_L_Transform",
+      "LiftCollar_L",
+      "LiftBarrel_R_Transform",
+      "LiftBarrel_R",
+      "LiftRod_R_Transform",
+      "LiftRod_R",
+      "LiftCollar_R_Transform",
+      "LiftCollar_R"
+    ],
+    "Stow": [
+      "LauncherPitch",
+      "LauncherYaw",
+      "LiftBarrel_L_Transform",
+      "LiftBarrel_L",
+      "LiftRod_L_Transform",
+      "LiftRod_L",
+      "LiftCollar_L_Transform",
+      "LiftCollar_L",
+      "LiftBarrel_R_Transform",
+      "LiftBarrel_R",
+      "LiftRod_R_Transform",
+      "LiftRod_R",
+      "LiftCollar_R_Transform",
+      "LiftCollar_R"
+    ],
+    "Aim": [
+      "LauncherPitch",
+      "LauncherYaw",
+      "LiftBarrel_L_Transform",
+      "LiftBarrel_L",
+      "LiftRod_L_Transform",
+      "LiftRod_L",
+      "LiftCollar_L_Transform",
+      "LiftCollar_L",
+      "LiftBarrel_R_Transform",
+      "LiftBarrel_R",
+      "LiftRod_R_Transform",
+      "LiftRod_R",
+      "LiftCollar_R_Transform",
+      "LiftCollar_R"
+    ],
+    "Drive": [
+      "Wheel_L_-253_Spin",
+      "Wheel_L_-76_Spin",
+      "Wheel_L_225_Spin",
+      "Wheel_L_398_Spin",
+      "Wheel_R_-253_Spin",
+      "Wheel_R_-76_Spin",
+      "Wheel_R_225_Spin",
+      "Wheel_R_398_Spin"
+    ],
+    "Reset": [
+      "LauncherPitch",
+      "LauncherYaw",
+      "LiftBarrel_L_Transform",
+      "LiftBarrel_L",
+      "LiftRod_L_Transform",
+      "LiftRod_L",
+      "LiftCollar_L_Transform",
+      "LiftCollar_L",
+      "LiftBarrel_R_Transform",
+      "LiftBarrel_R",
+      "LiftRod_R_Transform",
+      "LiftRod_R",
+      "LiftCollar_R_Transform",
+      "LiftCollar_R",
+      "Wheel_L_-253_Spin",
+      "Wheel_L_-76_Spin",
+      "Wheel_L_225_Spin",
+      "Wheel_L_398_Spin",
+      "Wheel_R_-253_Spin",
+      "Wheel_R_-76_Spin",
+      "Wheel_R_225_Spin",
+      "Wheel_R_398_Spin"
+    ],
+    "Demo_Sequence": [
+      "LauncherPitch",
+      "LauncherYaw",
+      "LiftBarrel_L_Transform",
+      "LiftBarrel_L",
+      "LiftRod_L_Transform",
+      "LiftRod_L",
+      "LiftCollar_L_Transform",
+      "LiftCollar_L",
+      "LiftBarrel_R_Transform",
+      "LiftBarrel_R",
+      "LiftRod_R_Transform",
+      "LiftRod_R",
+      "LiftCollar_R_Transform",
+      "LiftCollar_R",
+      "Wheel_L_-253_Spin",
+      "Wheel_L_-76_Spin",
+      "Wheel_L_225_Spin",
+      "Wheel_L_398_Spin",
+      "Wheel_R_-253_Spin",
+      "Wheel_R_-76_Spin",
+      "Wheel_R_225_Spin",
+      "Wheel_R_398_Spin"
+    ]
+  },
+  "clip_seconds": {
+    "Prepare": 4,
+    "Stow": 4,
+    "Aim": 8,
+    "Drive": 3,
+    "Reset": 0.2,
+    "Demo_Sequence": 20
+  },
+  "clip_frames": {
+    "Prepare": [
+      1,
+      121
+    ],
+    "Stow": [
+      137,
+      257
+    ],
+    "Aim": [
+      273,
+      513
+    ],
+    "Drive": [
+      529,
+      619
+    ],
+    "Reset": [
+      635,
+      641
+    ],
+    "Demo_Sequence": [
+      657,
+      1257
+    ]
+  },
+  "fps": 30,
+  "parts": [
+    {
+      "name": "Wheel_L_225",
+      "type": "MESH",
+      "parent": "Wheel_L_225_Spin"
+    },
+    {
+      "name": "Wheel_R_-253",
+      "type": "MESH",
+      "parent": "Wheel_R_-253_Spin"
+    },
+    {
+      "name": "Wheel_L_-253",
+      "type": "MESH",
+      "parent": "Wheel_L_-253_Spin"
+    },
+    {
+      "name": "Wheel_L_-76",
+      "type": "MESH",
+      "parent": "Wheel_L_-76_Spin"
+    },
+    {
+      "name": "Wheel_L_398",
+      "type": "MESH",
+      "parent": "Wheel_L_398_Spin"
+    },
+    {
+      "name": "Wheel_R_-76",
+      "type": "MESH",
+      "parent": "Wheel_R_-76_Spin"
+    },
+    {
+      "name": "Wheel_R_398",
+      "type": "MESH",
+      "parent": "Wheel_R_398_Spin"
+    },
+    {
+      "name": "Wheel_R_225",
+      "type": "MESH",
+      "parent": "Wheel_R_225_Spin"
+    },
+    {
+      "name": "Chassis",
+      "type": "MESH",
+      "parent": "Root"
+    },
+    {
+      "name": "Root",
+      "type": "EMPTY",
+      "parent": null
+    },
+    {
+      "name": "LauncherBlock",
+      "type": "MESH",
+      "parent": "LauncherPitch"
+    },
+    {
+      "name": "LauncherYaw",
+      "type": "EMPTY",
+      "parent": "Root"
+    },
+    {
+      "name": "LauncherPitch",
+      "type": "EMPTY",
+      "parent": "LauncherYaw"
+    },
+    {
+      "name": "FixedSlewRing",
+      "type": "MESH",
+      "parent": "Root"
+    },
+    {
+      "name": "FixedSlewPedestal",
+      "type": "MESH",
+      "parent": "Root"
+    },
+    {
+      "name": "LauncherBase",
+      "type": "MESH",
+      "parent": "LauncherYaw"
+    },
+    {
+      "name": "PitchAxle",
+      "type": "MESH",
+      "parent": "LauncherPitch"
+    },
+    {
+      "name": "PayloadRail",
+      "type": "MESH",
+      "parent": "LauncherPitch"
+    },
+    {
+      "name": "HingeLug",
+      "type": "MESH",
+      "parent": "LauncherPitch"
+    },
+    {
+      "name": "PayloadRail_001",
+      "type": "MESH",
+      "parent": "LauncherPitch"
+    },
+    {
+      "name": "HingeLug_001",
+      "type": "MESH",
+      "parent": "LauncherPitch"
+    },
+    {
+      "name": "PayloadCrossbar",
+      "type": "MESH",
+      "parent": "LauncherPitch"
+    },
+    {
+      "name": "PayloadCrossbar_001",
+      "type": "MESH",
+      "parent": "LauncherPitch"
+    },
+    {
+      "name": "PayloadCrossbar_002",
+      "type": "MESH",
+      "parent": "LauncherPitch"
+    },
+    {
+      "name": "PayloadCrossbar_003",
+      "type": "MESH",
+      "parent": "LauncherPitch"
+    },
+    {
+      "name": "LiftAnchor_L",
+      "type": "EMPTY",
+      "parent": "LauncherPitch"
+    },
+    {
+      "name": "LiftUpperSupport_L",
+      "type": "MESH",
+      "parent": "LauncherPitch"
+    },
+    {
+      "name": "LiftLowerPin_L",
+      "type": "MESH",
+      "parent": "LauncherYaw"
+    },
+    {
+      "name": "LiftLowerBracket_L",
+      "type": "MESH",
+      "parent": "LauncherYaw"
+    },
+    {
+      "name": "LiftUpperPin_L",
+      "type": "MESH",
+      "parent": "LauncherPitch"
+    },
+    {
+      "name": "LiftUpperBracket_L",
+      "type": "MESH",
+      "parent": "LauncherPitch"
+    },
+    {
+      "name": "LiftBarrel_L",
+      "type": "MESH",
+      "parent": "LiftBarrel_L_Transform"
+    },
+    {
+      "name": "LiftRod_L",
+      "type": "MESH",
+      "parent": "LiftRod_L_Transform"
+    },
+    {
+      "name": "LiftCollar_L",
+      "type": "MESH",
+      "parent": "LiftCollar_L_Transform"
+    },
+    {
+      "name": "LiftBarrel_L_Transform",
+      "type": "EMPTY",
+      "parent": "LauncherYaw"
+    },
+    {
+      "name": "LiftRod_L_Transform",
+      "type": "EMPTY",
+      "parent": "LauncherYaw"
+    },
+    {
+      "name": "LiftCollar_L_Transform",
+      "type": "EMPTY",
+      "parent": "LauncherYaw"
+    },
+    {
+      "name": "LiftAnchor_R",
+      "type": "EMPTY",
+      "parent": "LauncherPitch"
+    },
+    {
+      "name": "LiftUpperSupport_R",
+      "type": "MESH",
+      "parent": "LauncherPitch"
+    },
+    {
+      "name": "LiftLowerPin_R",
+      "type": "MESH",
+      "parent": "LauncherYaw"
+    },
+    {
+      "name": "LiftLowerBracket_R",
+      "type": "MESH",
+      "parent": "LauncherYaw"
+    },
+    {
+      "name": "LiftUpperPin_R",
+      "type": "MESH",
+      "parent": "LauncherPitch"
+    },
+    {
+      "name": "LiftUpperBracket_R",
+      "type": "MESH",
+      "parent": "LauncherPitch"
+    },
+    {
+      "name": "LiftBarrel_R",
+      "type": "MESH",
+      "parent": "LiftBarrel_R_Transform"
+    },
+    {
+      "name": "LiftRod_R",
+      "type": "MESH",
+      "parent": "LiftRod_R_Transform"
+    },
+    {
+      "name": "LiftCollar_R",
+      "type": "MESH",
+      "parent": "LiftCollar_R_Transform"
+    },
+    {
+      "name": "LiftBarrel_R_Transform",
+      "type": "EMPTY",
+      "parent": "LauncherYaw"
+    },
+    {
+      "name": "LiftRod_R_Transform",
+      "type": "EMPTY",
+      "parent": "LauncherYaw"
+    },
+    {
+      "name": "LiftCollar_R_Transform",
+      "type": "EMPTY",
+      "parent": "LauncherYaw"
+    },
+    {
+      "name": "Wheel_L_-253_Steer",
+      "type": "EMPTY",
+      "parent": "Root"
+    },
+    {
+      "name": "Wheel_L_-253_Spin",
+      "type": "EMPTY",
+      "parent": "Wheel_L_-253_Steer"
+    },
+    {
+      "name": "Wheel_L_-76_Steer",
+      "type": "EMPTY",
+      "parent": "Root"
+    },
+    {
+      "name": "Wheel_L_-76_Spin",
+      "type": "EMPTY",
+      "parent": "Wheel_L_-76_Steer"
+    },
+    {
+      "name": "Wheel_L_225_Steer",
+      "type": "EMPTY",
+      "parent": "Root"
+    },
+    {
+      "name": "Wheel_L_225_Spin",
+      "type": "EMPTY",
+      "parent": "Wheel_L_225_Steer"
+    },
+    {
+      "name": "Wheel_L_398_Steer",
+      "type": "EMPTY",
+      "parent": "Root"
+    },
+    {
+      "name": "Wheel_L_398_Spin",
+      "type": "EMPTY",
+      "parent": "Wheel_L_398_Steer"
+    },
+    {
+      "name": "Wheel_R_-253_Steer",
+      "type": "EMPTY",
+      "parent": "Root"
+    },
+    {
+      "name": "Wheel_R_-253_Spin",
+      "type": "EMPTY",
+      "parent": "Wheel_R_-253_Steer"
+    },
+    {
+      "name": "Wheel_R_-76_Steer",
+      "type": "EMPTY",
+      "parent": "Root"
+    },
+    {
+      "name": "Wheel_R_-76_Spin",
+      "type": "EMPTY",
+      "parent": "Wheel_R_-76_Steer"
+    },
+    {
+      "name": "Wheel_R_225_Steer",
+      "type": "EMPTY",
+      "parent": "Root"
+    },
+    {
+      "name": "Wheel_R_225_Spin",
+      "type": "EMPTY",
+      "parent": "Wheel_R_225_Steer"
+    },
+    {
+      "name": "Wheel_R_398_Steer",
+      "type": "EMPTY",
+      "parent": "Root"
+    },
+    {
+      "name": "Wheel_R_398_Spin",
+      "type": "EMPTY",
+      "parent": "Wheel_R_398_Steer"
+    },
+    {
+      "name": "LaunchSocket_01",
+      "type": "EMPTY",
+      "parent": "LauncherPitch"
+    },
+    {
+      "name": "LaunchSocket_02",
+      "type": "EMPTY",
+      "parent": "LauncherPitch"
+    },
+    {
+      "name": "LaunchSocket_03",
+      "type": "EMPTY",
+      "parent": "LauncherPitch"
+    },
+    {
+      "name": "LaunchSocket_04",
+      "type": "EMPTY",
+      "parent": "LauncherPitch"
+    },
+    {
+      "name": "LaunchSocket_05",
+      "type": "EMPTY",
+      "parent": "LauncherPitch"
+    },
+    {
+      "name": "LaunchSocket_06",
+      "type": "EMPTY",
+      "parent": "LauncherPitch"
+    },
+    {
+      "name": "LaunchSocket_07",
+      "type": "EMPTY",
+      "parent": "LauncherPitch"
+    },
+    {
+      "name": "LaunchSocket_08",
+      "type": "EMPTY",
+      "parent": "LauncherPitch"
+    },
+    {
+      "name": "LaunchSocket_09",
+      "type": "EMPTY",
+      "parent": "LauncherPitch"
+    },
+    {
+      "name": "LaunchSocket_10",
+      "type": "EMPTY",
+      "parent": "LauncherPitch"
+    },
+    {
+      "name": "LaunchSocket_11",
+      "type": "EMPTY",
+      "parent": "LauncherPitch"
+    },
+    {
+      "name": "LaunchSocket_12",
+      "type": "EMPTY",
+      "parent": "LauncherPitch"
+    }
+  ],
+  "lod_triangles": {
+    "LOD0": 17916,
+    "LOD1": 12987,
+    "LOD2": 7903
+  }
+}

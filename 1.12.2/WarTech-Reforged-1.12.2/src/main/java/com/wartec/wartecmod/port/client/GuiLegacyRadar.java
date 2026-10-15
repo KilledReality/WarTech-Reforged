@@ -14,16 +14,18 @@ public final class GuiLegacyRadar extends GuiContainer {
     private final EntityWarTechBase radar;
     public GuiLegacyRadar(InventoryPlayer inventory,EntityWarTechBase radar) {
         super(new ContainerLegacyEntity(inventory,radar,ContainerLegacyEntity.Layout.RADAR));
-        this.radar=radar;xSize=256;ySize=222;
+        this.radar=radar;xSize=256;ySize=248;
     }
     @Override public void initGui() {
-        super.initGui();buttonList.add(new WarTechGuiButton(0,guiLeft+130,guiTop+105,84,20,""));
+        super.initGui();VehiclePanelControls.add(buttonList,guiLeft,guiTop,xSize,ySize);buttonList.add(new WarTechGuiButton(0,guiLeft+130,guiTop+105,84,20,""));
     }
     @Override protected void actionPerformed(GuiButton button) throws IOException {
+        if(VehiclePanelControls.action(inventorySlots,button,radar)) return;
         if(button.enabled && button.id==0) mc.playerController.sendEnchantPacket(inventorySlots.windowId,0);
     }
     @Override public void drawScreen(int x,int y,float partial) {
-        buttonList.get(0).displayString=GuiTheme.tr(radar.isLegacyEnabled()?"disable":"enable");
+        VehiclePanelControls.update(buttonList,radar);
+        for(GuiButton button:buttonList) if(button.id==0) {button.displayString=GuiTheme.tr(radar.isLegacyEnabled()?"disable":"enable");button.enabled=radar.getProfile()!=WarTechEntityProfile.S400_RADAR || radar.isDeployed();}
         drawDefaultBackground();super.drawScreen(x,y,partial);renderHoveredToolTip(x,y);
         if(isPointInRegion(10,107,108,18,x,y)) drawHoveringText(fontRenderer.listFormattedStringToWidth(GuiTheme.tr("repair_hint"),220),x,y);
         if(isPointInRegion(130,78,114,20,x,y)) drawHoveringText(fontRenderer.listFormattedStringToWidth(

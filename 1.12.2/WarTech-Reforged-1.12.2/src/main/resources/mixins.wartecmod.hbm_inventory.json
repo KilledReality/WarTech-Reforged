@@ -4,7 +4,8 @@
   "package": "com.wartec.wartecmod.port.mixin",
   "compatibilityLevel": "JAVA_8",
   "mixins": [
-    "HbmMachineInventoryMixin"
+    "HbmMachineInventoryMixin",
+    "HbmProductionReloadMixin"
   ],
   "client": [],
   "server": []

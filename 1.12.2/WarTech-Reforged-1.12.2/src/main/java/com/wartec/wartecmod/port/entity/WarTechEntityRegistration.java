@@ -102,7 +102,10 @@ public final class WarTechEntityRegistration {
                 512, 1), modInstance);
         register(migration(111, "geran_5", LegacyEntityTypes.Geran5Missile.class,
                 1000, 1), modInstance);
-        return 112;
+        register(migration(112,"modern_vehicle",EntityModernVehicle.class,2048,1),modInstance);
+        register(migration(113,"silo_interceptor",EntitySiloInterceptor.class,16384,1),modInstance);
+        register(migration(114,"tube_artillery",EntityTubeArtillery.class,2048,1),modInstance);
+        return 115;
     }
 
     public static List<RegistrationSpec> getLegacyRegistrations() {

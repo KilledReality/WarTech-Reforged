@@ -26,12 +26,13 @@ public final class CruiseMissionEditMessage implements IMessage {
         @Override public IMessage onMessage(CruiseMissionEditMessage m,MessageContext ctx) {
             EntityPlayerMP player=ctx.getServerHandler().player;
             player.getServerWorld().addScheduledTask(()->{
+                if(player.isSpectator() || player.isDead) return;
                 if((m.slot!=player.inventory.currentItem && m.slot!=40) || m.action>6) return;
                 if(!(player.openContainer instanceof com.wartec.wartecmod.port.gui.ContainerCruiseProgrammer)) return;
                 com.wartec.wartecmod.port.gui.ContainerCruiseProgrammer container=(com.wartec.wartecmod.port.gui.ContainerCruiseProgrammer)player.openContainer;
                 if(container.getMissileSlot()!=m.slot || !container.canInteractWith(player)) return;
                 ItemStack stack=player.inventory.getStackInSlot(m.slot);
-                if(stack.isEmpty() || !(stack.getItem() instanceof AssembledCruiseItem)) return;
+                if(!CruiseBuild.isStore(stack)) return;
                 CruiseBuild build=CruiseBuild.fromStack(stack);
                 if(build.checksum()!=m.checksum || !build.calculateStats().isValid()) return;
                 CruiseMission mission=CruiseMission.fromStack(stack);

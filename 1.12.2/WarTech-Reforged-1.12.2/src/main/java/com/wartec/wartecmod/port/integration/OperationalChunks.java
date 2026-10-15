@@ -59,17 +59,22 @@ public final class OperationalChunks {
             List<Entity> flights=new ArrayList<>();
             for(Entity e:world.loadedEntityList) if(!e.isDead && MissileChunkLoader.needsFlight(e)) flights.add(e);
             if(!flights.isEmpty()) for(Node node:new ArrayList<>(Index.get(world).nodes.values())) {
-                boolean nearby=false;
+                Entity nearest=null;double closest=Double.MAX_VALUE;
+                Entity owner=node.entity?((WorldServer)world).getEntityFromUuid(UUID.fromString(node.id)):null;
+                TileEntityWarTechMachine tile=!node.entity && world.isBlockLoaded(node.pos) && world.getTileEntity(node.pos) instanceof TileEntityWarTechMachine?(TileEntityWarTechMachine)world.getTileEntity(node.pos):null;
+                String team=owner instanceof EntityWarTechBase?((EntityWarTechBase)owner).getOwnerTeam():tile==null?null:tile.getOwnerTeam();
                 for(Entity e:flights) {
-                    double range=node.range+320;
-                    double dx=e.posX-node.pos.getX(),dz=e.posZ-node.pos.getZ();
-                    if(dx*dx+dz*dz<=range*range) { nearby=true;break; }
+                    double range=node.range+320,dx=e.posX-node.pos.getX(),dz=e.posZ-node.pos.getZ(),distance=dx*dx+dz*dz;
+                    if(distance<=range*range && distance<closest && (team==null || !NetworkTeamHelper.isFriendly(team,e))) {nearest=e;closest=distance;}
                 }
-                if(nearby) request((WorldServer)world,node.pos,2,"defense:"+node.id,()->true,()->{
-                    boolean exists=node.entity ? ((WorldServer)world).getEntityFromUuid(UUID.fromString(node.id)) instanceof EntityWarTechBase
-                        : world.getTileEntity(node.pos) instanceof TileEntityWarTechMachine;
-                    if(!exists) Index.get(world).remove(node.id);
-                });
+                if(nearest!=null) {
+                    request((WorldServer)world,node.pos,2,"defense:"+node.id,()->true,()->{
+                        boolean exists=node.entity ? ((WorldServer)world).getEntityFromUuid(UUID.fromString(node.id)) instanceof EntityWarTechBase
+                            : world.getTileEntity(node.pos) instanceof TileEntityWarTechMachine;
+                        if(!exists) Index.get(world).remove(node.id);
+                    });
+                    if(team!=null)requestSight((WorldServer)world,node,nearest);
+                }
             }
         }
         Map<String,Work> jobs=WORK.get(world);
@@ -89,6 +94,32 @@ public final class OperationalChunks {
             }
         }
         if(jobs.isEmpty()) WORK.remove(world);
+    }
+
+    /** Only terrain needed for a nearby sight ray, never the whole radar disk. */
+    public static Set<ChunkPos> sightPath(Vec3d from,Vec3d to) {
+        Set<ChunkPos> chunks=new LinkedHashSet<>();
+        if(!Double.isFinite(from.x) || !Double.isFinite(from.z) || !Double.isFinite(to.x) || !Double.isFinite(to.z)
+                || Math.hypot(to.x-from.x,to.z-from.z)>1024)return chunks;
+        boolean complete=com.wartec.wartecmod.port.cruise.CruiseNavigation.loadedRay(from,to,(x,z)->{chunks.add(new ChunkPos(x,z));return chunks.size()<=128;});
+        if(!complete)chunks.clear();return chunks;
+    }
+    private static void requestSight(WorldServer world,Node node,Entity flight) {
+        Set<ChunkPos> path=sightPath(new Vec3d(node.pos.getX()+.5,64,node.pos.getZ()+.5),new Vec3d(flight.posX,64,flight.posZ));
+        if(path.isEmpty())return;
+        List<ChunkPos> list=new ArrayList<>(path);Map<String,Work> jobs=WORK.computeIfAbsent(world,w->new LinkedHashMap<>());
+        for(int at=0;at<list.size();at+=25) {
+            Set<ChunkPos> group=new LinkedHashSet<>(list.subList(at,Math.min(list.size(),at+25)));String key="defense:"+node.id+":sight:"+(at/25);
+            Work old=jobs.get(key);long expires=world.getTotalWorldTime()+200;
+            if(old!=null && old.valid() && old.chunks.equals(group)){old.expires=expires;continue;}
+            if(old!=null){old.release();jobs.remove(key);}
+            if(jobs.size()>=MAX_WORK)return;
+            ForgeChunkManager.Ticket ticket=ForgeChunkManager.requestTicket(com.wartec.wartecmod.WarTechReforged.instance,world,ForgeChunkManager.Type.NORMAL);
+            if(ticket==null)return;
+            if(ticket.getMaxChunkListDepth()<group.size()){ForgeChunkManager.releaseTicket(ticket);return;}
+            ticket.setChunkListDepth(group.size());ticket.getModData().setBoolean("WarTechOperational",true);
+            Work work=new Work(world,key,ticket,()->!flight.isDead,()->true,expires);work.chunks.addAll(group);jobs.put(key,work);work.enqueue();
+        }
     }
 
     public static void register(Entity entity) {

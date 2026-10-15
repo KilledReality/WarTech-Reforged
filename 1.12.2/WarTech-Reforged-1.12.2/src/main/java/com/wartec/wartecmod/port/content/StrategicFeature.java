@@ -11,22 +11,21 @@ public final class StrategicFeature {
     private StrategicFeature() { }
 
     public static boolean isEnabled() {
-        return false;
+        return true;
     }
 
     public static boolean isDisabledItem(Item item) {
-        if (isEnabled() || item == null) return false;
+        if (item == null) return false;
         ResourceLocation name = item.getRegistryName();
         if (name == null || !"wartecmod".equals(name.getResourceDomain())) {
             return false;
         }
         String path = name.getResourcePath();
-        return "topolmtel".equals(path) || "yarstel".equals(path)
-                || "oreshniktel".equals(path) || "strategicmissile".equals(path);
+        return "yarstel".equals(path);
     }
 
     public static boolean isDisabledEntity(Entity entity) {
-        return !isEnabled() && (entity instanceof EntityStrategicTel
-                || entity instanceof EntityStrategicMissile);
+        return entity instanceof EntityStrategicTel && !((EntityStrategicTel)entity).getStrategicSystem().isAvailable()
+                || entity instanceof EntityStrategicMissile && !((EntityStrategicMissile)entity).getStrategicSystem().isAvailable();
     }
 }

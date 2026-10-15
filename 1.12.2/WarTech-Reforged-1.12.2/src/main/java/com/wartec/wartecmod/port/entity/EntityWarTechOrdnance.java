@@ -236,6 +236,7 @@ public class EntityWarTechOrdnance extends EntityWarTechBase {
                 + deltaZ * deltaZ);
         int ground = terrainHeight(posX, posZ);
         if (distance <= 2.6D || ticksExisted > 8 && posY <= ground + 0.35D) {
+            com.wartec.wartecmod.port.planning.PlanningHooks.impact(this);
             detonateAviation(AviationOrdnance.getBlastRadius(getOrdnanceType()), true);
             return;
         }
@@ -332,6 +333,7 @@ public class EntityWarTechOrdnance extends EntityWarTechBase {
         int ground = terrainHeight(posX, posZ);
         if (distance < 3.2D || ticksExisted > 5 && posY <= ground + 0.45D
                 || ticksExisted > 700) {
+            if(ticksExisted<=700)com.wartec.wartecmod.port.planning.PlanningHooks.impact(this);
             detonateStrategic();
             return;
         }
@@ -355,6 +357,7 @@ public class EntityWarTechOrdnance extends EntityWarTechBase {
         setPosition(nextX, nextY, nextZ);
         if (ticksExisted > 5
                 && (nextY <= nextGround + 0.55D || guided && remaining < 4.2D)) {
+            com.wartec.wartecmod.port.planning.PlanningHooks.impact(this);
             detonateStrategic();
             return;
         }
@@ -468,6 +471,7 @@ public class EntityWarTechOrdnance extends EntityWarTechBase {
         if (!AircraftCountermeasureCompat.beginCrash(target)) {
             target.setDead();
         }
+        com.wartec.wartecmod.port.planning.PlanningHooks.defenseOutcome(this,target,true);
         emitAirDetonation(target.posX, target.posY, target.posZ, true);
         setDead();
     }

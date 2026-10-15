@@ -32,12 +32,12 @@ public final class GuiLegacyMobileArtillery extends GuiContainer {
                 ContainerLegacyEntity.Layout.ARTILLERY));
         this.artillery = artillery;
         xSize = 176;
-        ySize = 222;
+        ySize = 248;
     }
 
     @Override
     public void initGui() {
-        super.initGui();
+        super.initGui();VehiclePanelControls.add(buttonList,guiLeft,guiTop,xSize,ySize);
         Keyboard.enableRepeatEvents(true);
         whitelistField = new GuiTextField(0, fontRenderer,
                 guiLeft + 10, guiTop + 65, 50, 14);
@@ -59,7 +59,7 @@ public final class GuiLegacyMobileArtillery extends GuiContainer {
         GL11.glColor4f(1.0F, 1.0F, 1.0F, 1.0F);
         mc.getTextureManager().bindTexture(
                 artillery.getVisualVariant() == 2 ? HENRY : GREG);
-        drawTexturedModalRect(guiLeft, guiTop, 0, 0, xSize, ySize);
+        drawTexturedModalRect(guiLeft, guiTop, 0, 0, xSize, 222);
 
         int height = Math.min(53, Math.max(0,
                 53 * artillery.getLegacyPower()
@@ -110,6 +110,7 @@ public final class GuiLegacyMobileArtillery extends GuiContainer {
 
     @Override
     public void drawScreen(int mouseX, int mouseY, float partialTicks) {
+        VehiclePanelControls.update(buttonList,artillery);
         drawDefaultBackground();
         super.drawScreen(mouseX, mouseY, partialTicks);
         whitelistField.drawTextBox();
@@ -125,7 +126,7 @@ public final class GuiLegacyMobileArtillery extends GuiContainer {
                 xSize / 2 - fontRenderer.getStringWidth(title) / 2,
                 6, 0x404040);
         fontRenderer.drawString(I18n.format("container.inventory"),
-                8, ySize - 94, 0x404040);
+                8, 128, 0x404040);
         List<String> names = artillery.getArtilleryWhitelist();
         if (!names.isEmpty()) {
             whitelistIndex = Math.min(whitelistIndex, names.size() - 1);
@@ -201,4 +202,6 @@ public final class GuiLegacyMobileArtillery extends GuiContainer {
             super.keyTyped(typedChar, keyCode);
         }
     }
+    @Override protected void actionPerformed(net.minecraft.client.gui.GuiButton button) throws IOException { VehiclePanelControls.action(inventorySlots,button,artillery); }
+
 }

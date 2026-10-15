@@ -42,3 +42,17 @@ Thumbs.db
 
 # Local publication candidates, checksums and private QA manifests
 /publication-private/
+
+# Local checkpoints, dependency workspaces and test artifacts (not release source)
+/PROJECT_PASSPORT.md
+/docs/internal/
+/Republica Tiranja/
+/1.12.2/toolchain/
+/1.12.2/reference-*/
+/toolchain/
+__pycache__/
+*.pyc
+*.log
+/1.12.2/WarTech-Reforged-1.12.2/src/main/resources/assets/wartecmod/textures/items/uav_parts2/
+/1.12.2/WarTech-Reforged-1.12.2/src/main/resources/assets/wartecmod/models/modern_animated/source-manifest.json
+/1.12.2/WarTech-Reforged-1.12.2/src/main/resources/assets/wartecmod/models/modern_animated/tube-artillery-manifest.json

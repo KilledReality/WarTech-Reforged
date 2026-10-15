@@ -60,6 +60,9 @@ public final class ArtilleryWhitelistMessage implements IMessage {
                 }
                 EntityWarTechGroundVehicle artillery =
                         (EntityWarTechGroundVehicle) entity;
+                if (!(player.openContainer instanceof com.wartec.wartecmod.port.gui.ContainerLegacyEntity)
+                        || ((com.wartec.wartecmod.port.gui.ContainerLegacyEntity)player.openContainer).getTarget()!=artillery
+                        || !artillery.isUsableByPlayer(player)) return;
                 if (message.remove) {
                     artillery.removeArtilleryWhitelist(message.index);
                 } else {

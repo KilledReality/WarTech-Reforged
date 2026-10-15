@@ -144,6 +144,23 @@ public final class WarTechContent {
         missile("Kh555Missile", MissileProfile.KH555);
 
     // Legacy food, satellite chips and tools.
+    public static final MissileItem FP5_MISSILE=missile("FP5Missile",MissileProfile.FP5);
+    public static final MissileItem FP7_MISSILE=missile("FP7Missile",MissileProfile.FP7);
+    public static final MissileItem S8000_MISSILE=missile("S8000Missile",MissileProfile.S8000);
+    public static final MissileItem GRAD_ROCKET=missile("GradRocket",MissileProfile.GRAD_ROCKET);
+    public static final MissileItem URAGAN_ROCKET=missile("UraganRocket",MissileProfile.URAGAN_ROCKET);
+    public static final MissileItem SMERCH_ROCKET=missile("SmerchRocket",MissileProfile.SMERCH_ROCKET);
+    public static final MissileItem HIMARS_ROCKET=missile("HimarsRocket",MissileProfile.HIMARS_ROCKET);
+    public static final DeployableItem D30=deployable("D30",WarTechCreativeTabs.SUPPORT,"tube_d30","default");
+    public static final DeployableItem CAESAR=deployable("Caesar",WarTechCreativeTabs.SUPPORT,"tube_caesar","default");
+    public static final DeployableItem GRAD=deployable("Grad",WarTechCreativeTabs.SUPPORT,"modern_grad","default");
+    public static final DeployableItem HIMARS=deployable("Himars",WarTechCreativeTabs.SUPPORT,"modern_himars","default");
+    public static final DeployableItem URAGAN=deployable("Uragan",WarTechCreativeTabs.SUPPORT,"modern_uragan","default");
+    public static final DeployableItem SMERCH=deployable("Smerch",WarTechCreativeTabs.SUPPORT,"modern_smerch","default");
+    public static final DeployableItem BUK_M3=deployable("BukM3",WarTechCreativeTabs.AIR_DEFENSE,"modern_buk_m3","default");
+    public static final DeployableItem OSA=deployable("Osa",WarTechCreativeTabs.AIR_DEFENSE,"modern_osa","default");
+    public static final DeployableItem RADAR_9S18=deployable("Radar9S18",WarTechCreativeTabs.AIR_DEFENSE,"modern_radar9s18","default");
+
     public static final Item ITEM_MINCED_MEAT_RAW =
         food("ItemMincedMeatRaw", 1, 0.0F, false);
     public static final Item ITEM_MINCED_MEAT_COOKED =
@@ -219,6 +236,8 @@ public final class WarTechContent {
         deployable("TacticalAircraft", WarTechCreativeTabs.AVIATION, "f16_tactical_aircraft", "default");
     public static final DeployableItem SU27_TACTICAL_AIRCRAFT =
         deployable("Su27TacticalAircraft", WarTechCreativeTabs.AVIATION, "su27_tactical_aircraft", "default");
+    public static final DeployableItem ISKANDER_TEL =
+        deployable("IskanderTel", WarTechCreativeTabs.CRUISE_MISSILES, "strategic_iskander", "default");
     public static final DeployableItem TOPOL_M_TEL =
         deployable("TopolMTel", WarTechCreativeTabs.CRUISE_MISSILES,
                 "strategic_topol_m", "default");
@@ -337,6 +356,12 @@ public final class WarTechContent {
         addBlock("CruiseDroneRail", new CruiseLaunchPointBlock(true));
     public static final UavLaunchPointBlock UAV_LAUNCH_POINT =
         addBlock("UavLaunchPoint", new UavLaunchPointBlock());
+    public static final SiloInterceptorItem SILO_INTERCEPTOR=addItem("SiloInterceptor",new SiloInterceptorItem());
+    public static final SiloBlock MISSILE_SILO=addBlock("MissileSilo",new SiloBlock(true));
+    public static final SiloBlock SILO_START=addBlock("SiloStart",new SiloBlock(false));
+    public static final Block SILO_DECK=addBlock("SiloDeck",new SiloDecorBlock(false));
+    public static final Block SILO_LIGHT=addBlock("SiloLight",new SiloLightBlock());
+    public static final PlanningTerminalBlock PLANNING_TERMINAL = addBlock("PlanningTerminal",new PlanningTerminalBlock());
     public static final UavMissionStationBlock UAV_MISSION_STATION =
         addBlock("UavMissionStation", new UavMissionStationBlock());
 
@@ -399,6 +424,8 @@ public final class WarTechContent {
     private static MissileItem missile(String legacyName, MissileProfile profile) {
         CreativeTabs tab=profile.getFlightClass()==MissileProfile.FlightClass.INTERCEPTOR
             || profile==MissileProfile.ASAT ? WarTechCreativeTabs.AIR_DEFENSE : WarTechCreativeTabs.CRUISE_MISSILES;
+        if(profile==MissileProfile.GRAD_ROCKET || profile==MissileProfile.URAGAN_ROCKET
+                || profile==MissileProfile.SMERCH_ROCKET || profile==MissileProfile.HIMARS_ROCKET) tab=WarTechCreativeTabs.SUPPORT;
         return addItem(legacyName, new MissileItem(legacyName, tab, profile));
     }
 

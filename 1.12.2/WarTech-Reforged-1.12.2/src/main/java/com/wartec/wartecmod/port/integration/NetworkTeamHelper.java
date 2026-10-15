@@ -44,6 +44,7 @@ public final class NetworkTeamHelper {
     }
 
     public static boolean isFriendly(String team, Entity entity) {
-        return areFriendly(team, getEntityTeam(entity));
+        return entity!=null && (areFriendly(team, getEntityTeam(entity))
+            || entity.world!=null && !entity.world.isRemote && com.wartec.wartecmod.port.planning.DefenseRelations.get(entity.world).friendly(team,getEntityTeam(entity)));
     }
 }

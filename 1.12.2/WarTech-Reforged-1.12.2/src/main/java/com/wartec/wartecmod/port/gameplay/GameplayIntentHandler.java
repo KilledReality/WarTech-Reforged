@@ -92,6 +92,7 @@ public final class GameplayIntentHandler implements ContentHooks.IntentHandler {
 
         positionDeployment(entity, context.getPos(), context.getPlayer());
         entity.setVisual(id, variant);
+        entity.applyProductionState(context.getStack());
         entity.setOwner(context.getPlayer());
         entity.setOwnerTeam(OwnerTeamNbt.resolvePlacementTeam(
                 context.getStack(), context.getPlayer()));
@@ -182,13 +183,13 @@ public final class GameplayIntentHandler implements ContentHooks.IntentHandler {
     private EnumActionResult bindNearbyOwner(ContentHooks.IntentContext context) {
         String team = PlayerTeamPersistence.getPlayerTeam(context.getPlayer());
         TileEntity tile = context.getWorld().getTileEntity(context.getPos().down());
-        if (tile instanceof ITeamOwned) {
+        if (tile instanceof ITeamOwned && com.wartec.wartecmod.port.integration.OwnershipAccess.mayRebind(context.getPlayer(),((ITeamOwned)tile).getOwnerTeam())) {
             ((ITeamOwned) tile).setOwnerTeam(team);
             tile.markDirty();
             return EnumActionResult.SUCCESS;
         }
         for (Entity entity : nearbyEntities(context.getWorld(), context.getPos(), 3.0D)) {
-            if (entity instanceof EntityWarTechBase) {
+            if (entity instanceof EntityWarTechBase && ((EntityWarTechBase)entity).canManage(context.getPlayer())) {
                 ((EntityWarTechBase) entity).setOwnerTeam(team);
                 return EnumActionResult.SUCCESS;
             }
@@ -199,8 +200,7 @@ public final class GameplayIntentHandler implements ContentHooks.IntentHandler {
     private EnumActionResult salvageNearbyVehicle(ContentHooks.IntentContext context) {
         for (Entity entity : nearbyEntities(context.getWorld(), context.getPos(), 3.0D)) {
             if (entity instanceof EntityWarTechGroundVehicle && !entity.isDead) {
-                entity.setDead();
-                return EnumActionResult.SUCCESS;
+                return ((EntityWarTechGroundVehicle)entity).trySalvage(context.getPlayer(),context.getPlayer().getHeldItemMainhand(),true)?EnumActionResult.SUCCESS:EnumActionResult.FAIL;
             }
         }
         return EnumActionResult.PASS;
@@ -361,6 +361,11 @@ public final class GameplayIntentHandler implements ContentHooks.IntentHandler {
     }
 
     private static WarTechEntityProfile groundProfile(String id, int variant) {
+        for(com.wartec.wartecmod.port.entity.ModernVehicleProfile p:com.wartec.wartecmod.port.entity.ModernVehicleProfile.values())
+            if(id.endsWith("/modern_"+p.model)) return p.entity;
+        if(id.endsWith("/tube_d30"))return WarTechEntityProfile.ARTILLERY_D30;
+        if(id.endsWith("/tube_caesar"))return WarTechEntityProfile.ARTILLERY_CAESAR;
+        if (id.contains("strategic_iskander")) return WarTechEntityProfile.TACTICAL_ISKANDER;
         if (id.contains("strategic_topol_m")) {
             return WarTechEntityProfile.STRATEGIC_TOPOL_M;
         }

@@ -2,6 +2,7 @@ package com.wartec.wartecmod.port.content;
 
 import com.hbm.lib.HBMSoundHandler;
 import com.wartec.wartecmod.port.entity.EntityWarTechGroundVehicle;
+import com.wartec.wartecmod.port.entity.EntityModernVehicle;
 import com.wartec.wartecmod.port.entity.WarTechEntityProfile;
 import java.util.List;
 import java.util.UUID;
@@ -38,15 +39,17 @@ public final class ArtilleryTargetDesignatorItem extends PortItem {
 
     public boolean linkTo(EntityWarTechGroundVehicle artillery,
             EntityPlayer player, ItemStack stack) {
-        if (artillery.getProfile() != WarTechEntityProfile.MOBILE_ARTILLERY
-                || artillery.getVisualVariant() == 0) {
-            player.sendMessage(new TextComponentString(
-                    "This chassis has no artillery module."));
+        if(!artillery.canManage(player))return false;
+        boolean tube=artillery instanceof com.wartec.wartecmod.port.entity.EntityTubeArtillery;
+        boolean mlrs=artillery instanceof EntityModernVehicle && ((EntityModernVehicle)artillery).modernProfile().isMlrs();
+        if (mlrs && !((EntityModernVehicle)artillery).canOperate(player)) return false;
+        if (!mlrs && !tube && (artillery.getProfile() != WarTechEntityProfile.MOBILE_ARTILLERY
+                || artillery.getVisualVariant() == 0)) {
+            player.sendMessage(new net.minecraft.util.text.TextComponentTranslation("wartec.modern.arty.unsupported"));
             return false;
         }
-        if (!artillery.isDeployed()) {
-            player.sendMessage(new TextComponentString(
-                    "Deploy the artillery platform before linking."));
+        if (!mlrs && !artillery.isDeployed()) {
+            player.sendMessage(new net.minecraft.util.text.TextComponentTranslation("wartec.modern.arty.deploy"));
             return false;
         }
         NBTTagCompound tag = getOrCreateTag(stack);
@@ -58,9 +61,7 @@ public final class ArtilleryTargetDesignatorItem extends PortItem {
         tag.setUniqueId(ENTITY_UUID, artillery.getUniqueID());
         tag.setInteger(DIMENSION, artillery.dimension);
         if (!artillery.world.isRemote) {
-            player.sendMessage(new TextComponentString(
-                    "Linked to " + pos.getX() + ", " + pos.getY()
-                            + ", " + pos.getZ()));
+            player.sendMessage(new net.minecraft.util.text.TextComponentTranslation("wartec.modern.arty.bound",pos.getX(),pos.getY(),pos.getZ()));
         }
         artillery.world.playSound(null, artillery.posX, artillery.posY,
                 artillery.posZ, HBMSoundHandler.techBleep,
@@ -76,18 +77,31 @@ public final class ArtilleryTargetDesignatorItem extends PortItem {
             return new ActionResult<>(EnumActionResult.SUCCESS, stack);
         }
         NBTTagCompound tag = stack.getTagCompound();
-        EntityWarTechGroundVehicle artillery =
-                resolveLinkedArtillery(world, tag);
-        if (artillery == null) {
-            player.sendMessage(new TextComponentString("No turret linked!"));
-            return new ActionResult<>(EnumActionResult.FAIL, stack);
-        }
         RayTraceResult trace = player.rayTrace(500.0D, 1.0F);
         if (trace == null || trace.typeOfHit != RayTraceResult.Type.BLOCK) {
             return new ActionResult<>(EnumActionResult.PASS, stack);
         }
+        if(tag==null){tag=new NBTTagCompound();stack.setTagCompound(tag);}
+        BlockPos marked=trace.getBlockPos().up();tag.setInteger("WarTechAimX",marked.getX());tag.setInteger("WarTechAimY",marked.getY());tag.setInteger("WarTechAimZ",marked.getZ());tag.setInteger("WarTechAimDimension",player.dimension);
+        EntityWarTechGroundVehicle artillery=resolveLinkedArtillery(world,tag);
+        if(artillery==null && tag!=null && tag.hasUniqueId(ENTITY_UUID) && world instanceof net.minecraft.world.WorldServer
+                && tag.getInteger(DIMENSION)==player.dimension) {
+            NBTTagCompound snapshot=tag.copy();BlockPos target=trace.getBlockPos().up();
+            boolean queued=com.wartec.wartecmod.port.integration.OperationalChunks.request((net.minecraft.world.WorldServer)world,
+                new BlockPos(tag.getInteger("x"),tag.getInteger("y"),tag.getInteger("z")),2,"arty-designator:"+tag.getUniqueId(ENTITY_UUID),
+                ()->!player.isDead && player.world==world && player.getHeldItem(hand)==stack && snapshot.equals(stack.getTagCompound()),()->{
+                    EntityWarTechGroundVehicle loaded=resolveLinkedArtillery(world,snapshot);
+                    if(loaded==null) player.sendMessage(new net.minecraft.util.text.TextComponentTranslation("wartec.modern.arty.missing"));
+                    else loaded.acceptArtilleryDesignatorTarget(player,target);
+                });
+            return new ActionResult<>(queued?EnumActionResult.SUCCESS:EnumActionResult.FAIL,stack);
+        }
+        if(artillery==null) {
+            player.sendMessage(new net.minecraft.util.text.TextComponentTranslation("wartec.modern.arty.missing"));
+            return new ActionResult<>(EnumActionResult.FAIL,stack);
+        }
         if (!artillery.acceptArtilleryDesignatorTarget(
-                player, trace.getBlockPos())) {
+                player, artillery instanceof EntityModernVehicle || artillery instanceof com.wartec.wartecmod.port.entity.EntityTubeArtillery?trace.getBlockPos().up():trace.getBlockPos())) {
             return new ActionResult<>(EnumActionResult.FAIL, stack);
         }
         world.playSound(null, player.posX, player.posY, player.posZ,
@@ -100,14 +114,13 @@ public final class ArtilleryTargetDesignatorItem extends PortItem {
     public void addInformation(ItemStack stack, @Nullable World world,
             List<String> tooltip, ITooltipFlag flag) {
         NBTTagCompound tag = stack.getTagCompound();
+        tooltip.add(net.minecraft.client.resources.I18n.format("wartec.modern.arty.help"));
         if (tag == null || !tag.hasKey("x", 99)
                 || !tag.hasKey("y", 99) || !tag.hasKey("z", 99)) {
-            tooltip.add(TextFormatting.RED + "No turret linked!");
+            tooltip.add(TextFormatting.RED + net.minecraft.client.resources.I18n.format("wartec.modern.arty.missing"));
             return;
         }
-        tooltip.add(TextFormatting.YELLOW + "Linked to "
-                + tag.getInteger("x") + ", " + tag.getInteger("y")
-                + ", " + tag.getInteger("z"));
+        tooltip.add(TextFormatting.YELLOW + net.minecraft.client.resources.I18n.format("wartec.modern.arty.bound",tag.getInteger("x"),tag.getInteger("y"),tag.getInteger("z")));
     }
 
     private static NBTTagCompound getOrCreateTag(ItemStack stack) {
@@ -140,6 +153,7 @@ public final class ArtilleryTargetDesignatorItem extends PortItem {
                     return (EntityWarTechGroundVehicle) entity;
                 }
             }
+            return null; // A removed UUID must never bind to a different nearby chassis.
         }
         if (!tag.hasKey("x", 99) || !tag.hasKey("y", 99)
                 || !tag.hasKey("z", 99)) {
@@ -170,9 +184,9 @@ public final class ArtilleryTargetDesignatorItem extends PortItem {
     }
 
     private static boolean isLinkedArtillery(Entity entity, UUID expected) {
-        return entity instanceof EntityWarTechGroundVehicle
+        return entity instanceof EntityWarTechGroundVehicle && !entity.isDead
                 && expected.equals(entity.getUniqueID())
-                && ((EntityWarTechGroundVehicle) entity).getProfile()
-                        == WarTechEntityProfile.MOBILE_ARTILLERY;
+                && (entity instanceof com.wartec.wartecmod.port.entity.EntityTubeArtillery || ((EntityWarTechGroundVehicle) entity).getProfile()==WarTechEntityProfile.MOBILE_ARTILLERY
+                    || entity instanceof EntityModernVehicle && ((EntityModernVehicle)entity).modernProfile().isMlrs());
     }
 }

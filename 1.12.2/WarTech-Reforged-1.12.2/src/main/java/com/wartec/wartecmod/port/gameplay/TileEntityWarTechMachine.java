@@ -71,6 +71,54 @@ public class TileEntityWarTechMachine extends PoweredAirDefenseTileEntity implem
     private final int[] radarBlips = new int[16];
     private long manualGeranRequest;
     private boolean manualGeranPending;
+    private boolean samAutoFire=true;
+    private int clientSamRadars;
+    private boolean samEnabled=true,samClientInitialized;
+    private int samDeployment,samChannel,samNextChannel,samCap,samHold,samShownChannel;
+    private float samYaw,samShownDeployment,samPreviousDeployment,samShownYaw,samPreviousYaw,samShownCap,samPreviousCap;
+
+    public boolean isSamAutoFire() { return samAutoFire; }
+    public int getSamNetworkRadars() {
+        if(world==null || world.isRemote) return clientSamRadars;
+        return MissileTrackingService.linkedRadarCount(world,pos.getX()+.5,pos.getY()+(isPatriotSam()?6.5:6.8)*com.wartec.wartecmod.port.entity.VehicleDimensions.blockScale(blockName()),pos.getZ()+.5,getOwnerTeam());
+    }
+    public void setClientSamNetwork(int radars,boolean automatic) { clientSamRadars=radars;samAutoFire=automatic; }
+    public int getSamAmmoCount() { int total=0;for(int i=0;i<inventory.size();i++) if(i!=2 && isSamAmmo(inventory.get(i))) total+=inventory.get(i).getCount();return total; }
+    public int getCommandRadarId(){return radarId();}
+    public int getCommandDefenseTier(){return loadedInterceptorTier();}
+    public long getCommandLaunchPower(boolean consumed){if(isAnimatedSam())return 50000;ItemStack stack=getStackInSlot(0);if(stack.getItem() instanceof MissileItem){MissileProfile profile=((MissileItem)stack.getItem()).getProfile();return consumed?consumedLaunchPower(profile):requiredLaunchPower(profile);}return 75000;}
+    public int getCommandRadarRange(){return (int)getRadarHorizontalRange();}
+    public net.minecraft.nbt.NBTTagCompound commandDefenseTelemetry(){net.minecraft.nbt.NBTTagCompound n=new net.minecraft.nbt.NBTTagCompound();n.setLong("Key",launcherKey());n.setBoolean("Enabled",samEnabled && samAutoFire);n.setBoolean("Deployed",samDeployment>=120);n.setInteger("Cooldown",networkLaunchCooldown);n.setInteger("Pending",pendingTargetEntityId);n.setInteger("Delay",36);n.setString("Stage",samHold>0?"exit":samCap>0?"opening":pendingTargetEntityId>=0?"tracking":"guard");return n;}
+    public static boolean isSamAmmo(ItemStack stack) {
+        if(stack.isEmpty() || !(stack.getItem() instanceof MissileItem)) return false;
+        MissileProfile profile=((MissileItem)stack.getItem()).getProfile();
+        return profile==MissileProfile.ANTI_AIR_TIER_1 || profile==MissileProfile.ANTI_AIR_TIER_2 || profile==MissileProfile.ANTI_AIR_TIER_3;
+    }
+    public boolean isAnimatedSam() { return "patriotlauncher".equals(blockName()) || "s400launcher".equals(blockName()); }
+    private boolean isPatriotSam() { return "patriotlauncher".equals(blockName()); }
+    public boolean isSamEnabled() { return samEnabled; }
+    @Override public net.minecraft.util.math.AxisAlignedBB getRenderBoundingBox() {
+        return isAnimatedSam()?new net.minecraft.util.math.AxisAlignedBB(pos).grow(12):super.getRenderBoundingBox();
+    }
+    public int getSamChannel() { return world!=null && world.isRemote?samShownChannel:samChannel; }
+    public void setClientSamState(boolean enabled,int deployment) {
+        if(world!=null && world.isRemote) { samEnabled=enabled;samDeployment=MathHelper.clamp(deployment,0,120); }
+    }
+    public float getSamDeployment(float partial) { return world!=null && world.isRemote?
+        (samPreviousDeployment+(samShownDeployment-samPreviousDeployment)*partial)/120F:samDeployment/120F; }
+    public float getSamYaw(float partial) { return world!=null && world.isRemote?
+        samPreviousYaw+com.wartec.wartecmod.port.entity.LegacySamGeometry.wrap(samShownYaw-samPreviousYaw)*partial:samYaw; }
+    public float getSamCap(float partial) { return world!=null && world.isRemote?
+        (samPreviousCap+(samShownCap-samPreviousCap)*partial)/12F:samCap/12F; }
+    private void tickSamClient() {
+        // Finish interpolating the old lid shut before displaying the next
+        // channel from a newer server packet.
+        if(samShownCap==0) samShownChannel=samChannel;
+        samPreviousDeployment=samShownDeployment;samPreviousYaw=samShownYaw;samPreviousCap=samShownCap;
+        samShownDeployment+=MathHelper.clamp(samDeployment-samShownDeployment,-1F,1F);
+        samShownYaw=com.wartec.wartecmod.port.entity.LegacySamGeometry.approach(samShownYaw,samYaw,com.wartec.wartecmod.port.entity.AirDefenseTraverse.PATRIOT_YAW);
+        samShownCap+=MathHelper.clamp(samCap-samShownCap,-1F,1F);
+    }
 
     public boolean isRemoteDefenseNode() { return isRadarMachine() || isLauncher() || isCommunicationRelay(); }
     @Override public void onLoad() {
@@ -79,6 +127,7 @@ public class TileEntityWarTechMachine extends PoweredAirDefenseTileEntity implem
 
     @Override
     public void update() {
+        if(world!=null && world.isRemote) { if(isAnimatedSam()) tickSamClient();return; }
         if (world == null || world.isRemote) {
             return;
         }
@@ -183,20 +232,24 @@ public class TileEntityWarTechMachine extends PoweredAirDefenseTileEntity implem
                 || target == null || target.isDead) {
             return false;
         }
-        int tier = loadedInterceptorTier();
+        if(!com.wartec.wartecmod.port.planning.DefenseDoctrine.allowed(world,launcherKey(),new net.minecraft.util.math.Vec3d(pos.getX()+.5,pos.getY()+6.5,pos.getZ()+.5),getOwnerTeam(),target))return false;
+        int tier = isAnimatedSam()?interceptorTierForTarget(target,24):loadedInterceptorTier();
+        if(isAnimatedSam() && (!samEnabled || samDeployment<120 || samCap<12)) return false;
         int slot = loadedInterceptorSlot(tier);
         double range=com.wartec.wartecmod.port.integration.WeaponBalance.interceptorRange(tier);
         if (tier == 0 || slot < 0 || !MissileTrackingService.canInterceptorEngage(target,tier,range)
                 || NetworkTeamHelper.isFriendly(getOwnerTeam(),target)
-                || (MissileTrackingService.isBallisticTarget(target)
+                || (isAnimatedSam()?!com.wartec.wartecmod.port.integration.AirDefenseFireControl.canLaunch(target,
+                    new net.minecraft.util.math.Vec3d(pos.getX()+.5,pos.getY()+6.5*com.wartec.wartecmod.port.entity.VehicleDimensions.blockScale(blockName()),pos.getZ()+.5),range,tier,24):
+                    (MissileTrackingService.isBallisticTarget(target)
                     ?Math.pow(target.posX-pos.getX()-.5,2)+Math.pow(target.posZ-pos.getZ()-.5,2)
-                    :target.getDistanceSq(pos.getX()+.5,pos.getY()+.5,pos.getZ()+.5))>range*range
+                    :target.getDistanceSq(pos.getX()+.5,pos.getY()+.5,pos.getZ()+.5))>range*range)
                 || !consumePower(50_000L)) {
             return false;
         }
         long launcherKey = launcherKey();
-        if (!MissileTrackingService.tryReserve(world,
-                target.getEntityId(), launcherKey)) {
+        if (!MissileTrackingService.holdReservation(world,target.getEntityId(),launcherKey)
+                && !MissileTrackingService.tryReserve(world,target.getEntityId(), launcherKey)) {
             setPower(getPower() + 50_000L);
             return false;
         }
@@ -213,12 +266,24 @@ public class TileEntityWarTechMachine extends PoweredAirDefenseTileEntity implem
         interceptor.setVisual("missile/anti_air_tier_" + tier, 0);
         boolean malfunction = VlsInterceptorGuidance.configureStationaryLaunch(
                 interceptor, target, tier);
+        if(isAnimatedSam()) {
+            com.wartec.wartecmod.port.entity.LegacySamGeometry.Shot shot=com.wartec.wartecmod.port.entity.LegacySamGeometry.shot(
+                isPatriotSam(),samDeployment/120F,samYaw,samChannel,new net.minecraft.util.math.Vec3d(pos.getX()+.5,pos.getY(),pos.getZ()+.5));
+            interceptor.setPosition(shot.origin.x,shot.origin.y,shot.origin.z);
+            interceptor.configureSamVisual(shot.scale,shot.direction,shot.scale[1]+.25F);
+            interceptor.motionX=shot.direction.x*1.2;interceptor.motionY=shot.direction.y*1.2;interceptor.motionZ=shot.direction.z*1.2;
+            interceptor.rotationYaw=(float)Math.toDegrees(Math.atan2(shot.direction.x,shot.direction.z));
+            interceptor.rotationPitch=(float)-Math.toDegrees(Math.asin(shot.direction.y));
+            interceptor.getEntityData().setLong("SamLauncher",pos.toLong());
+            interceptor.getEntityData().setInteger("SamChannel",samChannel);
+        }
         if (!com.wartec.wartecmod.port.integration.MissileChunkLoader.spawnFlight(interceptor)) {
             MissileTrackingService.releaseReservation(world,
                     target.getEntityId(), launcherKey);
             setPower(getPower() + 50_000L);
             return false;
         }
+        com.wartec.wartecmod.port.planning.PlanningHooks.defenseShot(world,this,interceptor,target);
         if (malfunction) {
             MissileTrackingService.releaseReservation(world,
                     target.getEntityId(), launcherKey);
@@ -227,9 +292,13 @@ public class TileEntityWarTechMachine extends PoweredAirDefenseTileEntity implem
             MissileTrackingService.confirmReservation(world,
                     target.getEntityId(), launcherKey, interceptor.getEntityId());
         }
-        VlsInterceptorGuidance.spawnLaunchSmoke(
-                world, interceptor.posX, interceptor.posY, interceptor.posZ,
-                tier);
+        net.minecraft.util.math.Vec3d smoke=interceptor.getPositionVector();
+        if(isAnimatedSam()) {
+            com.wartec.wartecmod.port.entity.LegacySamGeometry.Shot shot=com.wartec.wartecmod.port.entity.LegacySamGeometry.shot(
+                isPatriotSam(),1,samYaw,samChannel,new net.minecraft.util.math.Vec3d(pos.getX()+.5,pos.getY(),pos.getZ()+.5));
+            smoke=shot.mouth;
+        }
+        VlsInterceptorGuidance.spawnLaunchSmoke(world,smoke.x,smoke.y,smoke.z,tier);
         ItemStack stack = inventory.get(slot);
         stack.shrink(1);
         if (stack.isEmpty()) {
@@ -299,7 +368,8 @@ public class TileEntityWarTechMachine extends PoweredAirDefenseTileEntity implem
         if (isLauncher()) {
             tickNetworkLauncher();
         }
-        if (hasOpeningCycle()) {
+        if(isAnimatedSam()) tickSam();
+        else if (hasOpeningCycle()) {
             tickOpeningCycle();
         }
     }
@@ -318,7 +388,15 @@ public class TileEntityWarTechMachine extends PoweredAirDefenseTileEntity implem
                     pos.getY() + (blockName().contains("s400") ? 6.8D : 6.5D)*com.wartec.wartecmod.port.entity.VehicleDimensions.blockScale(blockName()),
                     pos.getZ() + 0.5D, networkTier, key, getOwnerTeam());
         }
-        if (loadedTier == 0 || networkLaunchCooldown > 0 || getPower() < 50_000L) {
+        double trackingY=pos.getY()+(blockName().contains("s400")?6.8D:6.5D)*com.wartec.wartecmod.port.entity.VehicleDimensions.blockScale(blockName());
+        net.minecraft.util.math.Vec3d trackingOrigin=new net.minecraft.util.math.Vec3d(pos.getX()+.5,trackingY,pos.getZ()+.5);
+        if(isAnimatedSam() && samEnabled && samAutoFire && getPower()>=50_000L && shoot==0 && samCap==0 && samHold==0) {
+            Entity tracked=MissileTrackingService.findTrackingThreat(world,trackingOrigin,networkTier,
+                com.wartec.wartecmod.port.integration.WeaponBalance.interceptorRange(networkTier),key,getOwnerTeam(),pendingTargetEntityId,true);
+            pendingTargetEntityId=tracked==null?-1:tracked.getEntityId();
+        }
+        if (loadedTier == 0 || networkLaunchCooldown > 0 || getPower() < 50_000L
+                || (isAnimatedSam() && (!samEnabled || !samAutoFire || shoot>0 || samCap>0 || samHold>0))) {
             return;
         }
         int period = loadedTier == 1 ? 2 : loadedTier == 2 ? 5 : 10;
@@ -327,15 +405,59 @@ public class TileEntityWarTechMachine extends PoweredAirDefenseTileEntity implem
             return;
         }
         double range = com.wartec.wartecmod.port.integration.WeaponBalance.interceptorRange(loadedTier);
-        Entity target = MissileTrackingService.findThreat(world,
+        double sensorY=pos.getY()+(blockName().contains("s400")?6.8D:6.5D)*com.wartec.wartecmod.port.entity.VehicleDimensions.blockScale(blockName());
+        Entity target = isAnimatedSam()?MissileTrackingService.findLaunchThreat(world,trackingOrigin,networkTier,range,key,getOwnerTeam(),true,36,
+                candidate->interceptorTierForTarget(candidate,36)>0):MissileTrackingService.findThreat(world,
                 pos.getX() + 0.5D,
                 pos.getY() + (blockName().contains("s400") ? 6.8D : 6.5D)*com.wartec.wartecmod.port.entity.VehicleDimensions.blockScale(blockName()),
                 pos.getZ() + 0.5D, loadedTier, range, key, getOwnerTeam());
-        if (target != null) {
+        if (target != null && (!isAnimatedSam() || MissileTrackingService.tryReserve(world,target.getEntityId(),key))) {
             pendingTargetEntityId = target.getEntityId();
             requestLaunch();
             networkLaunchCooldown = period;
         }
+    }
+
+    private void tickSam() {
+        int oldDeployment=samDeployment,oldCap=samCap,oldHold=samHold,oldShoot=shoot;float oldYaw=samYaw;
+        if(samHold>0) samHold--;
+        Entity target=pendingTargetEntityId<0?null:world.getEntityByID(pendingTargetEntityId);
+        if(shoot>0 && (target==null || target.isDead || !samEnabled
+            || !MissileTrackingService.hasDefenseContact(world,target,new net.minecraft.util.math.Vec3d(pos.getX()+.5,pos.getY()+6.5*com.wartec.wartecmod.port.entity.VehicleDimensions.blockScale(blockName()),pos.getZ()+.5),getOwnerTeam(),true)
+            || !(MissileTrackingService.holdReservation(world,pendingTargetEntityId,launcherKey())
+                || MissileTrackingService.tryReserve(world,pendingTargetEntityId,launcherKey())))) {
+            MissileTrackingService.releaseReservation(world,pendingTargetEntityId,launcherKey());
+            shoot=0;pendingTargetEntityId=-1;
+        }
+        if(samEnabled) samDeployment=Math.min(120,samDeployment+1);
+        if(samCap==0 && samHold==0) {
+            float desired=0;
+            if(samEnabled && isPatriotSam() && target!=null && samDeployment==120) {
+                float scale=com.wartec.wartecmod.port.entity.VehicleDimensions.blockScale(blockName());
+                desired=com.wartec.wartecmod.port.entity.LegacySamGeometry.desiredYaw(com.wartec.wartecmod.port.integration.AirDefenseFireControl.lead(target,
+                    new net.minecraft.util.math.Vec3d(pos.getX()+.5,pos.getY()+6.5*scale,pos.getZ()+.5),12-samCap,Math.max(1,loadedInterceptorTier())),
+                    new net.minecraft.util.math.Vec3d(pos.getX()+.5,pos.getY()+1.6482*scale,pos.getZ()+.5+4.84635*scale));
+            }
+            samYaw=com.wartec.wartecmod.port.entity.LegacySamGeometry.approach(samYaw,desired,com.wartec.wartecmod.port.entity.AirDefenseTraverse.PATRIOT_YAW);
+        }
+        if(!samEnabled && samCap==0 && samHold==0 && Math.abs(samYaw)<.01F) samDeployment=Math.max(0,samDeployment-1);
+        if(shoot>0 && target!=null && samDeployment==120) {
+            float desired=isPatriotSam()?com.wartec.wartecmod.port.entity.LegacySamGeometry.desiredYaw(com.wartec.wartecmod.port.integration.AirDefenseFireControl.lead(target,
+                new net.minecraft.util.math.Vec3d(pos.getX()+.5,pos.getY()+6.5*com.wartec.wartecmod.port.entity.VehicleDimensions.blockScale(blockName()),pos.getZ()+.5),12-samCap,Math.max(1,loadedInterceptorTier())),
+                new net.minecraft.util.math.Vec3d(pos.getX()+.5,pos.getY(),pos.getZ()+.5+4.84635*com.wartec.wartecmod.port.entity.VehicleDimensions.blockScale(blockName()))):0;
+            // Lock traverse while a lid is moving and until the departing missile clears.
+            if(samCap>0 || Math.abs(com.wartec.wartecmod.port.entity.LegacySamGeometry.wrap(desired-samYaw))<=2.1F) {
+                samCap=Math.min(12,samCap+1);
+                if(samCap==12) {
+                    boolean launched=engageTarget(target);samNextChannel=launched?(samChannel+1)%4:samChannel;
+                    MissileTrackingService.releaseReservation(world,pendingTargetEntityId,launcherKey());
+                    shoot=0;pendingTargetEntityId=-1;samHold=launched?25:0;
+                }
+            }
+        } else if(samHold==0 && samCap>0) {
+            samCap--;if(samCap==0) samChannel=samNextChannel;
+        }
+        if(oldDeployment!=samDeployment || oldCap!=samCap || oldHold!=samHold || oldYaw!=samYaw || oldShoot!=shoot) notifyStateChanged();
     }
 
     private void tickOpeningCycle() {
@@ -379,6 +501,10 @@ public class TileEntityWarTechMachine extends PoweredAirDefenseTileEntity implem
         if (world == null || world.isRemote) {
             return;
         }
+        if(isAnimatedSam()) {
+            if(samEnabled && shoot==0 && samCap==0 && samHold==0 && pendingTargetEntityId>=0) { shoot=50;notifyStateChanged(); }
+            return;
+        }
         if (isBallisticLauncher()) {
             launchLoadedMissile(null);
         } else if (hasOpeningCycle() && shoot == 0) {
@@ -388,14 +514,27 @@ public class TileEntityWarTechMachine extends PoweredAirDefenseTileEntity implem
     }
 
     private int loadedInterceptorTier() {
+        int highest=0;
         for (ItemStack stack : inventory) {
             if (stack.isEmpty() || !(stack.getItem() instanceof MissileItem)) {
                 continue;
             }
             MissileProfile profile = ((MissileItem) stack.getItem()).getProfile();
-            if (profile == MissileProfile.ANTI_AIR_TIER_1) return 1;
-            if (profile == MissileProfile.ANTI_AIR_TIER_2) return 2;
-            if (profile == MissileProfile.ANTI_AIR_TIER_3) return 3;
+            int tier=profile==MissileProfile.ANTI_AIR_TIER_1?1:profile==MissileProfile.ANTI_AIR_TIER_2?2:profile==MissileProfile.ANTI_AIR_TIER_3?3:0;
+            if(tier>0 && !isAnimatedSam())return tier;
+            highest=Math.max(highest,tier);
+        }
+        return highest;
+    }
+
+    private int interceptorTierForTarget(Entity target,int preparation) {
+        if(target==null) return 0;
+        double scale=com.wartec.wartecmod.port.entity.VehicleDimensions.blockScale(blockName());
+        net.minecraft.util.math.Vec3d origin=new net.minecraft.util.math.Vec3d(pos.getX()+.5,pos.getY()+6.5*scale,pos.getZ()+.5);
+        for(int tier=Math.max(1,MissileTrackingService.getThreatTier(target));tier<=3;tier++) {
+            double range=com.wartec.wartecmod.port.integration.WeaponBalance.interceptorRange(tier);
+            if(loadedInterceptorSlot(tier)>=0 && MissileTrackingService.canInterceptorEngage(target,tier,range)
+                && com.wartec.wartecmod.port.integration.AirDefenseFireControl.canLaunch(target,origin,range,tier,preparation))return tier;
         }
         return 0;
     }
@@ -592,6 +731,17 @@ public class TileEntityWarTechMachine extends PoweredAirDefenseTileEntity implem
     }
 
     public boolean handleLegacyGuiAction(int action, EntityPlayer player) {
+        if(player==null || !isUsableByPlayer(player) || !mayRemoteLaunch(player)) return false;
+        if(isAnimatedSam() && action==1) {
+            samAutoFire=!samAutoFire;
+            if(!samAutoFire) { shoot=0;pendingTargetEntityId=-1; }
+            notifyStateChanged();return true;
+        }
+        if(isAnimatedSam() && action==0) {
+            samEnabled=!samEnabled;
+            if(!samEnabled) { shoot=0;pendingTargetEntityId=-1; }
+            notifyStateChanged();return true;
+        }
         if (action != 0) return false;
         if (isCommunicationRelay()) {
             relayEnabled = !relayEnabled;
@@ -607,16 +757,30 @@ public class TileEntityWarTechMachine extends PoweredAirDefenseTileEntity implem
         return true;
     }
 
+    public boolean planningLaunch(com.wartec.wartecmod.port.planning.PlanningCommand c,BlockPos target) {
+        if(world==null || world.isRemote || !c.owns(this) || !world.getWorldBorder().contains(target) || !(isBallisticLauncher() || isGeranLauncher() || isLaunchTube()))return false;
+        return launchLoadedMissile(null,target); // Explicit server mandate, shared native launch core.
+    }
     public boolean launchLoadedMissile(EntityPlayer player) {
         return launchLoadedMissile(player, null);
     }
 
     /** NTM detonators also address old Geran/VLS pads: lease the site and resolve XZ-only targets. */
     public boolean launchFromDetonator(EntityPlayer player) {
+        return launchFromDetonator(player,()->true,result->{});
+    }
+    public boolean mayRemoteLaunch(EntityPlayer player) {
+        return player!=null && !player.isDead && !player.isSpectator() && player.world==world && (getOwnerTeam().isEmpty()
+            || NetworkTeamHelper.areFriendly(getOwnerTeam(),NetworkTeamHelper.getPlayerTeam(player)));
+    }
+    public boolean launchFromDetonator(EntityPlayer player,java.util.function.BooleanSupplier bindingValid,
+            java.util.function.Consumer<Boolean> completion) {
         if(!(world instanceof WorldServer) || isInvalid()) return false;
+        if(player!=null && !mayRemoteLaunch(player)) return false;
         final ItemStack ammo=inventory.get(0).copy(),designator=inventory.get(1).copy();
         if(ammo.isEmpty()) return false;
-        java.util.function.BooleanSupplier valid=()->!isInvalid()
+        java.util.function.BooleanSupplier valid=()->!isInvalid() && bindingValid.getAsBoolean()
+            && (player==null || mayRemoteLaunch(player))
             && ItemStack.areItemStacksEqual(ammo,inventory.get(0))
             && ItemStack.areItemStacksEqual(designator,inventory.get(1));
         final net.minecraft.util.math.Vec3d[] target={null};final boolean[] resolving={false};
@@ -631,7 +795,8 @@ public class TileEntityWarTechMachine extends PoweredAirDefenseTileEntity implem
                     if(target[0]==null) return false;
                 }
                 // A detonator requests autonomous launch, not remote camera/pilot mode.
-                launchLoadedMissile(null,target[0]==null?null:new BlockPos(target[0]));return true;
+                boolean launched=launchLoadedMissile(null,target[0]==null?null:new BlockPos(target[0]));
+                completion.accept(launched);return true;
             });
     }
 
@@ -713,19 +878,23 @@ public class TileEntityWarTechMachine extends PoweredAirDefenseTileEntity implem
         EntityWarTechMissile missile =
                 LegacyEntityFactory.missile(world, profile);
         double maximum=com.wartec.wartecmod.port.integration.WeaponBalance.missileRange(profile);
-        if(maximum>0 && Math.hypot(target.getX()-pos.getX(),target.getZ()-pos.getZ())*1.12+80>maximum) {
+        com.wartec.wartecmod.port.entity.ModernMissileProfile modern=com.wartec.wartecmod.port.entity.ModernMissileProfile.of(profile);
+        double distance=Math.hypot(target.getX()-pos.getX(),target.getZ()-pos.getZ());
+        if(modern!=null?!modern.accepts(distance):maximum>0 && distance*1.12+80>maximum) {
             if(player!=null) player.sendMessage(new net.minecraft.util.text.TextComponentTranslation("flight.error.range",(int)maximum));
             return false;
         }
         TileEntityWarTechMachine exhaust = findConnectedVlsExhaust();
         double launchY = pos.getY()
                 + (isBallisticLauncher() ? 2.0D : 11.0D);
+        if(profile==MissileProfile.FP7) launchY=pos.getY()+1+modern.length*.5;
         missile.setPosition(pos.getX() + 0.5D, launchY,
                 pos.getZ() + 0.5D);
         missile.setOwnerTeam(getOwnerTeam());
         missile.setVisual("missile/" + profile.getIntentPath(), 0);
         missile.configureLegacyGroundLaunch(
                 target.getX(), target.getY(), target.getZ());
+        if(profile==MissileProfile.FP7) missile.rotationPitch=-90;
         missile.configureVlsExhaust(
                 exhaust == null ? null : exhaust.getPos());
         if (profile == MissileProfile.ASAT) {
@@ -851,6 +1020,8 @@ public class TileEntityWarTechMachine extends PoweredAirDefenseTileEntity implem
     }
 
     private boolean isProfileAccepted(MissileProfile profile) {
+        com.wartec.wartecmod.port.entity.ModernMissileProfile modern=com.wartec.wartecmod.port.entity.ModernMissileProfile.of(profile);
+        if(modern!=null) return profile==MissileProfile.FP7 && isBallisticLauncher();
         MissileProfile.FlightClass flight = profile.getFlightClass();
         if (isBallisticLauncher()) {
             return flight == MissileProfile.FlightClass.BALLISTIC
@@ -1038,12 +1209,13 @@ public class TileEntityWarTechMachine extends PoweredAirDefenseTileEntity implem
     private boolean geranTargetInRange(BlockPos target) {
         double distance = Math.hypot(target.getX() - (pos.getX() + .5D),
                 target.getZ() - (pos.getZ() + .5D));
+        if(inventory.get(0).getItem()==WarTechContent.FP5_MISSILE) return com.wartec.wartecmod.port.entity.ModernMissileProfile.FP5.accepts(distance);
         return distance >= 20 && distance <= 1000;
     }
 
     private static boolean isGeranAmmo(ItemStack stack) {
         return !stack.isEmpty() && (stack.getItem()==WarTechContent.GERAN_DRONE
-                || stack.getItem()==WarTechContent.GERAN_5_DRONE);
+                || stack.getItem()==WarTechContent.GERAN_5_DRONE || stack.getItem()==WarTechContent.FP5_MISSILE);
     }
 
     private boolean launchGeranRemote(EntityPlayer player,BlockPos explicitTarget) {
@@ -1076,11 +1248,17 @@ public class TileEntityWarTechMachine extends PoweredAirDefenseTileEntity implem
         geran.setVisual("missile/"+geranProfile.getIntentPath(), 0);
         geran.setGuidanceTarget(
                 target.getX(), target.getY(), target.getZ());
+        if(geranProfile==MissileProfile.FP5) {
+            geran.setPosition(pos.getX()+.5,pos.getY()+1.368,pos.getZ()+.68);
+            geran.configureLegacyGroundLaunch(target.getX(),target.getY(),target.getZ());
+            geran.rotationYaw=0;geran.rotationPitch=-12;geran.motionX=0;
+            geran.motionY=Math.sin(Math.toRadians(12));geran.motionZ=Math.cos(Math.toRadians(12));
+        }
         if (!MissileChunkLoader.spawnFlight(geran)) {
             return tellGeranFailure(player, "busy");
         }
         // A rejected pilot handoff is not an autonomous launch. Preserve ammo and energy.
-        if (player != null && !geran.beginRemoteControl(player)) {
+        if (player != null && geranProfile!=MissileProfile.FP5 && !geran.beginRemoteControl(player)) {
             geran.setDead();
             MissileChunkLoader.untrack(geran);
             return tellGeranFailure(player, "control");
@@ -1223,6 +1401,10 @@ public class TileEntityWarTechMachine extends PoweredAirDefenseTileEntity implem
         compound.setBoolean("WarTechStrategicRadarFormed", structureFormed);
         compound.setInteger("WarTechStrategicRadarWarmup", warmup);
         compound.setBoolean("WarTechAlarm", alarmActive);
+        compound.setBoolean("SamAutoFire",samAutoFire);compound.setBoolean("SamEnabled",samEnabled);compound.setInteger("SamDeployment",samDeployment);
+        compound.setFloat("SamYaw",samYaw);compound.setInteger("SamChannel",samChannel);
+        compound.setInteger("SamNextChannel",samNextChannel);
+        compound.setInteger("SamCap",samCap);compound.setInteger("SamHold",samHold);
         ItemStackHelper.saveAllItems(compound, inventory);
         writeLegacyInventory(compound);
         return compound;
@@ -1252,6 +1434,18 @@ public class TileEntityWarTechMachine extends PoweredAirDefenseTileEntity implem
         warmup = Math.max(0, Math.min(200,
                 compound.getInteger("WarTechStrategicRadarWarmup")));
         alarmActive = compound.getBoolean("WarTechAlarm");
+        samAutoFire=!compound.hasKey("SamAutoFire") || compound.getBoolean("SamAutoFire");
+        samEnabled=!compound.hasKey("SamEnabled") || compound.getBoolean("SamEnabled");
+        // Old installed static machines remain deployed after a world upgrade.
+        samDeployment=compound.hasKey("SamDeployment")?MathHelper.clamp(compound.getInteger("SamDeployment"),0,120):120;
+        float savedYaw=compound.getFloat("SamYaw");samYaw=Float.isFinite(savedYaw)?com.wartec.wartecmod.port.entity.LegacySamGeometry.wrap(savedYaw):0;
+        samChannel=Math.floorMod(compound.getInteger("SamChannel"),4);samCap=MathHelper.clamp(compound.getInteger("SamCap"),0,12);
+        samNextChannel=compound.hasKey("SamNextChannel")?Math.floorMod(compound.getInteger("SamNextChannel"),4):samChannel;
+        samHold=MathHelper.clamp(compound.getInteger("SamHold"),0,25);
+        if(world!=null && world.isRemote && !samClientInitialized) {
+            samShownDeployment=samPreviousDeployment=samDeployment;samShownYaw=samPreviousYaw=samYaw;
+            samShownCap=samPreviousCap=samCap;samShownChannel=samChannel;samClientInitialized=true;
+        }
         pendingTargetEntityId = -1;
         for (int index = 0; index < inventory.size(); ++index) {
             inventory.set(index, ItemStack.EMPTY);
@@ -1342,12 +1536,23 @@ public class TileEntityWarTechMachine extends PoweredAirDefenseTileEntity implem
     @Override public ITextComponent getDisplayName() { return new TextComponentString(getName()); }
     @Override public int getInventoryStackLimit() { return 64; }
     @Override public boolean isUsableByPlayer(EntityPlayer player) {
-        return world != null && world.getTileEntity(pos) == this
+        return world != null && mayRemoteLaunch(player) && world.getTileEntity(pos) == this
                 && player.getDistanceSqToCenter(pos) <= 256.0D;
     }
     @Override public void openInventory(EntityPlayer player) { }
     @Override public void closeInventory(EntityPlayer player) { }
     @Override public boolean isItemValidForSlot(int index, ItemStack stack) {
+        if(isAnimatedSam()) {
+            if(index<0 || index>=inventory.size()) return false;
+            return index==2?!stack.isEmpty() && stack.getItem() instanceof IBatteryItem:isSamAmmo(stack);
+        }
+        if(isVlsExhaust()) {
+            if(index<0 || index>=inventory.size()) return false;
+            if(index==2) return !stack.isEmpty() && stack.getItem() instanceof IBatteryItem;
+            if(index==1 && (DesignatorCompat.isDesignator(stack) || !stack.isEmpty() && stack.getItem() instanceof ISatChip)) return true;
+            if(isSamAmmo(stack)) return true;
+            return stack.getItem() instanceof MissileItem && isProfileAccepted(((MissileItem)stack.getItem()).getProfile());
+        }
         if (isGeranLauncher()) {
             if (index == 0) {
                 return isGeranAmmo(stack);
@@ -1360,6 +1565,7 @@ public class TileEntityWarTechMachine extends PoweredAirDefenseTileEntity implem
         }
         if (isLaunchTube()) {
             if (index == 0) {
+                if(stack.getItem() instanceof MissileItem) return isProfileAccepted(((MissileItem)stack.getItem()).getProfile());
                 return !stack.isEmpty()
                         && (stack.getItem() instanceof IMissileSpawningItem
                                 || stack.getItem()

@@ -1,0 +1,6 @@
+{
+  "parent": "item/generated",
+  "textures": {
+    "layer0": "wartecmod:items/industrial_silo_material_package_3"
+  }
+}

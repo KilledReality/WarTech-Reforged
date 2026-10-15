@@ -61,6 +61,7 @@ public final class SalvageWrenchHandler {
         }
 
         TileEntity tile = world.getTileEntity(selected);
+        if (tile instanceof TileEntityWarTechMachine && !((TileEntityWarTechMachine)tile).mayRemoteLaunch(player)) return;
         String ownerTeam = tile instanceof TileEntityWarTechMachine
                 ? ((TileEntityWarTechMachine) tile).getOwnerTeam() : "";
         if (!player.capabilities.isCreativeMode) {
@@ -79,6 +80,7 @@ public final class SalvageWrenchHandler {
             Item recoveredItem = Item.getItemFromBlock(block);
             if (recoveredItem != null) {
                 ItemStack recovered = new ItemStack(recoveredItem);
+                com.wartec.wartecmod.port.production.ProductionState.recover(recovered,tile);
                 OwnerTeamNbt.write(recovered, ownerTeam);
                 drop(world, selected, recovered);
             }

@@ -21,6 +21,7 @@ public final class WarTechGuiHandler implements IGuiHandler {
     public static final int GUI_TU95 = 75;
     public static final int GUI_COMMUNICATION_MAST = 76;
     public static final int GUI_STRATEGIC_RADAR = 77;
+    public static final int GUI_TUBE_ARTILLERY = 89;
     public static final int GUI_MOBILE_ARTILLERY = 78;
     public static final int GUI_UAV_FABRICATOR = 79;
     public static final int GUI_UAV_MISSION_STATION = 80;
@@ -28,6 +29,10 @@ public final class WarTechGuiHandler implements IGuiHandler {
     public static final int GUI_CRUISE_FABRICATOR = 82;
     public static final int GUI_CRUISE_PROGRAMMER = 83;
     public static final int GUI_CRUISE_LAUNCHER = 84;
+    public static final int GUI_MODERN_VEHICLE = 85;
+    public static final int GUI_GROUND_VEHICLE = 86;
+    public static final int GUI_PLANNING_TERMINAL = 87;
+    public static final int GUI_SILO = 88;
 
     @Override
     public Object getServerGuiElement(
@@ -42,8 +47,16 @@ public final class WarTechGuiHandler implements IGuiHandler {
                 && !com.wartec.wartecmod.port.content.StrategicFeature.isEnabled()) {
             return null;
         }
+        if(id==GUI_SILO){net.minecraft.tileentity.TileEntity t=world.getTileEntity(new BlockPos(x,y,z));
+            if(!(t instanceof com.wartec.wartecmod.port.gameplay.TileEntityMissileSilo))return null;
+            ContainerMissileSilo c=new ContainerMissileSilo(player.inventory,(com.wartec.wartecmod.port.gameplay.TileEntityMissileSilo)t);return c.canInteractWith(player)?c:null;}
+        if(id==GUI_PLANNING_TERMINAL){
+            com.wartec.wartecmod.port.gameplay.TileEntityPlanningTerminal tile=null;EntityWarTechBase command=null;
+            if(y==-1)command=findEntity(world,x);else {net.minecraft.tileentity.TileEntity t=world.getTileEntity(new BlockPos(x,y,z));if(t instanceof com.wartec.wartecmod.port.gameplay.TileEntityPlanningTerminal)tile=(com.wartec.wartecmod.port.gameplay.TileEntityPlanningTerminal)t;}
+            if(tile==null && command==null)return null;ContainerPlanningTerminal c=new ContainerPlanningTerminal(player,tile,command);return c.canInteractWith(player)?c:null;
+        }
         if(id==GUI_CRUISE_PROGRAMMER) {
-            if((x!=player.inventory.currentItem && x!=40) || player.inventory.getStackInSlot(x).getItem()!=com.wartec.wartecmod.port.content.WarTechContent.ASSEMBLED_CRUISE) return null;
+            if((x!=player.inventory.currentItem && x!=40) || !com.wartec.wartecmod.port.cruise.CruiseBuild.isStore(player.inventory.getStackInSlot(x))) return null;
             return new ContainerCruiseProgrammer(player.inventory,x);
         }
         if(id==GUI_CRUISE_LAUNCHER) {
@@ -77,7 +90,9 @@ public final class WarTechGuiHandler implements IGuiHandler {
             return createTileContainer(id, player, world, new BlockPos(x, y, z));
         }
         EntityWarTechBase entity = findEntity(world, x);
-        if (entity == null || id != guiForEntity(entity)) return null;
+        if (entity == null || id != guiForEntity(entity) || !entity.isUsableByPlayer(player)) return null;
+        if(entity instanceof com.wartec.wartecmod.port.entity.EntityTubeArtillery)return new ContainerTubeArtillery(player.inventory,(com.wartec.wartecmod.port.entity.EntityTubeArtillery)entity);
+        if(entity instanceof com.wartec.wartecmod.port.entity.EntityModernVehicle) return new ContainerModernVehicle(player.inventory,(com.wartec.wartecmod.port.entity.EntityModernVehicle)entity);
         return new ContainerLegacyEntity(player.inventory, entity, layoutFor(id));
     }
 
@@ -103,25 +118,29 @@ public final class WarTechGuiHandler implements IGuiHandler {
     }
 
     public static int guiForEntity(EntityWarTechBase entity) {
+        if(entity instanceof com.wartec.wartecmod.port.entity.EntityTubeArtillery)return GUI_TUBE_ARTILLERY;
+        if(entity instanceof com.wartec.wartecmod.port.entity.EntityModernVehicle) return GUI_MODERN_VEHICLE;
         WarTechEntityProfile profile = entity.getProfile();
         if (profile == WarTechEntityProfile.RADAR_TRUCK
                 || profile == WarTechEntityProfile.S400_RADAR) return GUI_RADAR;
         if (profile == WarTechEntityProfile.COMMAND_TRUCK) return GUI_COMMAND;
         if (profile == WarTechEntityProfile.MOBILE_AIR_DEFENSE) return GUI_MOBILE_AIR_DEFENSE;
-        if (profile == WarTechEntityProfile.MOBILE_ARTILLERY) return GUI_MOBILE_ARTILLERY;
+        if (profile == WarTechEntityProfile.MOBILE_ARTILLERY) return entity.getVisualVariant()==0?GUI_GROUND_VEHICLE:GUI_MOBILE_ARTILLERY;
         if (profile == WarTechEntityProfile.STRATEGIC_TOPOL_M
                 || profile == WarTechEntityProfile.STRATEGIC_YARS
-                || profile == WarTechEntityProfile.STRATEGIC_ORESHNIK) {
+                || profile == WarTechEntityProfile.STRATEGIC_ORESHNIK
+                || profile == WarTechEntityProfile.TACTICAL_ISKANDER) {
             return GUI_STRATEGIC_TEL;
         }
         if (profile == WarTechEntityProfile.TU_95) return GUI_TU95;
         if (profile == WarTechEntityProfile.MQ_9_REAPER
                 || profile == WarTechEntityProfile.F_16C
                 || profile == WarTechEntityProfile.SU_27) return GUI_MQ9;
-        return -1;
+        return profile.getType()==com.wartec.wartecmod.port.entity.WarTechEntityType.GROUND_VEHICLE?GUI_GROUND_VEHICLE:-1;
     }
 
     private static ContainerLegacyEntity.Layout layoutFor(int id) {
+        if(id==GUI_GROUND_VEHICLE) return ContainerLegacyEntity.Layout.VEHICLE;
         if (id == GUI_RADAR) return ContainerLegacyEntity.Layout.RADAR;
         if (id == GUI_COMMAND) return ContainerLegacyEntity.Layout.COMMAND;
         if (id == GUI_MOBILE_AIR_DEFENSE) return ContainerLegacyEntity.Layout.AIR_DEFENSE;
@@ -133,7 +152,8 @@ public final class WarTechGuiHandler implements IGuiHandler {
     private static Object createTileContainer(int id, EntityPlayer player,
             World world, BlockPos pos) {
         net.minecraft.tileentity.TileEntity tile = world.getTileEntity(pos);
-        if (!(tile instanceof com.wartec.wartecmod.port.gameplay.TileEntityWarTechMachine)) {
+        if (!(tile instanceof com.wartec.wartecmod.port.gameplay.TileEntityWarTechMachine)
+                || !((com.wartec.wartecmod.port.gameplay.TileEntityWarTechMachine)tile).isUsableByPlayer(player)) {
             return null;
         }
         return new ContainerLegacyTile(player.inventory,

@@ -21,12 +21,17 @@ public final class TileEntityCruiseLauncher extends TileEntity implements IInven
     private UUID owner,loadId;
     private String team="";
     public UUID getLoadId() { return loadId; }
+    public UUID getPlanningOwner(){return owner;}
+    public String getPlanningTeam(){return team;}
+    public boolean planningLaunch(com.wartec.wartecmod.port.planning.PlanningCommand c,net.minecraft.util.math.BlockPos target){
+        if(!c.owns(this) || isEmpty() || !world.getWorldBorder().contains(target))return false;
+        CruiseMission mission=new CruiseMission();if(!mission.setTarget(new Vec3d(target),world.provider.getDimension()))return false;
+        mission.writeToStack(inventory.get(0));changed();return launchCore(null,c);
+    }
     @Override public net.minecraft.util.math.AxisAlignedBB getRenderBoundingBox() { return new net.minecraft.util.math.AxisAlignedBB(pos).grow(11); }
     @Override public double getMaxRenderDistanceSquared() { return 16384; }
     public boolean mayUse(EntityPlayer player) {
-        return player!=null && (owner==null || owner.equals(player.getUniqueID())
-            || com.wartec.wartecmod.port.integration.NetworkTeamHelper.areFriendly(team,
-                com.wartec.wartecmod.port.integration.NetworkTeamHelper.getPlayerTeam(player)));
+        return player!=null && player.world==world && com.wartec.wartecmod.port.integration.OwnershipAccess.mayUse(player,owner,team);
     }
     public void claim(EntityPlayer player) {
         if(world!=null && !world.isRemote && owner==null) {
@@ -34,6 +39,7 @@ public final class TileEntityCruiseLauncher extends TileEntity implements IInven
         }
     }
     public static boolean accepts(boolean rail,ItemStack stack) {
+        if(!rail && stack.getItem()==WarTechContent.S8000_MISSILE) return true;
         if(stack.isEmpty() || stack.getItem()!=WarTechContent.ASSEMBLED_CRUISE) return false;
         CruiseBuild build=CruiseBuild.fromStack(stack);
         return build.calculateStats().isValid() && build.get(CruiseSlot.LAUNCH)==(rail?CruisePartDefinition.LAUNCH_RAIL:CruisePartDefinition.LAUNCH_BOOSTER);
@@ -46,26 +52,30 @@ public final class TileEntityCruiseLauncher extends TileEntity implements IInven
         if(!player.capabilities.isCreativeMode) held.shrink(1);
         CruiseText.tell(player,"launcher.loaded");return true;
     }
-    public boolean launch(EntityPlayer player) {
-        if(world==null || world.isRemote || !mayUse(player) || isEmpty()) return false;
+    public boolean launch(EntityPlayer player) { return launchCore(player,null); }
+    private boolean launchCore(EntityPlayer player,com.wartec.wartecmod.port.planning.PlanningCommand mandate) {
+        if(world==null || world.isRemote || !(mandate!=null?mandate.owns(this):mayUse(player)) || isEmpty()) return false;
         if(!(world.getBlockState(pos).getBlock() instanceof CruiseLaunchPointBlock)) return false;
         boolean rail=((CruiseLaunchPointBlock)world.getBlockState(pos).getBlock()).isRail();
         ItemStack stack=inventory.get(0);
-        if(!accepts(rail,stack)) { CruiseText.tell(player,loadError(stack));return false; }
-        CruiseBuild build=CruiseBuild.fromStack(stack);CruisePartDefinition body=build.getAirframe();
+        if(!accepts(rail,stack)) { if(player!=null) CruiseText.tell(player,loadError(stack));return false; }
+        ItemStack launchStack=stack.copy();CruiseBuild build=CruiseBuild.fromStack(launchStack);
+        if(build.isS8000()) { build.set(CruiseSlot.LAUNCH,CruisePartDefinition.LAUNCH_BOOSTER);build.writeToStack(launchStack); }
+        CruisePartDefinition body=build.getAirframe();
         float yaw=world.getBlockState(pos).getValue(CruiseLaunchPointBlock.FACING).getHorizontalAngle();
         Vec3d start=new Vec3d(pos.getX()+0.5,pos.getY(),pos.getZ()+0.5)
                 .add(CruiseVisuals.worldOffset(CruiseVisuals.launchOrigin(build),yaw,0));
-        String error=EntityCustomCruise.launchError(world,stack,start);
-        if(error!=null) { player.sendMessage(new TextComponentTranslation(error));return false; }
-        claim(player);
-        EntityCustomCruise missile=new EntityCustomCruise(world);missile.configure(stack,null);missile.setOwnerIdentity(owner,team);
+        String error=EntityCustomCruise.launchError(world,launchStack,start);
+        if(error!=null) { if(player!=null) player.sendMessage(new TextComponentTranslation(error));return false; }
+        if(player!=null) claim(player);
+        EntityCustomCruise missile=new EntityCustomCruise(world);missile.configureGroundLaunch(launchStack,null);missile.setOwnerIdentity(owner,team);
         missile.setLocationAndAngles(start.x,start.y,start.z,yaw,rail?-12:-65);
         if(!world.getCollisionBoxes(missile,CruiseVisuals.launchClearance(build,start,yaw)).isEmpty()) { CruiseText.tell(player,"error.clearance");return false; }
         if(!com.wartec.wartecmod.port.integration.MissileChunkLoader.prepare(missile)) {
-            player.sendMessage(new TextComponentTranslation("flight.error.chunks"));return false;
+            if(player!=null) player.sendMessage(new TextComponentTranslation("flight.error.chunks"));return false;
         }
         if(!world.spawnEntity(missile)) { com.wartec.wartecmod.port.integration.MissileChunkLoader.untrack(missile);return false; }
+        com.wartec.wartecmod.port.planning.PlanningHooks.admitted(missile);
         inventory.set(0,ItemStack.EMPTY);loadId=null;changed();return true;
     }
     private void changed() {

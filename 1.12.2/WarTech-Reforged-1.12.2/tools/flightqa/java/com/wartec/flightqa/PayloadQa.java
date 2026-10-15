@@ -111,7 +111,7 @@ public final class PayloadQa {
         }
         if(index==parts.size() && (tick-20)%120==40) {
             String resources=MissileChunkLoader.diagnostics(world);
-            if(!resources.contains("flights=0/32") || !resources.contains("queue=0 chunks/0 owners")) failures.add("Loader leak: "+resources);
+            if(!resources.contains("flights=0/") || !resources.contains("queue=0 chunks/0 owners")) failures.add("Loader leak: "+resources);
             JsonObject result=new JsonObject();result.addProperty("complete",true);result.addProperty("tick",tick);
             result.add("failures",new Gson().toJsonTree(failures));result.add("payload_cases",new Gson().toJsonTree(records));result.addProperty("resources",resources);
             result.add("launcher_cases",launcherCases);

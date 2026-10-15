@@ -1,0 +1,810 @@
+{
+  "asset": "FP7",
+  "art_only": true,
+  "minecraft_renderer_integrated": false,
+  "length_art_units": 10,
+  "forward_glb": "+Z",
+  "up_glb": "+Y",
+  "origin": "longitudinal midpoint",
+  "textures": [
+    {
+      "file": "FP7_diffuse.png",
+      "size": [
+        2048,
+        2048
+      ],
+      "role": "diffuse",
+      "colorspace": "sRGB",
+      "used_in_final_shader": false
+    },
+    {
+      "file": "FP7_metallic.png",
+      "size": [
+        2048,
+        2048
+      ],
+      "role": "metallic",
+      "colorspace": "Non-Color",
+      "used_in_final_shader": false
+    },
+    {
+      "file": "FP7_roughness.png",
+      "size": [
+        2048,
+        2048
+      ],
+      "role": "roughness",
+      "colorspace": "Non-Color",
+      "used_in_final_shader": false
+    },
+    {
+      "file": "FP7_normal.png",
+      "size": [
+        2048,
+        2048
+      ],
+      "role": "normal",
+      "colorspace": "Non-Color",
+      "used_in_final_shader": true
+    }
+  ],
+  "parts": [
+    {
+      "name": "BodyMain",
+      "type": "MESH",
+      "parent": "Airframe",
+      "translation": [
+        -0.007979437708854675,
+        1.9269275665283203,
+        0.01250477135181427
+      ],
+      "rotation_euler": [
+        0.0,
+        -0.0,
+        0.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ]
+    },
+    {
+      "name": "BodyForward",
+      "type": "MESH",
+      "parent": "Airframe",
+      "translation": [
+        -0.010119199752807617,
+        -2.3482613563537598,
+        0.006983011960983276
+      ],
+      "rotation_euler": [
+        0.0,
+        -0.0,
+        0.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ]
+    },
+    {
+      "name": "Nose",
+      "type": "MESH",
+      "parent": "Airframe",
+      "translation": [
+        -0.0029029399156570435,
+        -4.2848663330078125,
+        0.02028350532054901
+      ],
+      "rotation_euler": [
+        0.0,
+        -0.0,
+        0.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ]
+    },
+    {
+      "name": "FinRight",
+      "type": "MESH",
+      "parent": "Airframe",
+      "translation": [
+        0.475396990776062,
+        4.382660865783691,
+        0.0
+      ],
+      "rotation_euler": [
+        0.0,
+        -0.0,
+        0.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ]
+    },
+    {
+      "name": "FinLeft",
+      "type": "MESH",
+      "parent": "Airframe",
+      "translation": [
+        -0.48122328519821167,
+        4.3826751708984375,
+        0.0
+      ],
+      "rotation_euler": [
+        0.0,
+        -0.0,
+        0.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ]
+    },
+    {
+      "name": "FinBottom",
+      "type": "MESH",
+      "parent": "Airframe",
+      "translation": [
+        0.0,
+        4.3826704025268555,
+        -0.4149923622608185
+      ],
+      "rotation_euler": [
+        0.0,
+        -0.0,
+        0.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ]
+    },
+    {
+      "name": "FinTop",
+      "type": "MESH",
+      "parent": "Airframe",
+      "translation": [
+        0.0,
+        4.3826704025268555,
+        0.4151591956615448
+      ],
+      "rotation_euler": [
+        0.0,
+        -0.0,
+        0.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ]
+    },
+    {
+      "name": "TailDetailTop",
+      "type": "MESH",
+      "parent": "Airframe",
+      "translation": [
+        -0.009716108441352844,
+        3.976250648498535,
+        0.2690642476081848
+      ],
+      "rotation_euler": [
+        0.0,
+        -0.0,
+        0.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ]
+    },
+    {
+      "name": "TailDetailBottom",
+      "type": "MESH",
+      "parent": "Airframe",
+      "translation": [
+        -0.008195236325263977,
+        4.357667922973633,
+        -0.2695406675338745
+      ],
+      "rotation_euler": [
+        0.0,
+        -0.0,
+        0.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ]
+    },
+    {
+      "name": "TailDetailSide",
+      "type": "MESH",
+      "parent": "Airframe",
+      "translation": [
+        0.2920428514480591,
+        4.346786022186279,
+        0.011170241981744766
+      ],
+      "rotation_euler": [
+        0.0,
+        -0.0,
+        0.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ]
+    },
+    {
+      "name": "Root",
+      "type": "EMPTY",
+      "parent": null,
+      "translation": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "rotation_euler": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ]
+    },
+    {
+      "name": "Airframe",
+      "type": "EMPTY",
+      "parent": "Root",
+      "translation": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "rotation_euler": [
+        0.0,
+        -0.0,
+        0.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ]
+    },
+    {
+      "name": "NoseSocket",
+      "type": "EMPTY",
+      "parent": "Airframe",
+      "translation": [
+        0.0,
+        -5.0,
+        0.0
+      ],
+      "rotation_euler": [
+        0.0,
+        -0.0,
+        0.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ]
+    },
+    {
+      "name": "RearSocket",
+      "type": "EMPTY",
+      "parent": "Airframe",
+      "translation": [
+        0.0,
+        5.0,
+        0.0
+      ],
+      "rotation_euler": [
+        0.0,
+        -0.0,
+        0.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ]
+    },
+    {
+      "name": "EngineExhaustSocket",
+      "type": "EMPTY",
+      "parent": "Airframe",
+      "translation": [
+        0.0,
+        4.974999904632568,
+        0.0
+      ],
+      "rotation_euler": [
+        0.0,
+        -0.0,
+        0.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ]
+    }
+  ],
+  "sockets": {
+    "NoseSocket": "visual nose marker",
+    "RearSocket": "tail marker",
+    "EngineExhaustSocket": "visual exhaust effect attachment; local forward is -Z in GLB"
+  },
+  "lod_triangles": {
+    "LOD0": 10994,
+    "LOD1": 6492,
+    "LOD2": 2992
+  },
+  "processing": {
+    "surface_cleanup": "one bounded relaxation pass; sharp edges retained",
+    "source_triangles": 35742,
+    "source_section_gap": 0.103523850440979,
+    "section_shift": 0.126523850440979,
+    "fin_seating_translations": {
+      "root.3__000": [
+        -0.08078509569168091,
+        0.0,
+        0.0
+      ],
+      "root.4__000": [
+        0.07590609788894653,
+        0.0,
+        0.0
+      ],
+      "root.5__000": [
+        0.0,
+        0.0,
+        0.04187172278761864
+      ],
+      "root.6__000": [
+        0.0,
+        0.0,
+        -0.06467747688293457
+      ]
+    },
+    "paired_fins": "four rebuilt planar prisms, paired outer silhouettes, beveled edges; root follows actual source shell with 0.008 art-unit seating",
+    "relaxed_vertices": {
+      "BodyMain": 9363,
+      "BodyForward": 3605,
+      "Nose": 1565,
+      "FinRight": 0,
+      "FinLeft": 0,
+      "FinBottom": 4,
+      "FinTop": 4,
+      "TailDetailTop": 9,
+      "TailDetailBottom": 152,
+      "TailDetailSide": 237
+    },
+    "normalized_art_length": 10,
+    "forward_axis_glb": "+Z",
+    "parts": [
+      "BodyMain",
+      "BodyForward",
+      "Nose",
+      "FinRight",
+      "FinLeft",
+      "FinBottom",
+      "FinTop",
+      "TailDetailTop",
+      "TailDetailBottom",
+      "TailDetailSide"
+    ]
+  },
+  "clip_nodes": {
+    "Reset": [
+      "Airframe"
+    ],
+    "Flight_Idle": [
+      "Airframe"
+    ],
+    "Flight_Roll": [
+      "Airframe"
+    ],
+    "Demo_Sequence": [
+      "Airframe"
+    ]
+  },
+  "clip_seconds": {
+    "Reset": 0.2,
+    "Flight_Idle": 6,
+    "Flight_Roll": 6,
+    "Demo_Sequence": 12
+  },
+  "clip_frames": {
+    "Reset": [
+      1,
+      7
+    ],
+    "Flight_Idle": [
+      22,
+      202
+    ],
+    "Flight_Roll": [
+      217,
+      397
+    ],
+    "Demo_Sequence": [
+      412,
+      772
+    ]
+  },
+  "coordinate_systems": {
+    "parts": "Blender: nose -Y, up +Z",
+    "glb_bind_pose": "glTF: nose +Z, up +Y; quaternion order x,y,z,w",
+    "clip_frames": "Blender source frames; exported clips start at zero seconds"
+  },
+  "glb_bind_pose": [
+    {
+      "name": "BodyForward",
+      "parent": "Airframe",
+      "translation": [
+        -0.010119199752807617,
+        0.006983011960983276,
+        2.3482613563537598
+      ],
+      "rotation_quaternion": [
+        0,
+        0,
+        0,
+        1
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ]
+    },
+    {
+      "name": "BodyMain",
+      "parent": "Airframe",
+      "translation": [
+        -0.007979437708854675,
+        0.01250477135181427,
+        -1.9269275665283203
+      ],
+      "rotation_quaternion": [
+        0,
+        0,
+        0,
+        1
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ]
+    },
+    {
+      "name": "EngineExhaustSocket",
+      "parent": "Airframe",
+      "translation": [
+        0,
+        0,
+        -4.974999904632568
+      ],
+      "rotation_quaternion": [
+        0,
+        0,
+        0,
+        1
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ]
+    },
+    {
+      "name": "FinBottom",
+      "parent": "Airframe",
+      "translation": [
+        0,
+        -0.4149923622608185,
+        -4.3826704025268555
+      ],
+      "rotation_quaternion": [
+        0,
+        0,
+        0,
+        1
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ]
+    },
+    {
+      "name": "FinLeft",
+      "parent": "Airframe",
+      "translation": [
+        -0.48122328519821167,
+        0,
+        -4.3826751708984375
+      ],
+      "rotation_quaternion": [
+        0,
+        0,
+        0,
+        1
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ]
+    },
+    {
+      "name": "FinRight",
+      "parent": "Airframe",
+      "translation": [
+        0.475396990776062,
+        0,
+        -4.382660865783691
+      ],
+      "rotation_quaternion": [
+        0,
+        0,
+        0,
+        1
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ]
+    },
+    {
+      "name": "FinTop",
+      "parent": "Airframe",
+      "translation": [
+        0,
+        0.4151591956615448,
+        -4.3826704025268555
+      ],
+      "rotation_quaternion": [
+        0,
+        0,
+        0,
+        1
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ]
+    },
+    {
+      "name": "Nose",
+      "parent": "Airframe",
+      "translation": [
+        -0.0029029399156570435,
+        0.02028350532054901,
+        4.2848663330078125
+      ],
+      "rotation_quaternion": [
+        0,
+        0,
+        0,
+        1
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ]
+    },
+    {
+      "name": "NoseSocket",
+      "parent": "Airframe",
+      "translation": [
+        0,
+        0,
+        5
+      ],
+      "rotation_quaternion": [
+        0,
+        0,
+        0,
+        1
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ]
+    },
+    {
+      "name": "RearSocket",
+      "parent": "Airframe",
+      "translation": [
+        0,
+        0,
+        -5
+      ],
+      "rotation_quaternion": [
+        0,
+        0,
+        0,
+        1
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ]
+    },
+    {
+      "name": "TailDetailBottom",
+      "parent": "Airframe",
+      "translation": [
+        -0.008195236325263977,
+        -0.2695406675338745,
+        -4.357667922973633
+      ],
+      "rotation_quaternion": [
+        0,
+        0,
+        0,
+        1
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ]
+    },
+    {
+      "name": "TailDetailSide",
+      "parent": "Airframe",
+      "translation": [
+        0.2920428514480591,
+        0.011170241981744766,
+        -4.346786022186279
+      ],
+      "rotation_quaternion": [
+        0,
+        0,
+        0,
+        1
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ]
+    },
+    {
+      "name": "TailDetailTop",
+      "parent": "Airframe",
+      "translation": [
+        -0.009716108441352844,
+        0.2690642476081848,
+        -3.976250648498535
+      ],
+      "rotation_quaternion": [
+        0,
+        0,
+        0,
+        1
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ]
+    },
+    {
+      "name": "Airframe",
+      "parent": "Root",
+      "translation": [
+        0.0,
+        0.0,
+        -0.0
+      ],
+      "rotation_quaternion": [
+        0.0,
+        0.0,
+        -0.0,
+        1.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ]
+    },
+    {
+      "name": "Root",
+      "parent": null,
+      "translation": [
+        0,
+        0,
+        0
+      ],
+      "rotation_quaternion": [
+        0,
+        0,
+        0,
+        1
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ]
+    }
+  ],
+  "glb_materials": [
+    {
+      "name": "FP7_PBR",
+      "pbr": {
+        "baseColorFactor": [
+          0.02800000086426735,
+          0.032999999821186066,
+          0.03799999877810478,
+          1
+        ],
+        "metallicFactor": 0.18000000715255737,
+        "roughnessFactor": 0.6399999856948853
+      },
+      "normal_texture": {
+        "index": 0,
+        "scale": 0.07999999821186066
+      }
+    },
+    {
+      "name": "FP7_PaintedFins",
+      "pbr": {
+        "baseColorFactor": [
+          0.02199999988079071,
+          0.027000000700354576,
+          0.03099999949336052,
+          1
+        ],
+        "metallicFactor": 0.18000000715255737,
+        "roughnessFactor": 0.6200000047683716
+      },
+      "normal_texture": null
+    },
+    {
+      "name": "FP7_MatteNose",
+      "pbr": {
+        "baseColorFactor": [
+          0.03500000014901161,
+          0.039000000804662704,
+          0.04500000178813934,
+          1
+        ],
+        "metallicFactor": 0.11999999731779099,
+        "roughnessFactor": 0.6000000238418579
+      },
+      "normal_texture": null
+    }
+  ]
+}

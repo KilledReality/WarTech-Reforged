@@ -1,0 +1,374 @@
+{
+  "asset": "FP5",
+  "art_only": true,
+  "minecraft_renderer_integrated": false,
+  "textures": [
+    {
+      "file": "Original_00.png",
+      "size": [
+        2048,
+        2048
+      ]
+    },
+    {
+      "file": "Original_02.png",
+      "size": [
+        2048,
+        2048
+      ]
+    },
+    {
+      "file": "Original_01.png",
+      "size": [
+        2048,
+        2048
+      ]
+    },
+    {
+      "file": "Original_03.png",
+      "size": [
+        2048,
+        2048
+      ]
+    }
+  ],
+  "clip_nodes": {
+    "Reset": [
+      "Root",
+      "Airframe",
+      "NoseSocket",
+      "EngineExhaustSocket",
+      "RearSocket"
+    ],
+    "Flight_Idle": [
+      "Root",
+      "Airframe",
+      "NoseSocket",
+      "EngineExhaustSocket",
+      "RearSocket"
+    ],
+    "Flight_Bank": [
+      "Root",
+      "Airframe",
+      "NoseSocket",
+      "EngineExhaustSocket",
+      "RearSocket"
+    ],
+    "Demo_Sequence": [
+      "Root",
+      "Airframe",
+      "NoseSocket",
+      "EngineExhaustSocket",
+      "RearSocket"
+    ]
+  },
+  "clip_seconds": {
+    "Reset": 0.2,
+    "Flight_Idle": 6,
+    "Flight_Bank": 6,
+    "Demo_Sequence": 12
+  },
+  "clip_frames": {
+    "Reset": [
+      1,
+      7
+    ],
+    "Flight_Idle": [
+      22,
+      202
+    ],
+    "Flight_Bank": [
+      217,
+      397
+    ],
+    "Demo_Sequence": [
+      412,
+      772
+    ]
+  },
+  "parts": [
+    {
+      "name": "AirframeMesh",
+      "type": "MESH",
+      "parent": "Airframe",
+      "translation": [
+        0.0,
+        0.0,
+        5.960464477539063e-08
+      ],
+      "rotation_euler": [
+        0.0,
+        -0.0,
+        0.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "matrix_parent_inverse": [
+        [
+          1.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          1.0,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          1.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ]
+    },
+    {
+      "name": "Root",
+      "type": "EMPTY",
+      "parent": null,
+      "translation": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "rotation_euler": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "matrix_parent_inverse": [
+        [
+          1.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          1.0,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          1.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ]
+    },
+    {
+      "name": "Airframe",
+      "type": "EMPTY",
+      "parent": "Root",
+      "translation": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "rotation_euler": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "matrix_parent_inverse": [
+        [
+          1.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          1.0,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          1.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ]
+    },
+    {
+      "name": "NoseSocket",
+      "type": "EMPTY",
+      "parent": "Airframe",
+      "translation": [
+        0.0,
+        -5.0,
+        0.0
+      ],
+      "rotation_euler": [
+        0.0,
+        -0.0,
+        0.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "matrix_parent_inverse": [
+        [
+          1.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          1.0,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          1.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ]
+    },
+    {
+      "name": "EngineExhaustSocket",
+      "type": "EMPTY",
+      "parent": "Airframe",
+      "translation": [
+        0.0,
+        4.349999904632568,
+        0.574999988079071
+      ],
+      "rotation_euler": [
+        0.0,
+        -0.0,
+        0.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "matrix_parent_inverse": [
+        [
+          1.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          1.0,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          1.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ]
+    },
+    {
+      "name": "RearSocket",
+      "type": "EMPTY",
+      "parent": "Airframe",
+      "translation": [
+        0.0,
+        5.0,
+        0.0
+      ],
+      "rotation_euler": [
+        0.0,
+        -0.0,
+        0.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "matrix_parent_inverse": [
+        [
+          1.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          1.0,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          1.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ]
+    }
+  ],
+  "lod_triangles": {
+    "LOD0": 4942,
+    "LOD1": 3360,
+    "LOD2": 1728
+  },
+  "wing_vertices_aligned": 36,
+  "assignment": {}
+}

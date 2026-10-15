@@ -14,15 +14,16 @@ public final class GuiLegacyAirDefense extends GuiContainer {
     private final EntityWarTechBase system;
     public GuiLegacyAirDefense(InventoryPlayer inventory,EntityWarTechBase system) {
         super(new ContainerLegacyEntity(inventory,system,ContainerLegacyEntity.Layout.AIR_DEFENSE));
-        this.system=system;xSize=280;ySize=228;
+        this.system=system;xSize=280;ySize=254;
     }
     @Override public void initGui() {
-        super.initGui();
+        super.initGui();VehiclePanelControls.add(buttonList,guiLeft,guiTop,xSize,ySize);
         buttonList.add(new WarTechGuiButton(0,guiLeft+151,guiTop+78,86,20,""));
         buttonList.add(new WarTechGuiButton(1,guiLeft+151,guiTop+102,system.isTor()?86:42,20,""));
         if(!system.isTor()) buttonList.add(new WarTechGuiButton(2,guiLeft+195,guiTop+102,42,20,""));
     }
     @Override protected void actionPerformed(GuiButton b) throws IOException {
+        if(VehiclePanelControls.action(inventorySlots,b,system)) return;
         if(b.enabled && b.id>=0 && b.id<=2) mc.playerController.sendEnchantPacket(inventorySlots.windowId,b.id);
     }
     @Override protected void drawGuiContainerBackgroundLayer(float partial,int x,int y) {
@@ -55,9 +56,10 @@ public final class GuiLegacyAirDefense extends GuiContainer {
         text(net.minecraft.client.resources.I18n.format("container.inventory"),8,137,160,GuiTheme.MUTED);
     }
     @Override public void drawScreen(int x,int y,float partial) {
+        VehiclePanelControls.update(buttonList,system);
         for(GuiButton b:buttonList) {
             if(b.id==0) b.displayString=GuiTheme.tr("fire."+Math.max(0,Math.min(2,system.getLegacyFireMode())));
-            if(b.id==1) b.displayString=GuiTheme.tr(!system.isDeployed()?"deploy":system.isLegacyEnabled()?"radar_on":"radar_off");
+            if(b.id==1) {b.displayString=GuiTheme.tr(system.isLegacyEnabled()?"radar_on":"radar_off");b.enabled=system.isDeployed();}
             if(b.id==2) b.displayString=GuiTheme.tr(system.isGunsEnabled()?"guns_on":"guns_off");
         }
         drawDefaultBackground();super.drawScreen(x,y,partial);renderHoveredToolTip(x,y);

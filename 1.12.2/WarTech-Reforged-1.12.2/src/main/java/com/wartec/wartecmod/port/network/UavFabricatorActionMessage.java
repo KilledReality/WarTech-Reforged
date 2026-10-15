@@ -46,6 +46,12 @@ public final class UavFabricatorActionMessage implements IMessage {
                 MessageContext context) {
             EntityPlayerMP player = context.getServerHandler().player;
             player.getServerWorld().addScheduledTask(() -> {
+                if (player.isSpectator() || player.isDead) return;
+                if (!(player.openContainer instanceof com.wartec.wartecmod.port.gui.ContainerUavFabricator)
+                        || !player.openContainer.canInteractWith(player)) return;
+                BlockPos requested=BlockPos.fromLong(message.fabricatorPos);
+                if (!player.world.isBlockLoaded(requested)
+                        || ((com.wartec.wartecmod.port.gui.ContainerUavFabricator)player.openContainer).getTile().getPos().toLong()!=message.fabricatorPos) return;
                 TileEntity tile = player.world.getTileEntity(
                         BlockPos.fromLong(message.fabricatorPos));
                 if (tile instanceof TileEntityUavFabricator) {

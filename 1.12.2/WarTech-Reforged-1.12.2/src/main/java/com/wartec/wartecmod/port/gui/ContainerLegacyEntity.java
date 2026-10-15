@@ -9,10 +9,12 @@ import net.minecraft.entity.player.InventoryPlayer;
 import net.minecraft.inventory.Container;
 import net.minecraft.inventory.IContainerListener;
 import net.minecraft.inventory.Slot;
+import net.minecraft.inventory.InventoryBasic;
 import net.minecraft.item.ItemStack;
 
 public final class ContainerLegacyEntity extends Container {
     public enum Layout {
+        VEHICLE,
         RADAR,
         COMMAND,
         AIR_DEFENSE,
@@ -23,6 +25,7 @@ public final class ContainerLegacyEntity extends Container {
 
     private final EntityWarTechBase target;
     private final Layout layout;
+    private final InventoryBasic designator=new InventoryBasic("tel_target",false,1);
     private final WindowPropertySync propertySync = new WindowPropertySync(40);
     private final int[] properties = new int[40];
 
@@ -30,7 +33,10 @@ public final class ContainerLegacyEntity extends Container {
             EntityWarTechBase target, Layout layout) {
         this.target = Objects.requireNonNull(target, "target");
         this.layout = Objects.requireNonNull(layout, "layout");
-        if (layout == Layout.RADAR) {
+        if(layout==Layout.VEHICLE) {
+            addSlotToContainer(new BatterySlot(target,target.getBatterySlot(),222,105));
+            addPlayerSlots(playerInventory,8,140,198);
+        } else if (layout == Layout.RADAR) {
             addSlotToContainer(new BatterySlot(target, 0, 222, 105));
             addPlayerSlots(playerInventory, 8, 140, 198);
         } else if (layout == Layout.COMMAND) {
@@ -58,7 +64,15 @@ public final class ContainerLegacyEntity extends Container {
             addSlotToContainer(new BatterySlot(target, 10, 152, 99));
             addPlayerSlots(playerInventory, 8, 140, 198);
         } else if (layout == Layout.STRATEGIC) {
-            addPlayerSlots(playerInventory, 47, 122, 180);
+            int offset=target.getProfile()==com.wartec.wartecmod.port.entity.WarTechEntityProfile.TACTICAL_ISKANDER?54:0;
+            addSlotToContainer(new TelMissileSlot(target,0,15,147+offset));
+            if(target.getProfile()==com.wartec.wartecmod.port.entity.WarTechEntityProfile.TACTICAL_ISKANDER)
+                addSlotToContainer(new TelMissileSlot(target,1,15,169+offset));
+            addSlotToContainer(new Slot(designator,0,16,216+offset) {
+                @Override public boolean isItemValid(ItemStack stack) { return com.wartec.wartecmod.port.integration.DesignatorCompat.isDesignator(stack); }
+                @Override public int getSlotStackLimit() { return 1; }
+            });
+            addPlayerSlots(playerInventory,84,216+offset,274+offset);
         } else {
             for (int slot = 0; slot < 6; ++slot) {
                 addSlotToContainer(new PayloadSlot(target, slot, 76 + slot * 21, 83));
@@ -145,14 +159,24 @@ public final class ContainerLegacyEntity extends Container {
     public boolean canInteractWith(EntityPlayer player) {
         return target.isUsableByPlayer(player);
     }
+    public EntityWarTechBase getTarget() { return target; }
+    public ItemStack getDesignator() { return designator.getStackInSlot(0); }
+    @Override public void onContainerClosed(EntityPlayer player) {
+        super.onContainerClosed(player);
+        if(layout==Layout.STRATEGIC && !player.world.isRemote) {
+            ItemStack returned=designator.removeStackFromSlot(0);
+            if(!returned.isEmpty() && !player.inventory.addItemStackToInventory(returned)) player.dropItem(returned,false);
+        }
+    }
 
     @Override
     public boolean enchantItem(EntityPlayer player, int action) {
-        return target.handleLegacyGuiAction(action, player);
+        return canInteractWith(player) && target.handleLegacyGuiAction(action, player);
     }
 
     @Override
     public ItemStack transferStackInSlot(EntityPlayer player, int index) {
+        if (!canInteractWith(player)) return ItemStack.EMPTY;
         if (index < 0 || index >= inventorySlots.size()) return ItemStack.EMPTY;
         Slot slot = inventorySlots.get(index);
         if (slot == null || !slot.getHasStack()) return ItemStack.EMPTY;
@@ -160,6 +184,7 @@ public final class ContainerLegacyEntity extends Container {
         ItemStack copy = stack.copy();
         int machineSlots = machineSlotCount();
         if (index < machineSlots) {
+            if(layout==Layout.STRATEGIC && !slot.canTakeStack(player)) return ItemStack.EMPTY;
             if (!mergeItemStack(stack, machineSlots, inventorySlots.size(), true)) {
                 return ItemStack.EMPTY;
             }
@@ -172,8 +197,8 @@ public final class ContainerLegacyEntity extends Container {
     }
 
     private int machineSlotCount() {
-        if (layout == Layout.STRATEGIC) return 0;
-        if (layout == Layout.RADAR || layout == Layout.COMMAND) return 1;
+        if (layout == Layout.STRATEGIC) return target.getProfile()==com.wartec.wartecmod.port.entity.WarTechEntityProfile.TACTICAL_ISKANDER?3:2;
+        if (layout == Layout.VEHICLE || layout == Layout.RADAR || layout == Layout.COMMAND) return 1;
         if (layout == Layout.AIR_DEFENSE) return 14;
         if (layout == Layout.ARTILLERY) return 11;
         return 8;
@@ -197,6 +222,16 @@ public final class ContainerLegacyEntity extends Container {
         @Override public boolean isItemValid(ItemStack stack) {
             return !stack.isEmpty() && stack.getItem() instanceof IBatteryItem;
         }
+        @Override public int getSlotStackLimit() { return 1; }
+    }
+
+    private static final class TelMissileSlot extends Slot {
+        private final com.wartec.wartecmod.port.entity.EntityStrategicTel tel;
+        TelMissileSlot(EntityWarTechBase inventory,int index,int x,int y) {
+            super(inventory,index,x,y);tel=(com.wartec.wartecmod.port.entity.EntityStrategicTel)inventory;
+        }
+        @Override public boolean isItemValid(ItemStack stack) { return tel.isItemValidForSlot(getSlotIndex(),stack); }
+        @Override public boolean canTakeStack(EntityPlayer player) { return tel.canOperate(player) && !tel.isDeployed() && tel.getErectionProgress()==0 && tel.getLaunchTicks()==0; }
         @Override public int getSlotStackLimit() { return 1; }
     }
 

@@ -20,6 +20,20 @@ import net.minecraft.world.World;
  */
 public final class LegacyDecorationBlock extends PortBlock {
     public static final PropertyDirection FACING = BlockHorizontal.FACING;
+    @Override public void onBlockPlacedBy(World w,BlockPos p,IBlockState s,EntityLivingBase player,net.minecraft.item.ItemStack stack){
+        super.onBlockPlacedBy(w,p,s,player,stack);net.minecraft.tileentity.TileEntity tile=w.getTileEntity(p);
+        if(tile instanceof com.wartec.wartecmod.port.gameplay.TileEntityWarTechVisual && stack.hasTagCompound() && stack.getTagCompound().hasKey("WarTechDisplayPayload",10)){
+            ((com.wartec.wartecmod.port.gameplay.TileEntityWarTechVisual)tile).displayPayload=stack.getTagCompound().getCompoundTag("WarTechDisplayPayload").copy();tile.markDirty();}
+    }
+    @Override public void getDrops(net.minecraft.util.NonNullList<net.minecraft.item.ItemStack> drops,IBlockAccess w,BlockPos p,IBlockState s,int fortune){
+        net.minecraft.item.ItemStack out=new net.minecraft.item.ItemStack(this);net.minecraft.tileentity.TileEntity tile=w.getTileEntity(p);
+        if(tile instanceof com.wartec.wartecmod.port.gameplay.TileEntityWarTechVisual){net.minecraft.nbt.NBTTagCompound payload=((com.wartec.wartecmod.port.gameplay.TileEntityWarTechVisual)tile).displayPayload;
+            if(payload!=null){net.minecraft.nbt.NBTTagCompound n=new net.minecraft.nbt.NBTTagCompound();n.setTag("WarTechDisplayPayload",payload.copy());out.setTagCompound(n);}}
+        drops.add(out);
+    }
+    @Override public boolean removedByPlayer(IBlockState s,World w,BlockPos p,net.minecraft.entity.player.EntityPlayer player,boolean harvest){return harvest || super.removedByPlayer(s,w,p,player,harvest);}
+    @Override public void harvestBlock(World w,net.minecraft.entity.player.EntityPlayer player,BlockPos p,IBlockState s,net.minecraft.tileentity.TileEntity tile,net.minecraft.item.ItemStack tool){super.harvestBlock(w,player,p,s,tile,tool);w.setBlockToAir(p);}
+    @Override public boolean canSilkHarvest(World w,BlockPos p,IBlockState s,net.minecraft.entity.player.EntityPlayer player){return false;}
 
     public LegacyDecorationBlock(String legacyRegistryName, Material material,
             CreativeTabs tab, SoundType sound) {

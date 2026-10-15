@@ -34,7 +34,7 @@ public final class ContainerCruiseLauncher extends Container {
         } else {
             Slot target=inventorySlots.get(0);
             if(!target.isItemValid(stack)) {
-                if(stack.getItem()==com.wartec.wartecmod.port.content.WarTechContent.ASSEMBLED_CRUISE)
+                if(com.wartec.wartecmod.port.cruise.CruiseBuild.isStore(stack))
                     com.wartec.wartecmod.port.cruise.CruiseText.tell(player,tile.loadError(stack));
                 return ItemStack.EMPTY;
             }

@@ -46,6 +46,7 @@ public final class CruiseFabricatorActionMessage implements IMessage {
                 MessageContext context) {
             EntityPlayerMP player = context.getServerHandler().player;
             player.getServerWorld().addScheduledTask(() -> {
+                if(player.isSpectator() || player.isDead) return;
                 if (!(player.openContainer instanceof com.wartec.wartecmod.port.gui.ContainerCruiseFabricator)) return;
                 BlockPos pos = BlockPos.fromLong(message.fabricatorPos);
                 if (!player.world.isBlockLoaded(pos)) return;

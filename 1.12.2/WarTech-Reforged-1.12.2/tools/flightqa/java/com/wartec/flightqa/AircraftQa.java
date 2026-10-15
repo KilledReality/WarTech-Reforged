@@ -37,11 +37,15 @@ public final class AircraftQa {
         MinecraftForge.EVENT_BUS.register(this);
     }
     private ItemStack missile(CruisePartDefinition body,Vec3d goal) {
+        if(Boolean.getBoolean("wartech.banderolqa") && body!=CruisePartDefinition.BODY_LIGHT) {
+            ItemStack stack=new ItemStack(WarTechContent.S8000_MISSILE);CruiseMission mission=new CruiseMission();mission.setTarget(goal,0);mission.writeToStack(stack);return stack;
+        }
         CruiseBuild b=CruiseBuild.starter(body);b.set(CruiseSlot.LAUNCH,CruisePartDefinition.LAUNCH_AIR);
         CruiseMission m=new CruiseMission();m.setTarget(goal,0);
         ItemStack stack=new ItemStack(WarTechContent.ASSEMBLED_CRUISE);b.writeToStack(stack);m.writeToStack(stack);return stack;
     }
     private ItemStack lightNeptune(Vec3d goal) {
+        if(Boolean.getBoolean("wartech.banderolqa")) return missile(CruisePartDefinition.BODY_CLASSIC,goal);
         ItemStack stack=missile(CruisePartDefinition.BODY_CLASSIC,goal);CruiseBuild b=CruiseBuild.fromStack(stack);
         b.set(CruiseSlot.ENGINE,CruisePartDefinition.ENGINE_ECONOMY);b.set(CruiseSlot.FUEL,CruisePartDefinition.FUEL_SHORT);
         b.set(CruiseSlot.WINGS,CruisePartDefinition.WINGS_COMPACT);b.set(CruiseSlot.NAVIGATION,CruisePartDefinition.NAV_COORDINATE);
@@ -68,10 +72,11 @@ public final class AircraftQa {
         if(!nearDepartureAccepted) failures.add("Near departure should be accepted without preflight side effects");
         WarTechEntityProfile[] profiles={WarTechEntityProfile.TU_95,WarTechEntityProfile.SU_27,WarTechEntityProfile.F_16C,WarTechEntityProfile.MQ_9_REAPER};
         for(int i=0;i<4;i++) {
-            EntityWarTechAircraft e=new EntityWarTechAircraft(world,profiles[i]);add(e,i,i==0?6:i==1?3:i==2?2:1);
+            int count=i==0?6:i==1?(Boolean.getBoolean("wartech.banderolqa")?2:3):i==2?2:1;
+            EntityWarTechAircraft e=new EntityWarTechAircraft(world,profiles[i]);add(e,i,count);
             Vec3d goal=new Vec3d(e.posX,4,e.posZ+(i==0?1600:i==1?800:1000));
-            if(i<3) for(int slot=0;slot<(i==0?6:i==1?3:2);slot++)
-                e.setInventorySlotContents(slot,missile(i==0?CruisePartDefinition.BODY_LONG_RANGE:i==1?CruisePartDefinition.BODY_LIGHT:CruisePartDefinition.BODY_CLASSIC,goal));
+            if(i<3) for(int slot=0;slot<count;slot++)
+                e.setInventorySlotContents(slot,missile(i==0?CruisePartDefinition.BODY_LONG_RANGE:i==1 && !Boolean.getBoolean("wartech.banderolqa")?CruisePartDefinition.BODY_LIGHT:CruisePartDefinition.BODY_CLASSIC,goal));
             else { e.setInventorySlotContents(0,new ItemStack(WarTechContent.MQ9_PAYLOAD));e.setGuidanceTarget(goal.x,goal.y,goal.z); }
         }
         for(int i=0;i<3;i++) {

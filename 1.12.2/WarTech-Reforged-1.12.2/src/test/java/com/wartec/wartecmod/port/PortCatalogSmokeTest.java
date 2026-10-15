@@ -29,8 +29,8 @@ public class PortCatalogSmokeTest {
 
     @Test
     public void catalogKeepsTheDev66Surface() {
-        assertEquals(93, WarTechContent.getItems().size());
-        assertEquals(38, WarTechContent.getBlocks().size());
+        assertEquals(111, WarTechContent.getItems().size());
+        assertEquals(43, WarTechContent.getBlocks().size());
 
         Set<ResourceLocation> names = new HashSet<>();
         for (Item item : WarTechContent.getItems()) {
@@ -39,7 +39,7 @@ public class PortCatalogSmokeTest {
         for (Block block : WarTechContent.getBlocks()) {
             assertRegistryName(block.getRegistryName(), names);
         }
-        assertEquals(131, names.size());
+        assertEquals(154, names.size());
         assertEquals(new ResourceLocation("wartecmod", "designator_arty_range"),
                 WarTechContent.ARTILLERY_TARGET_DESIGNATOR.getRegistryName());
     }
@@ -89,7 +89,7 @@ public class PortCatalogSmokeTest {
         assertProfile(WarTechEntityProfile.MOBILE_AIR_DEFENSE, 3.10F, 3.00F, 200.0F, 4.0F);
         assertProfile(WarTechEntityProfile.MOBILE_ARTILLERY, 3.00F, 2.35F, 500.0F, 5.0F);
         assertProfile(WarTechEntityProfile.ELECTRONIC_WARFARE, 2.40F, 3.20F, 240.0F, 3.5F);
-        assertProfile(WarTechEntityProfile.S400_RADAR, 4.60F, 4.20F, 300.0F, 5.0F);
+        assertProfile(WarTechEntityProfile.S400_RADAR, 2.20F, 6.213F, 300.0F, 5.0F);
     }
 
     @Test

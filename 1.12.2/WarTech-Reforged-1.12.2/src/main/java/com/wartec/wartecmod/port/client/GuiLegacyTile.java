@@ -14,7 +14,7 @@ public final class GuiLegacyTile {
     private GuiLegacyTile() { }
     public static Object create(InventoryPlayer inventory,TileEntityWarTechMachine tile,int guiId) {
         if(guiId==WarTechGuiHandler.GUI_LAUNCH_TUBE || guiId==WarTechGuiHandler.GUI_BALLISTIC_LAUNCHER)
-            return new Launcher(inventory,tile,guiId);
+            return tile.isAnimatedSam()?new GuiNetworkAirDefense(inventory,tile,guiId):new Launcher(inventory,tile,guiId);
         if(guiId==WarTechGuiHandler.GUI_COMMUNICATION_MAST || guiId==WarTechGuiHandler.GUI_STRATEGIC_RADAR)
             return new Instrument(inventory,tile,guiId);
         return null;
@@ -22,12 +22,18 @@ public final class GuiLegacyTile {
     private static final class Launcher extends GuiContainer {
         private final TileEntityWarTechMachine tile;
         Launcher(InventoryPlayer inventory,TileEntityWarTechMachine tile,int id) {
-            super(new ContainerLegacyTile(inventory,tile,id));this.tile=tile;xSize=200;ySize=202;
+            super(new ContainerLegacyTile(inventory,tile,id));this.tile=tile;xSize=200;ySize=tile.isAnimatedSam()?224:202;
+        }
+        @Override public void initGui() {
+            super.initGui();if(tile.isAnimatedSam()) buttonList.add(new WarTechGuiButton(0,guiLeft+18,guiTop+105,162,20,""));
+        }
+        @Override protected void actionPerformed(GuiButton button) throws IOException {
+            if(tile.isAnimatedSam() && button.enabled && button.id==0) mc.playerController.sendEnchantPacket(inventorySlots.windowId,0);
         }
         @Override protected void drawGuiContainerBackgroundLayer(float partial,int mouseX,int mouseY) {
             GuiTheme.frame(guiLeft,guiTop,xSize,ySize);
             GuiTheme.panel(guiLeft+7,guiTop+25,186,79);
-            GuiTheme.panel(guiLeft+7,guiTop+116,186,82);
+            GuiTheme.panel(guiLeft+7,guiTop+(tile.isAnimatedSam()?138:116),186,82);
             GuiTheme.bar(guiLeft+18,guiTop+91,162,7,tile.getPower()/(double)Math.max(1L,tile.getMaxPower()));
             for(Slot slot:inventorySlots.inventorySlots) GuiTheme.slot(guiLeft+slot.xPos-1,guiTop+slot.yPos-1);
         }
@@ -36,11 +42,13 @@ public final class GuiLegacyTile {
             String title=tile.isBallisticLauncher()?"launcher.ballistic":tile.isVlsExhaust()?"launcher.cells":"launcher.tube";
             text(GuiTheme.tr(title),10,8,180,GuiTheme.TEXT);
             text(GuiTheme.tr(tile.isVlsExhaust()?"launcher.cells_label":"launcher.payload_label"),18,27,162,GuiTheme.MUTED);
-            text(GuiTheme.tr(tile.isVlsExhaust()?"launcher.auto":"launcher.designator"),18,61,162,GuiTheme.MUTED);
+            text(GuiTheme.tr(tile.isAnimatedSam()?"sam.progress":tile.isVlsExhaust()?"launcher.auto":"launcher.designator",
+                Math.round(tile.getSamDeployment(1)*100)),18,61,162,GuiTheme.MUTED);
             text(GuiTheme.tr("power",(int)(100.0*tile.getPower()/Math.max(1L,tile.getMaxPower()))),18,78,162,GuiTheme.ACCENT);
-            text(I18n.format("container.inventory"),18,108,162,GuiTheme.MUTED);
+            text(I18n.format("container.inventory"),18,tile.isAnimatedSam()?130:108,162,GuiTheme.MUTED);
         }
         @Override public void drawScreen(int x,int y,float partial) {
+            if(tile.isAnimatedSam()) buttonList.get(0).displayString=GuiTheme.tr(tile.isSamEnabled()?"sam.stow":"sam.deploy");
             drawDefaultBackground();super.drawScreen(x,y,partial);renderHoveredToolTip(x,y);
             if(isPointInRegion(18,76,162,23,x,y))
                 drawHoveringText(java.util.Collections.singletonList(tile.getPower()+" / "+tile.getMaxPower()+" HE"),x,y);

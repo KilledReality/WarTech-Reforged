@@ -1,0 +1,1 @@
+{"nodes":[{"name":"Exhaust"},{"mesh":0,"name":"RocketMesh","weights":[]},{"name":"Tip","translation":[0,1,0]},{"children":[0,1,2],"name":"Universal_MLRS_Rocket"}],"roots":[3],"meshes":[[{"group":"mesh_0_0","texture":"textures/models/modern_animated/0f677bcbdd7e2615f3b32c03.png","alphaMode":"OPAQUE","doubleSided":true}]],"clips":{}}

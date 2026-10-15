@@ -48,4 +48,25 @@ public final class GuiTheme {
     public static String tr(String key,Object... args) {
         return net.minecraft.client.resources.I18n.format("wartec.ui."+key,args);
     }
+    /** Vanilla's recursive wrapper can make no progress in narrow formatted columns. */
+    public static java.util.List<String> wrap(FontRenderer font,String text,int width) {
+        java.util.List<String> result=new java.util.ArrayList<>();String format="";
+        for(String paragraph:(text==null?"":text).split("\\n",-1)) {
+            String remaining=paragraph;
+            if(remaining.isEmpty())result.add("");
+            while(!remaining.isEmpty() && result.size()<512) {
+                int count=font.trimStringToWidth(format+remaining,Math.max(8,width)).length()-format.length();
+                count=Math.max(Character.charCount(remaining.codePointAt(0)),Math.min(remaining.length(),count));
+                if(count<remaining.length()){int space=remaining.substring(0,count).lastIndexOf(' ');if(space>0)count=space;}
+                if(count<remaining.length() && remaining.charAt(count-1)=='\u00a7')count++;
+                String line=format+remaining.substring(0,count);result.add(line);format=FontRenderer.getFormatFromString(line);
+                remaining=remaining.substring(count);if(remaining.startsWith(" "))remaining=remaining.substring(1);
+            }
+            if(result.size()>=512)break;
+        }
+        return result;
+    }
+    public static void wrapped(FontRenderer font,String text,int x,int y,int width,int color) {
+        for(String line:wrap(font,text,width)){font.drawString(line,x,y,color);y+=font.FONT_HEIGHT;}
+    }
 }

@@ -51,7 +51,7 @@ public class FlightBalanceTest {
         assertTrue(loader.contains("world.isBlockLoaded(new net.minecraft.util.math.BlockPos(chunk.x*16,64,chunk.z*16))) forceChunk"));
         assertTrue(base.indexOf("MissileChunkLoader.flightReady(this)")<base.indexOf("this.operationalAge++"));
         assertEquals(4,FlightChunkWindow.LOADS_PER_WORLD_TICK);assertEquals(16,FlightChunkWindow.MAX_MODULAR_FLIGHTS);
-        assertEquals(32,FlightChunkWindow.MAX_FLIGHTS);
+        assertEquals(48,FlightChunkWindow.MAX_FLIGHTS);
     }
     @Test public void pendingChunksCannotSilentlyDeleteACustomMissile() throws Exception {
         String entity=source("entity/EntityCustomCruise.java");assertFalse(entity.contains("stalled>100"));
@@ -115,7 +115,8 @@ public class FlightBalanceTest {
         String missile=source("entity/EntityWarTechMissile.java");
         assertTrue(missile.contains("if(horizontal>48)"));
         assertTrue(missile.contains("MissileChunkLoader.flightReady(this,nextX-posX,nextZ-posZ)"));
-        assertEquals(7,missile.split("if\\(flightStepPending\\) return;",-1).length-1);
+        // Eight existing sweep paths plus modern flight and fitted interceptor exit.
+        assertEquals(10,missile.split("if\\(flightStepPending\\) return;",-1).length-1);
         assertTrue(source("entity/EntityWarTechArtilleryProjectile.java").contains("if(horizontal>55)"));
     }
     @Test public void ballisticLoftDoesNotSpendHorizontalFuelAndLegacyAgeCannotCutKh555Range() throws Exception {

@@ -12,14 +12,21 @@ public final class VehicleInputMessage implements IMessage {
     private int entityId;
     private float forward;
     private float strafe;
+    private int sequence;
+    private int flags;
 
     public VehicleInputMessage() {
     }
 
     public VehicleInputMessage(int entityId, float forward, float strafe) {
+        this(entityId,forward,strafe,0,0);
+    }
+    public VehicleInputMessage(int entityId,float forward,float strafe,int flags,int sequence) {
         this.entityId = entityId;
         this.forward = forward;
         this.strafe = strafe;
+        this.flags=flags;
+        this.sequence=sequence;
     }
 
     @Override
@@ -27,6 +34,8 @@ public final class VehicleInputMessage implements IMessage {
         entityId = buffer.readInt();
         forward = buffer.readFloat();
         strafe = buffer.readFloat();
+        flags=buffer.readUnsignedByte();
+        sequence=buffer.readInt();
     }
 
     @Override
@@ -34,6 +43,8 @@ public final class VehicleInputMessage implements IMessage {
         buffer.writeInt(entityId);
         buffer.writeFloat(forward);
         buffer.writeFloat(strafe);
+        buffer.writeByte(flags);
+        buffer.writeInt(sequence);
     }
 
     public static final class Handler
@@ -43,14 +54,12 @@ public final class VehicleInputMessage implements IMessage {
             EntityPlayerMP player = context.getServerHandler().player;
             player.getServerWorld().addScheduledTask(() -> {
                 Entity entity = player.getRidingEntity();
-                if (!(entity instanceof EntityWarTechGroundVehicle)) {
-                    entity = player.world.getEntityByID(message.entityId);
-                }
                 if (entity instanceof EntityWarTechGroundVehicle
+                        && entity.getEntityId()==message.entityId
                         && ((EntityWarTechGroundVehicle) entity)
                                 .isDrivenBy(player)) {
                     ((EntityWarTechGroundVehicle) entity).acceptDriverInput(
-                            player, message.forward, message.strafe);
+                            player, message.forward, message.strafe,message.flags,message.sequence);
                 }
             });
             return null;

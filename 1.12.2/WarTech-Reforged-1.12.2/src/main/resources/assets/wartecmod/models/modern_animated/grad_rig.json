@@ -1,0 +1,1921 @@
+{
+  "asset": "Grad",
+  "source_part_assignment": {
+    "assignment": {
+      "BM-21 GRAD__000": "Chassis",
+      "BM-21 GRAD__001": "Chassis",
+      "BM-21 GRAD__002": "LauncherYaw",
+      "BM-21 GRAD__003": "Chassis",
+      "BM-21 GRAD__004": "Chassis",
+      "BM-21 GRAD__005": "Chassis",
+      "BM-21 GRAD__006": "Chassis",
+      "BM-21 GRAD__007": "Chassis",
+      "BM-21 GRAD__008": "Chassis",
+      "BM-21 GRAD__009": "Chassis",
+      "BM-21 GRAD__010": "Wheel_L_-327",
+      "BM-21 GRAD__011": "Wheel_L_340",
+      "BM-21 GRAD__012": "Wheel_R_-327",
+      "BM-21 GRAD__013": "Wheel_R_340",
+      "BM-21 GRAD__014": "LauncherYaw",
+      "BM-21 GRAD__015": "Wheel_L_149",
+      "BM-21 GRAD__016": "Chassis",
+      "BM-21 GRAD__017": "Wheel_R_149",
+      "BM-21 GRAD__018": "Chassis",
+      "BM-21 GRAD__019": "Chassis",
+      "BM-21 GRAD__020": "Chassis",
+      "BM-21 GRAD__021": "LauncherYaw",
+      "BM-21 GRAD__022": "Chassis",
+      "BM-21 GRAD__023": "Chassis",
+      "BM-21 GRAD__024": "Chassis",
+      "BM-21 GRAD__025": "Chassis",
+      "BM-21 GRAD__026": "LauncherPitch",
+      "BM-21 GRAD__027": "LauncherPitch",
+      "BM-21 GRAD__028": "LauncherPitch",
+      "BM-21 GRAD__029": "LauncherPitch",
+      "BM-21 GRAD__030": "LauncherPitch",
+      "BM-21 GRAD__031": "LauncherPitch",
+      "BM-21 GRAD__032": "LauncherPitch",
+      "BM-21 GRAD__033": "Chassis",
+      "BM-21 GRAD__034": "LauncherPitch",
+      "BM-21 GRAD__035": "LauncherPitch",
+      "BM-21 GRAD__036": "LauncherPitch",
+      "BM-21 GRAD__037": "LauncherPitch",
+      "BM-21 GRAD__038": "LauncherPitch",
+      "BM-21 GRAD__039": "LauncherPitch",
+      "BM-21 GRAD__040": "LauncherPitch",
+      "BM-21 GRAD__041": "LauncherPitch",
+      "BM-21 GRAD__042": "LauncherPitch",
+      "BM-21 GRAD__043": "LauncherPitch",
+      "BM-21 GRAD__044": "LauncherPitch",
+      "BM-21 GRAD__045": "LauncherPitch",
+      "BM-21 GRAD__046": "LauncherPitch",
+      "BM-21 GRAD__047": "LauncherPitch",
+      "BM-21 GRAD__048": "LauncherPitch",
+      "BM-21 GRAD__049": "LauncherPitch",
+      "BM-21 GRAD__050": "Chassis",
+      "BM-21 GRAD__051": "Chassis",
+      "BM-21 GRAD__052": "Chassis",
+      "BM-21 GRAD__053": "Chassis",
+      "BM-21 GRAD__054": "Chassis",
+      "BM-21 GRAD__055": "Chassis",
+      "BM-21 GRAD__056": "Chassis",
+      "BM-21 GRAD__057": "Chassis",
+      "BM-21 GRAD__058": "LauncherPitch",
+      "BM-21 GRAD__059": "Chassis",
+      "BM-21 GRAD__060": "LauncherPitch",
+      "BM-21 GRAD__061": "LauncherPitch",
+      "BM-21 GRAD__062": "LauncherPitch",
+      "BM-21 GRAD__063": "LauncherPitch",
+      "BM-21 GRAD__064": "LauncherPitch",
+      "BM-21 GRAD__065": "LauncherPitch",
+      "BM-21 GRAD__066": "LauncherPitch",
+      "BM-21 GRAD__067": "LauncherPitch",
+      "BM-21 GRAD__068": "LauncherPitch",
+      "BM-21 GRAD__069": "LauncherPitch",
+      "BM-21 GRAD__070": "LauncherPitch",
+      "BM-21 GRAD__071": "Chassis",
+      "BM-21 GRAD__072": "LauncherPitch",
+      "BM-21 GRAD__073": "LauncherPitch",
+      "BM-21 GRAD__074": "LauncherPitch",
+      "BM-21 GRAD__075": "LauncherPitch",
+      "BM-21 GRAD__076": "LauncherPitch",
+      "BM-21 GRAD__077": "LauncherPitch",
+      "BM-21 GRAD__078": "Chassis",
+      "BM-21 GRAD__079": "Chassis",
+      "BM-21 GRAD__080": "Chassis",
+      "BM-21 GRAD__081": "LauncherYaw",
+      "BM-21 GRAD__082": "LauncherYaw",
+      "BM-21 GRAD__083": "Chassis",
+      "BM-21 GRAD__084": "LauncherPitch",
+      "BM-21 GRAD__085": "LauncherPitch",
+      "BM-21 GRAD__086": "LauncherPitch",
+      "BM-21 GRAD__087": "LauncherPitch",
+      "BM-21 GRAD__088": "LauncherPitch",
+      "BM-21 GRAD__089": "LauncherPitch",
+      "BM-21 GRAD__090": "LauncherPitch",
+      "BM-21 GRAD__091": "LauncherPitch",
+      "BM-21 GRAD__092": "LauncherPitch",
+      "BM-21 GRAD__093": "LauncherPitch",
+      "BM-21 GRAD__094": "Chassis",
+      "BM-21 GRAD__095": "Chassis",
+      "BM-21 GRAD__096": "Chassis",
+      "BM-21 GRAD__097": "Chassis",
+      "BM-21 GRAD__098": "Chassis",
+      "BM-21 GRAD__099": "LauncherYaw",
+      "BM-21 GRAD__100": "LauncherPitch",
+      "BM-21 GRAD__101": "Chassis",
+      "BM-21 GRAD__102": "Chassis",
+      "BM-21 GRAD__103": "Chassis",
+      "BM-21 GRAD__104": "Chassis",
+      "BM-21 GRAD__105": "LauncherYaw",
+      "BM-21 GRAD__106": "Chassis",
+      "BM-21 GRAD__107": "Chassis",
+      "BM-21 GRAD__108": "LauncherYaw",
+      "BM-21 GRAD__109": "Chassis",
+      "BM-21 GRAD__110": "LauncherYaw",
+      "BM-21 GRAD__111": "LauncherYaw",
+      "BM-21 GRAD__112": "Chassis",
+      "BM-21 GRAD__113": "Chassis",
+      "BM-21 GRAD__114": "Chassis",
+      "BM-21 GRAD__115": "Chassis",
+      "BM-21 GRAD__116": "Chassis",
+      "BM-21 GRAD__117": "Chassis",
+      "BM-21 GRAD__118": "Chassis",
+      "BM-21 GRAD__119": "Chassis",
+      "BM-21 GRAD__120": "Chassis",
+      "BM-21 GRAD__121": "LauncherYaw",
+      "BM-21 GRAD__122": "LauncherPitch",
+      "BM-21 GRAD__123": "Chassis",
+      "BM-21 GRAD__124": "Chassis",
+      "BM-21 GRAD__125": "Chassis",
+      "BM-21 GRAD__126": "Chassis",
+      "BM-21 GRAD__127": "Chassis",
+      "BM-21 GRAD__128": "Chassis",
+      "BM-21 GRAD__129": "Chassis",
+      "BM-21 GRAD__130": "Chassis",
+      "BM-21 GRAD__131": "Chassis",
+      "BM-21 GRAD__132": "Chassis",
+      "BM-21 GRAD__133": "Chassis",
+      "BM-21 GRAD__134": "Chassis",
+      "BM-21 GRAD__135": "Chassis",
+      "BM-21 GRAD__136": "Chassis",
+      "BM-21 GRAD__137": "Chassis",
+      "BM-21 GRAD__138": "LauncherYaw",
+      "BM-21 GRAD__139": "Chassis",
+      "BM-21 GRAD__140": "Chassis",
+      "BM-21 GRAD__141": "LauncherYaw",
+      "BM-21 GRAD__142": "Chassis",
+      "BM-21 GRAD__143": "Chassis",
+      "BM-21 GRAD__144": "Chassis",
+      "BM-21 GRAD__145": "Chassis",
+      "BM-21 GRAD__146": "Chassis",
+      "BM-21 GRAD__147": "Chassis",
+      "BM-21 GRAD__148": "Chassis",
+      "BM-21 GRAD__149": "LauncherYaw",
+      "BM-21 GRAD__150": "LauncherYaw",
+      "BM-21 GRAD__151": "Chassis",
+      "BM-21 GRAD__152": "Chassis",
+      "BM-21 GRAD__153": "Chassis",
+      "BM-21 GRAD__154": "Chassis",
+      "BM-21 GRAD__155": "LauncherPitch",
+      "BM-21 GRAD__156": "Chassis",
+      "BM-21 GRAD__157": "Chassis",
+      "BM-21 GRAD__158": "Chassis",
+      "BM-21 GRAD__159": "Chassis",
+      "BM-21 GRAD__160": "Chassis",
+      "BM-21 GRAD__161": "Chassis",
+      "BM-21 GRAD__162": "Chassis",
+      "BM-21 GRAD__163": "LauncherYaw",
+      "BM-21 GRAD__164": "LauncherYaw",
+      "BM-21 GRAD__165": "LauncherYaw",
+      "BM-21 GRAD__166": "Chassis",
+      "BM-21 GRAD__167": "LauncherYaw",
+      "BM-21 GRAD__168": "Chassis",
+      "BM-21 GRAD__169": "Chassis",
+      "BM-21 GRAD__170": "Chassis",
+      "BM-21 GRAD__171": "Chassis",
+      "BM-21 GRAD__172": "Chassis",
+      "BM-21 GRAD__173": "Chassis",
+      "BM-21 GRAD__174": "LauncherYaw",
+      "BM-21 GRAD__175": "Chassis",
+      "BM-21 GRAD__176": "LauncherYaw",
+      "BM-21 GRAD__177": "Chassis",
+      "BM-21 GRAD__178": "Chassis",
+      "BM-21 GRAD__179": "Chassis",
+      "BM-21 GRAD__180": "Chassis",
+      "BM-21 GRAD__181": "Chassis",
+      "BM-21 GRAD__182": "Chassis",
+      "BM-21 GRAD__183": "Chassis",
+      "BM-21 GRAD__184": "Chassis",
+      "BM-21 GRAD__185": "Chassis",
+      "BM-21 GRAD__186": "LauncherYaw",
+      "BM-21 GRAD__187": "LauncherYaw",
+      "BM-21 GRAD__188": "Chassis",
+      "BM-21 GRAD__189": "Chassis",
+      "BM-21 GRAD__190": "Chassis",
+      "BM-21 GRAD__191": "Chassis",
+      "BM-21 GRAD__192": "LauncherYaw",
+      "BM-21 GRAD__193": "LauncherYaw",
+      "BM-21 GRAD__194": "Chassis",
+      "BM-21 GRAD__195": "Chassis",
+      "BM-21 GRAD__196": "LauncherYaw",
+      "BM-21 GRAD__197": "LauncherYaw",
+      "BM-21 GRAD__198": "LauncherYaw",
+      "BM-21 GRAD__199": "Chassis",
+      "BM-21 GRAD__200": "LauncherYaw",
+      "BM-21 GRAD__201": "Chassis",
+      "BM-21 GRAD__202": "Chassis",
+      "BM-21 GRAD__203": "Chassis",
+      "BM-21 GRAD__204": "Chassis",
+      "BM-21 GRAD__205": "LauncherPitch",
+      "BM-21 GRAD__206": "Chassis",
+      "BM-21 GRAD__207": "Chassis",
+      "BM-21 GRAD__208": "Chassis",
+      "BM-21 GRAD__209": "Chassis",
+      "BM-21 GRAD__210": "Chassis",
+      "BM-21 GRAD__211": "Chassis",
+      "BM-21 GRAD__212": "Chassis",
+      "BM-21 GRAD__213": "LauncherPitch",
+      "BM-21 GRAD__214": "LauncherYaw",
+      "BM-21 GRAD__215": "Chassis",
+      "BM-21 GRAD__216": "LauncherPitch",
+      "BM-21 GRAD__217": "LauncherYaw",
+      "BM-21 GRAD__218": "LauncherPitch",
+      "BM-21 GRAD__219": "LauncherYaw",
+      "BM-21 GRAD__220": "Chassis",
+      "BM-21 GRAD__221": "LauncherPitch",
+      "BM-21 GRAD__222": "Chassis",
+      "BM-21 GRAD__223": "LauncherPitch",
+      "BM-21 GRAD__224": "Chassis",
+      "BM-21 GRAD__225": "Chassis",
+      "BM-21 GRAD__226": "LauncherYaw",
+      "BM-21 GRAD__227": "LauncherYaw",
+      "BM-21 GRAD__228": "Chassis",
+      "BM-21 GRAD__229": "Chassis",
+      "BM-21 GRAD__230": "Chassis",
+      "BM-21 GRAD__231": "Chassis",
+      "BM-21 GRAD__232": "Chassis"
+    },
+    "source_piece_lookup": {
+      "0": "BM-21 GRAD__000",
+      "1": "BM-21 GRAD__001",
+      "2": "BM-21 GRAD__002",
+      "3": "BM-21 GRAD__003",
+      "4": "BM-21 GRAD__004",
+      "5": "BM-21 GRAD__005",
+      "6": "BM-21 GRAD__006",
+      "7": "BM-21 GRAD__007",
+      "8": "BM-21 GRAD__008",
+      "9": "BM-21 GRAD__009",
+      "10": "BM-21 GRAD__010",
+      "11": "BM-21 GRAD__011",
+      "12": "BM-21 GRAD__012",
+      "13": "BM-21 GRAD__013",
+      "14": "BM-21 GRAD__014",
+      "15": "BM-21 GRAD__015",
+      "16": "BM-21 GRAD__016",
+      "17": "BM-21 GRAD__017",
+      "18": "BM-21 GRAD__018",
+      "19": "BM-21 GRAD__019",
+      "20": "BM-21 GRAD__020",
+      "21": "BM-21 GRAD__021",
+      "22": "BM-21 GRAD__022",
+      "23": "BM-21 GRAD__023",
+      "24": "BM-21 GRAD__024",
+      "25": "BM-21 GRAD__025",
+      "26": "BM-21 GRAD__026",
+      "27": "BM-21 GRAD__027",
+      "28": "BM-21 GRAD__028",
+      "29": "BM-21 GRAD__029",
+      "30": "BM-21 GRAD__030",
+      "31": "BM-21 GRAD__031",
+      "32": "BM-21 GRAD__032",
+      "33": "BM-21 GRAD__033",
+      "34": "BM-21 GRAD__034",
+      "35": "BM-21 GRAD__035",
+      "36": "BM-21 GRAD__036",
+      "37": "BM-21 GRAD__037",
+      "38": "BM-21 GRAD__038",
+      "39": "BM-21 GRAD__039",
+      "40": "BM-21 GRAD__040",
+      "41": "BM-21 GRAD__041",
+      "42": "BM-21 GRAD__042",
+      "43": "BM-21 GRAD__043",
+      "44": "BM-21 GRAD__044",
+      "45": "BM-21 GRAD__045",
+      "46": "BM-21 GRAD__046",
+      "47": "BM-21 GRAD__047",
+      "48": "BM-21 GRAD__048",
+      "49": "BM-21 GRAD__049",
+      "50": "BM-21 GRAD__050",
+      "51": "BM-21 GRAD__051",
+      "52": "BM-21 GRAD__052",
+      "53": "BM-21 GRAD__053",
+      "54": "BM-21 GRAD__054",
+      "55": "BM-21 GRAD__055",
+      "56": "BM-21 GRAD__056",
+      "57": "BM-21 GRAD__057",
+      "58": "BM-21 GRAD__058",
+      "59": "BM-21 GRAD__059",
+      "60": "BM-21 GRAD__060",
+      "61": "BM-21 GRAD__061",
+      "62": "BM-21 GRAD__062",
+      "63": "BM-21 GRAD__063",
+      "64": "BM-21 GRAD__064",
+      "65": "BM-21 GRAD__065",
+      "66": "BM-21 GRAD__066",
+      "67": "BM-21 GRAD__067",
+      "68": "BM-21 GRAD__068",
+      "69": "BM-21 GRAD__069",
+      "70": "BM-21 GRAD__070",
+      "71": "BM-21 GRAD__071",
+      "72": "BM-21 GRAD__072",
+      "73": "BM-21 GRAD__073",
+      "74": "BM-21 GRAD__074",
+      "75": "BM-21 GRAD__075",
+      "76": "BM-21 GRAD__076",
+      "77": "BM-21 GRAD__077",
+      "78": "BM-21 GRAD__078",
+      "79": "BM-21 GRAD__079",
+      "80": "BM-21 GRAD__080",
+      "81": "BM-21 GRAD__081",
+      "82": "BM-21 GRAD__082",
+      "83": "BM-21 GRAD__083",
+      "84": "BM-21 GRAD__084",
+      "85": "BM-21 GRAD__085",
+      "86": "BM-21 GRAD__086",
+      "87": "BM-21 GRAD__087",
+      "88": "BM-21 GRAD__088",
+      "89": "BM-21 GRAD__089",
+      "90": "BM-21 GRAD__090",
+      "91": "BM-21 GRAD__091",
+      "92": "BM-21 GRAD__092",
+      "93": "BM-21 GRAD__093",
+      "94": "BM-21 GRAD__094",
+      "95": "BM-21 GRAD__095",
+      "96": "BM-21 GRAD__096",
+      "97": "BM-21 GRAD__097",
+      "98": "BM-21 GRAD__098",
+      "99": "BM-21 GRAD__099",
+      "100": "BM-21 GRAD__100",
+      "101": "BM-21 GRAD__101",
+      "102": "BM-21 GRAD__102",
+      "103": "BM-21 GRAD__103",
+      "104": "BM-21 GRAD__104",
+      "105": "BM-21 GRAD__105",
+      "106": "BM-21 GRAD__106",
+      "107": "BM-21 GRAD__107",
+      "108": "BM-21 GRAD__108",
+      "109": "BM-21 GRAD__109",
+      "110": "BM-21 GRAD__110",
+      "111": "BM-21 GRAD__111",
+      "112": "BM-21 GRAD__112",
+      "113": "BM-21 GRAD__113",
+      "114": "BM-21 GRAD__114",
+      "115": "BM-21 GRAD__115",
+      "116": "BM-21 GRAD__116",
+      "117": "BM-21 GRAD__117",
+      "118": "BM-21 GRAD__118",
+      "119": "BM-21 GRAD__119",
+      "120": "BM-21 GRAD__120",
+      "121": "BM-21 GRAD__121",
+      "122": "BM-21 GRAD__122",
+      "123": "BM-21 GRAD__123",
+      "124": "BM-21 GRAD__124",
+      "125": "BM-21 GRAD__125",
+      "126": "BM-21 GRAD__126",
+      "127": "BM-21 GRAD__127",
+      "128": "BM-21 GRAD__128",
+      "129": "BM-21 GRAD__129",
+      "130": "BM-21 GRAD__130",
+      "131": "BM-21 GRAD__131",
+      "132": "BM-21 GRAD__132",
+      "133": "BM-21 GRAD__133",
+      "134": "BM-21 GRAD__134",
+      "135": "BM-21 GRAD__135",
+      "136": "BM-21 GRAD__136",
+      "137": "BM-21 GRAD__137",
+      "138": "BM-21 GRAD__138",
+      "139": "BM-21 GRAD__139",
+      "140": "BM-21 GRAD__140",
+      "141": "BM-21 GRAD__141",
+      "142": "BM-21 GRAD__142",
+      "143": "BM-21 GRAD__143",
+      "144": "BM-21 GRAD__144",
+      "145": "BM-21 GRAD__145",
+      "146": "BM-21 GRAD__146",
+      "147": "BM-21 GRAD__147",
+      "148": "BM-21 GRAD__148",
+      "149": "BM-21 GRAD__149",
+      "150": "BM-21 GRAD__150",
+      "151": "BM-21 GRAD__151",
+      "152": "BM-21 GRAD__152",
+      "153": "BM-21 GRAD__153",
+      "154": "BM-21 GRAD__154",
+      "155": "BM-21 GRAD__155",
+      "156": "BM-21 GRAD__156",
+      "157": "BM-21 GRAD__157",
+      "158": "BM-21 GRAD__158",
+      "159": "BM-21 GRAD__159",
+      "160": "BM-21 GRAD__160",
+      "161": "BM-21 GRAD__161",
+      "162": "BM-21 GRAD__162",
+      "163": "BM-21 GRAD__163",
+      "164": "BM-21 GRAD__164",
+      "165": "BM-21 GRAD__165",
+      "166": "BM-21 GRAD__166",
+      "167": "BM-21 GRAD__167",
+      "168": "BM-21 GRAD__168",
+      "169": "BM-21 GRAD__169",
+      "170": "BM-21 GRAD__170",
+      "171": "BM-21 GRAD__171",
+      "172": "BM-21 GRAD__172",
+      "173": "BM-21 GRAD__173",
+      "174": "BM-21 GRAD__174",
+      "175": "BM-21 GRAD__175",
+      "176": "BM-21 GRAD__176",
+      "177": "BM-21 GRAD__177",
+      "178": "BM-21 GRAD__178",
+      "179": "BM-21 GRAD__179",
+      "180": "BM-21 GRAD__180",
+      "181": "BM-21 GRAD__181",
+      "182": "BM-21 GRAD__182",
+      "183": "BM-21 GRAD__183",
+      "184": "BM-21 GRAD__184",
+      "185": "BM-21 GRAD__185",
+      "186": "BM-21 GRAD__186",
+      "187": "BM-21 GRAD__187",
+      "188": "BM-21 GRAD__188",
+      "189": "BM-21 GRAD__189",
+      "190": "BM-21 GRAD__190",
+      "191": "BM-21 GRAD__191",
+      "192": "BM-21 GRAD__192",
+      "193": "BM-21 GRAD__193",
+      "194": "BM-21 GRAD__194",
+      "195": "BM-21 GRAD__195",
+      "196": "BM-21 GRAD__196",
+      "197": "BM-21 GRAD__197",
+      "198": "BM-21 GRAD__198",
+      "199": "BM-21 GRAD__199",
+      "200": "BM-21 GRAD__200",
+      "201": "BM-21 GRAD__201",
+      "202": "BM-21 GRAD__202",
+      "203": "BM-21 GRAD__203",
+      "204": "BM-21 GRAD__204",
+      "205": "BM-21 GRAD__205",
+      "206": "BM-21 GRAD__206",
+      "207": "BM-21 GRAD__207",
+      "208": "BM-21 GRAD__208",
+      "209": "BM-21 GRAD__209",
+      "210": "BM-21 GRAD__210",
+      "211": "BM-21 GRAD__211",
+      "212": "BM-21 GRAD__212",
+      "213": "BM-21 GRAD__213",
+      "214": "BM-21 GRAD__214",
+      "215": "BM-21 GRAD__215",
+      "216": "BM-21 GRAD__216",
+      "217": "BM-21 GRAD__217",
+      "218": "BM-21 GRAD__218",
+      "219": "BM-21 GRAD__219",
+      "220": "BM-21 GRAD__220",
+      "221": "BM-21 GRAD__221",
+      "222": "BM-21 GRAD__222",
+      "223": "BM-21 GRAD__223",
+      "224": "BM-21 GRAD__224",
+      "225": "BM-21 GRAD__225",
+      "226": "BM-21 GRAD__226",
+      "227": "BM-21 GRAD__227",
+      "228": "BM-21 GRAD__228",
+      "229": "BM-21 GRAD__229",
+      "230": "BM-21 GRAD__230",
+      "231": "BM-21 GRAD__231",
+      "232": "BM-21 GRAD__232"
+    },
+    "pitch_degrees": 45.0,
+    "yaw_degrees": 25.0,
+    "hinge": [
+      -0.0035,
+      3.929,
+      2.4785
+    ],
+    "articulation": "visual game-art mechanism, not engineering dimensions",
+    "launch_sockets": [
+      {
+        "slot": 1,
+        "node": "LaunchSocket_01",
+        "local_forward_axis": "+Y in glTF",
+        "art_point": [
+          0.9442395567893982,
+          0.38144582509994507,
+          3.412042737007141
+        ]
+      },
+      {
+        "slot": 2,
+        "node": "LaunchSocket_02",
+        "local_forward_axis": "+Y in glTF",
+        "art_point": [
+          0.7250494062900543,
+          0.3814367949962616,
+          3.4118881225585938
+        ]
+      },
+      {
+        "slot": 3,
+        "node": "LaunchSocket_03",
+        "local_forward_axis": "+Y in glTF",
+        "art_point": [
+          0.5087504982948303,
+          0.3814251720905304,
+          3.4117205142974854
+        ]
+      },
+      {
+        "slot": 4,
+        "node": "LaunchSocket_04",
+        "local_forward_axis": "+Y in glTF",
+        "art_point": [
+          0.2890782430768013,
+          0.38141489028930664,
+          3.4115657806396484
+        ]
+      },
+      {
+        "slot": 5,
+        "node": "LaunchSocket_05",
+        "local_forward_axis": "+Y in glTF",
+        "art_point": [
+          0.07021665014326572,
+          0.38140326738357544,
+          3.4113982915878296
+        ]
+      },
+      {
+        "slot": 6,
+        "node": "LaunchSocket_06",
+        "local_forward_axis": "+Y in glTF",
+        "art_point": [
+          -0.14856089651584625,
+          0.3813929557800293,
+          3.4112435579299927
+        ]
+      },
+      {
+        "slot": 7,
+        "node": "LaunchSocket_07",
+        "local_forward_axis": "+Y in glTF",
+        "art_point": [
+          -0.36690932512283325,
+          0.38138264417648315,
+          3.4110759496688843
+        ]
+      },
+      {
+        "slot": 8,
+        "node": "LaunchSocket_08",
+        "local_forward_axis": "+Y in glTF",
+        "art_point": [
+          -0.5848955661058426,
+          0.38137105107307434,
+          3.410921335220337
+        ]
+      },
+      {
+        "slot": 9,
+        "node": "LaunchSocket_09",
+        "local_forward_axis": "+Y in glTF",
+        "art_point": [
+          -0.8041850328445435,
+          0.38136205077171326,
+          3.4107667207717896
+        ]
+      },
+      {
+        "slot": 10,
+        "node": "LaunchSocket_10",
+        "local_forward_axis": "+Y in glTF",
+        "art_point": [
+          -1.026610642671585,
+          0.38135042786598206,
+          3.4105989933013916
+        ]
+      },
+      {
+        "slot": 11,
+        "node": "LaunchSocket_11",
+        "local_forward_axis": "+Y in glTF",
+        "art_point": [
+          0.944445788860321,
+          0.38201937079429626,
+          3.2041367292404175
+        ]
+      },
+      {
+        "slot": 12,
+        "node": "LaunchSocket_12",
+        "local_forward_axis": "+Y in glTF",
+        "art_point": [
+          0.7252556383609772,
+          0.38200777769088745,
+          3.203981876373291
+        ]
+      },
+      {
+        "slot": 13,
+        "node": "LaunchSocket_13",
+        "local_forward_axis": "+Y in glTF",
+        "art_point": [
+          0.5089567005634308,
+          0.38199618458747864,
+          3.203814387321472
+        ]
+      },
+      {
+        "slot": 14,
+        "node": "LaunchSocket_14",
+        "local_forward_axis": "+Y in glTF",
+        "art_point": [
+          0.28928448259830475,
+          0.38198715448379517,
+          3.203659772872925
+        ]
+      },
+      {
+        "slot": 15,
+        "node": "LaunchSocket_15",
+        "local_forward_axis": "+Y in glTF",
+        "art_point": [
+          0.07042205426841974,
+          0.381976842880249,
+          3.203492045402527
+        ]
+      },
+      {
+        "slot": 16,
+        "node": "LaunchSocket_16",
+        "local_forward_axis": "+Y in glTF",
+        "art_point": [
+          -0.14835479855537415,
+          0.3819652497768402,
+          3.2033374309539795
+        ]
+      },
+      {
+        "slot": 17,
+        "node": "LaunchSocket_17",
+        "local_forward_axis": "+Y in glTF",
+        "art_point": [
+          -0.3667031079530716,
+          0.3819562494754791,
+          3.203182816505432
+        ]
+      },
+      {
+        "slot": 18,
+        "node": "LaunchSocket_18",
+        "local_forward_axis": "+Y in glTF",
+        "art_point": [
+          -0.5846893340349197,
+          0.3819446265697479,
+          3.2030152082443237
+        ]
+      },
+      {
+        "slot": 19,
+        "node": "LaunchSocket_19",
+        "local_forward_axis": "+Y in glTF",
+        "art_point": [
+          -0.8039800524711609,
+          0.38193434476852417,
+          3.202860474586487
+        ]
+      },
+      {
+        "slot": 20,
+        "node": "LaunchSocket_20",
+        "local_forward_axis": "+Y in glTF",
+        "art_point": [
+          -1.0264043509960175,
+          0.38192272186279297,
+          3.202692985534668
+        ]
+      },
+      {
+        "slot": 21,
+        "node": "LaunchSocket_21",
+        "local_forward_axis": "+Y in glTF",
+        "art_point": [
+          0.944653332233429,
+          0.38259559869766235,
+          2.994425892829895
+        ]
+      },
+      {
+        "slot": 22,
+        "node": "LaunchSocket_22",
+        "local_forward_axis": "+Y in glTF",
+        "art_point": [
+          0.7254631519317627,
+          0.38258785009384155,
+          2.9942712783813477
+        ]
+      },
+      {
+        "slot": 23,
+        "node": "LaunchSocket_23",
+        "local_forward_axis": "+Y in glTF",
+        "art_point": [
+          0.5091642439365387,
+          0.3825749456882477,
+          2.994103789329529
+        ]
+      },
+      {
+        "slot": 24,
+        "node": "LaunchSocket_24",
+        "local_forward_axis": "+Y in glTF",
+        "art_point": [
+          0.28949201852083206,
+          0.38256463408470154,
+          2.993949055671692
+        ]
+      },
+      {
+        "slot": 25,
+        "node": "LaunchSocket_25",
+        "local_forward_axis": "+Y in glTF",
+        "art_point": [
+          0.07063036132603884,
+          0.3825543224811554,
+          2.9937814474105835
+        ]
+      },
+      {
+        "slot": 26,
+        "node": "LaunchSocket_26",
+        "local_forward_axis": "+Y in glTF",
+        "art_point": [
+          -0.14814716391265392,
+          0.38254404067993164,
+          2.993626832962036
+        ]
+      },
+      {
+        "slot": 27,
+        "node": "LaunchSocket_27",
+        "local_forward_axis": "+Y in glTF",
+        "art_point": [
+          -0.3664955645799637,
+          0.38253241777420044,
+          2.9934593439102173
+        ]
+      },
+      {
+        "slot": 28,
+        "node": "LaunchSocket_28",
+        "local_forward_axis": "+Y in glTF",
+        "art_point": [
+          -0.5844817906618118,
+          0.3825221061706543,
+          2.993304491043091
+        ]
+      },
+      {
+        "slot": 29,
+        "node": "LaunchSocket_29",
+        "local_forward_axis": "+Y in glTF",
+        "art_point": [
+          -0.8037712275981903,
+          0.3825130760669708,
+          2.993137001991272
+        ]
+      },
+      {
+        "slot": 30,
+        "node": "LaunchSocket_30",
+        "local_forward_axis": "+Y in glTF",
+        "art_point": [
+          -1.0261968076229095,
+          0.3825015127658844,
+          2.9929823875427246
+        ]
+      },
+      {
+        "slot": 31,
+        "node": "LaunchSocket_31",
+        "local_forward_axis": "+Y in glTF",
+        "art_point": [
+          0.9448608756065369,
+          0.38317564129829407,
+          2.784715175628662
+        ]
+      },
+      {
+        "slot": 32,
+        "node": "LaunchSocket_32",
+        "local_forward_axis": "+Y in glTF",
+        "art_point": [
+          0.7256706953048706,
+          0.3831627368927002,
+          2.7845476865768433
+        ]
+      },
+      {
+        "slot": 33,
+        "node": "LaunchSocket_33",
+        "local_forward_axis": "+Y in glTF",
+        "art_point": [
+          0.5093718022108078,
+          0.3831537365913391,
+          2.7843929529190063
+        ]
+      },
+      {
+        "slot": 34,
+        "node": "LaunchSocket_34",
+        "local_forward_axis": "+Y in glTF",
+        "art_point": [
+          0.2897001877427101,
+          0.38314470648765564,
+          2.7842317819595337
+        ]
+      },
+      {
+        "slot": 35,
+        "node": "LaunchSocket_35",
+        "local_forward_axis": "+Y in glTF",
+        "art_point": [
+          0.07083795592188835,
+          0.38313180208206177,
+          2.7840707302093506
+        ]
+      },
+      {
+        "slot": 36,
+        "node": "LaunchSocket_36",
+        "local_forward_axis": "+Y in glTF",
+        "art_point": [
+          -0.1479395292699337,
+          0.383121520280838,
+          2.7839161157608032
+        ]
+      },
+      {
+        "slot": 37,
+        "node": "LaunchSocket_37",
+        "local_forward_axis": "+Y in glTF",
+        "art_point": [
+          -0.36628739535808563,
+          0.38311120867729187,
+          2.7837483882904053
+        ]
+      },
+      {
+        "slot": 38,
+        "node": "LaunchSocket_38",
+        "local_forward_axis": "+Y in glTF",
+        "art_point": [
+          -0.5842742621898651,
+          0.38309958577156067,
+          2.783593773841858
+        ]
+      },
+      {
+        "slot": 39,
+        "node": "LaunchSocket_39",
+        "local_forward_axis": "+Y in glTF",
+        "art_point": [
+          -0.8035636842250824,
+          0.3830905556678772,
+          2.7834261655807495
+        ]
+      },
+      {
+        "slot": 40,
+        "node": "LaunchSocket_40",
+        "local_forward_axis": "+Y in glTF",
+        "art_point": [
+          -1.0259892642498016,
+          0.3830815255641937,
+          2.7832714319229126
+        ]
+      }
+    ]
+  },
+  "textures": [
+    {
+      "file": "Original_03.png",
+      "size": [
+        512,
+        512
+      ]
+    },
+    {
+      "file": "Original_02.png",
+      "size": [
+        2048,
+        1024
+      ]
+    },
+    {
+      "file": "Original_04.png",
+      "size": [
+        512,
+        512
+      ]
+    },
+    {
+      "file": "Original_00.png",
+      "size": [
+        1024,
+        1024
+      ]
+    },
+    {
+      "file": "Original_01.png",
+      "size": [
+        1024,
+        1024
+      ]
+    }
+  ],
+  "launch_sockets": [
+    {
+      "slot": 1,
+      "node": "LaunchSocket_01",
+      "local_forward_axis": "+Y in glTF",
+      "art_point": [
+        0.9442395567893982,
+        0.38144582509994507,
+        3.412042737007141
+      ]
+    },
+    {
+      "slot": 2,
+      "node": "LaunchSocket_02",
+      "local_forward_axis": "+Y in glTF",
+      "art_point": [
+        0.7250494062900543,
+        0.3814367949962616,
+        3.4118881225585938
+      ]
+    },
+    {
+      "slot": 3,
+      "node": "LaunchSocket_03",
+      "local_forward_axis": "+Y in glTF",
+      "art_point": [
+        0.5087504982948303,
+        0.3814251720905304,
+        3.4117205142974854
+      ]
+    },
+    {
+      "slot": 4,
+      "node": "LaunchSocket_04",
+      "local_forward_axis": "+Y in glTF",
+      "art_point": [
+        0.2890782430768013,
+        0.38141489028930664,
+        3.4115657806396484
+      ]
+    },
+    {
+      "slot": 5,
+      "node": "LaunchSocket_05",
+      "local_forward_axis": "+Y in glTF",
+      "art_point": [
+        0.07021665014326572,
+        0.38140326738357544,
+        3.4113982915878296
+      ]
+    },
+    {
+      "slot": 6,
+      "node": "LaunchSocket_06",
+      "local_forward_axis": "+Y in glTF",
+      "art_point": [
+        -0.14856089651584625,
+        0.3813929557800293,
+        3.4112435579299927
+      ]
+    },
+    {
+      "slot": 7,
+      "node": "LaunchSocket_07",
+      "local_forward_axis": "+Y in glTF",
+      "art_point": [
+        -0.36690932512283325,
+        0.38138264417648315,
+        3.4110759496688843
+      ]
+    },
+    {
+      "slot": 8,
+      "node": "LaunchSocket_08",
+      "local_forward_axis": "+Y in glTF",
+      "art_point": [
+        -0.5848955661058426,
+        0.38137105107307434,
+        3.410921335220337
+      ]
+    },
+    {
+      "slot": 9,
+      "node": "LaunchSocket_09",
+      "local_forward_axis": "+Y in glTF",
+      "art_point": [
+        -0.8041850328445435,
+        0.38136205077171326,
+        3.4107667207717896
+      ]
+    },
+    {
+      "slot": 10,
+      "node": "LaunchSocket_10",
+      "local_forward_axis": "+Y in glTF",
+      "art_point": [
+        -1.026610642671585,
+        0.38135042786598206,
+        3.4105989933013916
+      ]
+    },
+    {
+      "slot": 11,
+      "node": "LaunchSocket_11",
+      "local_forward_axis": "+Y in glTF",
+      "art_point": [
+        0.944445788860321,
+        0.38201937079429626,
+        3.2041367292404175
+      ]
+    },
+    {
+      "slot": 12,
+      "node": "LaunchSocket_12",
+      "local_forward_axis": "+Y in glTF",
+      "art_point": [
+        0.7252556383609772,
+        0.38200777769088745,
+        3.203981876373291
+      ]
+    },
+    {
+      "slot": 13,
+      "node": "LaunchSocket_13",
+      "local_forward_axis": "+Y in glTF",
+      "art_point": [
+        0.5089567005634308,
+        0.38199618458747864,
+        3.203814387321472
+      ]
+    },
+    {
+      "slot": 14,
+      "node": "LaunchSocket_14",
+      "local_forward_axis": "+Y in glTF",
+      "art_point": [
+        0.28928448259830475,
+        0.38198715448379517,
+        3.203659772872925
+      ]
+    },
+    {
+      "slot": 15,
+      "node": "LaunchSocket_15",
+      "local_forward_axis": "+Y in glTF",
+      "art_point": [
+        0.07042205426841974,
+        0.381976842880249,
+        3.203492045402527
+      ]
+    },
+    {
+      "slot": 16,
+      "node": "LaunchSocket_16",
+      "local_forward_axis": "+Y in glTF",
+      "art_point": [
+        -0.14835479855537415,
+        0.3819652497768402,
+        3.2033374309539795
+      ]
+    },
+    {
+      "slot": 17,
+      "node": "LaunchSocket_17",
+      "local_forward_axis": "+Y in glTF",
+      "art_point": [
+        -0.3667031079530716,
+        0.3819562494754791,
+        3.203182816505432
+      ]
+    },
+    {
+      "slot": 18,
+      "node": "LaunchSocket_18",
+      "local_forward_axis": "+Y in glTF",
+      "art_point": [
+        -0.5846893340349197,
+        0.3819446265697479,
+        3.2030152082443237
+      ]
+    },
+    {
+      "slot": 19,
+      "node": "LaunchSocket_19",
+      "local_forward_axis": "+Y in glTF",
+      "art_point": [
+        -0.8039800524711609,
+        0.38193434476852417,
+        3.202860474586487
+      ]
+    },
+    {
+      "slot": 20,
+      "node": "LaunchSocket_20",
+      "local_forward_axis": "+Y in glTF",
+      "art_point": [
+        -1.0264043509960175,
+        0.38192272186279297,
+        3.202692985534668
+      ]
+    },
+    {
+      "slot": 21,
+      "node": "LaunchSocket_21",
+      "local_forward_axis": "+Y in glTF",
+      "art_point": [
+        0.944653332233429,
+        0.38259559869766235,
+        2.994425892829895
+      ]
+    },
+    {
+      "slot": 22,
+      "node": "LaunchSocket_22",
+      "local_forward_axis": "+Y in glTF",
+      "art_point": [
+        0.7254631519317627,
+        0.38258785009384155,
+        2.9942712783813477
+      ]
+    },
+    {
+      "slot": 23,
+      "node": "LaunchSocket_23",
+      "local_forward_axis": "+Y in glTF",
+      "art_point": [
+        0.5091642439365387,
+        0.3825749456882477,
+        2.994103789329529
+      ]
+    },
+    {
+      "slot": 24,
+      "node": "LaunchSocket_24",
+      "local_forward_axis": "+Y in glTF",
+      "art_point": [
+        0.28949201852083206,
+        0.38256463408470154,
+        2.993949055671692
+      ]
+    },
+    {
+      "slot": 25,
+      "node": "LaunchSocket_25",
+      "local_forward_axis": "+Y in glTF",
+      "art_point": [
+        0.07063036132603884,
+        0.3825543224811554,
+        2.9937814474105835
+      ]
+    },
+    {
+      "slot": 26,
+      "node": "LaunchSocket_26",
+      "local_forward_axis": "+Y in glTF",
+      "art_point": [
+        -0.14814716391265392,
+        0.38254404067993164,
+        2.993626832962036
+      ]
+    },
+    {
+      "slot": 27,
+      "node": "LaunchSocket_27",
+      "local_forward_axis": "+Y in glTF",
+      "art_point": [
+        -0.3664955645799637,
+        0.38253241777420044,
+        2.9934593439102173
+      ]
+    },
+    {
+      "slot": 28,
+      "node": "LaunchSocket_28",
+      "local_forward_axis": "+Y in glTF",
+      "art_point": [
+        -0.5844817906618118,
+        0.3825221061706543,
+        2.993304491043091
+      ]
+    },
+    {
+      "slot": 29,
+      "node": "LaunchSocket_29",
+      "local_forward_axis": "+Y in glTF",
+      "art_point": [
+        -0.8037712275981903,
+        0.3825130760669708,
+        2.993137001991272
+      ]
+    },
+    {
+      "slot": 30,
+      "node": "LaunchSocket_30",
+      "local_forward_axis": "+Y in glTF",
+      "art_point": [
+        -1.0261968076229095,
+        0.3825015127658844,
+        2.9929823875427246
+      ]
+    },
+    {
+      "slot": 31,
+      "node": "LaunchSocket_31",
+      "local_forward_axis": "+Y in glTF",
+      "art_point": [
+        0.9448608756065369,
+        0.38317564129829407,
+        2.784715175628662
+      ]
+    },
+    {
+      "slot": 32,
+      "node": "LaunchSocket_32",
+      "local_forward_axis": "+Y in glTF",
+      "art_point": [
+        0.7256706953048706,
+        0.3831627368927002,
+        2.7845476865768433
+      ]
+    },
+    {
+      "slot": 33,
+      "node": "LaunchSocket_33",
+      "local_forward_axis": "+Y in glTF",
+      "art_point": [
+        0.5093718022108078,
+        0.3831537365913391,
+        2.7843929529190063
+      ]
+    },
+    {
+      "slot": 34,
+      "node": "LaunchSocket_34",
+      "local_forward_axis": "+Y in glTF",
+      "art_point": [
+        0.2897001877427101,
+        0.38314470648765564,
+        2.7842317819595337
+      ]
+    },
+    {
+      "slot": 35,
+      "node": "LaunchSocket_35",
+      "local_forward_axis": "+Y in glTF",
+      "art_point": [
+        0.07083795592188835,
+        0.38313180208206177,
+        2.7840707302093506
+      ]
+    },
+    {
+      "slot": 36,
+      "node": "LaunchSocket_36",
+      "local_forward_axis": "+Y in glTF",
+      "art_point": [
+        -0.1479395292699337,
+        0.383121520280838,
+        2.7839161157608032
+      ]
+    },
+    {
+      "slot": 37,
+      "node": "LaunchSocket_37",
+      "local_forward_axis": "+Y in glTF",
+      "art_point": [
+        -0.36628739535808563,
+        0.38311120867729187,
+        2.7837483882904053
+      ]
+    },
+    {
+      "slot": 38,
+      "node": "LaunchSocket_38",
+      "local_forward_axis": "+Y in glTF",
+      "art_point": [
+        -0.5842742621898651,
+        0.38309958577156067,
+        2.783593773841858
+      ]
+    },
+    {
+      "slot": 39,
+      "node": "LaunchSocket_39",
+      "local_forward_axis": "+Y in glTF",
+      "art_point": [
+        -0.8035636842250824,
+        0.3830905556678772,
+        2.7834261655807495
+      ]
+    },
+    {
+      "slot": 40,
+      "node": "LaunchSocket_40",
+      "local_forward_axis": "+Y in glTF",
+      "art_point": [
+        -1.0259892642498016,
+        0.3830815255641937,
+        2.7832714319229126
+      ]
+    }
+  ],
+  "clip_nodes": {
+    "Prepare": [
+      "LauncherPitch",
+      "LauncherYaw",
+      "LiftBarrel_L_Transform",
+      "LiftBarrel_L",
+      "LiftRod_L_Transform",
+      "LiftRod_L",
+      "LiftCollar_L_Transform",
+      "LiftCollar_L",
+      "LiftBarrel_R_Transform",
+      "LiftBarrel_R",
+      "LiftRod_R_Transform",
+      "LiftRod_R",
+      "LiftCollar_R_Transform",
+      "LiftCollar_R"
+    ],
+    "Stow": [
+      "LauncherPitch",
+      "LauncherYaw",
+      "LiftBarrel_L_Transform",
+      "LiftBarrel_L",
+      "LiftRod_L_Transform",
+      "LiftRod_L",
+      "LiftCollar_L_Transform",
+      "LiftCollar_L",
+      "LiftBarrel_R_Transform",
+      "LiftBarrel_R",
+      "LiftRod_R_Transform",
+      "LiftRod_R",
+      "LiftCollar_R_Transform",
+      "LiftCollar_R"
+    ],
+    "Aim": [
+      "LauncherPitch",
+      "LauncherYaw",
+      "LiftBarrel_L_Transform",
+      "LiftBarrel_L",
+      "LiftRod_L_Transform",
+      "LiftRod_L",
+      "LiftCollar_L_Transform",
+      "LiftCollar_L",
+      "LiftBarrel_R_Transform",
+      "LiftBarrel_R",
+      "LiftRod_R_Transform",
+      "LiftRod_R",
+      "LiftCollar_R_Transform",
+      "LiftCollar_R"
+    ],
+    "Drive": [
+      "Wheel_L_-327_Spin",
+      "Wheel_L_149_Spin",
+      "Wheel_L_340_Spin",
+      "Wheel_R_-327_Spin",
+      "Wheel_R_149_Spin",
+      "Wheel_R_340_Spin"
+    ],
+    "Reset": [
+      "LauncherPitch",
+      "LauncherYaw",
+      "LiftBarrel_L_Transform",
+      "LiftBarrel_L",
+      "LiftRod_L_Transform",
+      "LiftRod_L",
+      "LiftCollar_L_Transform",
+      "LiftCollar_L",
+      "LiftBarrel_R_Transform",
+      "LiftBarrel_R",
+      "LiftRod_R_Transform",
+      "LiftRod_R",
+      "LiftCollar_R_Transform",
+      "LiftCollar_R",
+      "Wheel_L_-327_Spin",
+      "Wheel_L_149_Spin",
+      "Wheel_L_340_Spin",
+      "Wheel_R_-327_Spin",
+      "Wheel_R_149_Spin",
+      "Wheel_R_340_Spin"
+    ],
+    "Demo_Sequence": [
+      "LauncherPitch",
+      "LauncherYaw",
+      "LiftBarrel_L_Transform",
+      "LiftBarrel_L",
+      "LiftRod_L_Transform",
+      "LiftRod_L",
+      "LiftCollar_L_Transform",
+      "LiftCollar_L",
+      "LiftBarrel_R_Transform",
+      "LiftBarrel_R",
+      "LiftRod_R_Transform",
+      "LiftRod_R",
+      "LiftCollar_R_Transform",
+      "LiftCollar_R",
+      "Wheel_L_-327_Spin",
+      "Wheel_L_149_Spin",
+      "Wheel_L_340_Spin",
+      "Wheel_R_-327_Spin",
+      "Wheel_R_149_Spin",
+      "Wheel_R_340_Spin"
+    ]
+  },
+  "clip_seconds": {
+    "Prepare": 4,
+    "Stow": 4,
+    "Aim": 8,
+    "Drive": 3,
+    "Reset": 0.2,
+    "Demo_Sequence": 20
+  },
+  "clip_frames": {
+    "Prepare": [
+      1,
+      121
+    ],
+    "Stow": [
+      137,
+      257
+    ],
+    "Aim": [
+      273,
+      513
+    ],
+    "Drive": [
+      529,
+      619
+    ],
+    "Reset": [
+      635,
+      641
+    ],
+    "Demo_Sequence": [
+      657,
+      1257
+    ]
+  },
+  "fps": 30,
+  "parts": [
+    {
+      "name": "Chassis",
+      "type": "MESH",
+      "parent": "Root"
+    },
+    {
+      "name": "LauncherBase",
+      "type": "MESH",
+      "parent": "LauncherYaw"
+    },
+    {
+      "name": "Wheel_L_-327",
+      "type": "MESH",
+      "parent": "Wheel_L_-327_Spin"
+    },
+    {
+      "name": "Wheel_L_340",
+      "type": "MESH",
+      "parent": "Wheel_L_340_Spin"
+    },
+    {
+      "name": "Wheel_R_-327",
+      "type": "MESH",
+      "parent": "Wheel_R_-327_Spin"
+    },
+    {
+      "name": "Wheel_R_340",
+      "type": "MESH",
+      "parent": "Wheel_R_340_Spin"
+    },
+    {
+      "name": "Wheel_L_149",
+      "type": "MESH",
+      "parent": "Wheel_L_149_Spin"
+    },
+    {
+      "name": "Wheel_R_149",
+      "type": "MESH",
+      "parent": "Wheel_R_149_Spin"
+    },
+    {
+      "name": "LauncherBlock",
+      "type": "MESH",
+      "parent": "LauncherPitch"
+    },
+    {
+      "name": "Root",
+      "type": "EMPTY",
+      "parent": null
+    },
+    {
+      "name": "LauncherYaw",
+      "type": "EMPTY",
+      "parent": "Root"
+    },
+    {
+      "name": "LauncherPitch",
+      "type": "EMPTY",
+      "parent": "LauncherYaw"
+    },
+    {
+      "name": "LaunchSocket_01",
+      "type": "EMPTY",
+      "parent": "LauncherPitch"
+    },
+    {
+      "name": "LaunchSocket_02",
+      "type": "EMPTY",
+      "parent": "LauncherPitch"
+    },
+    {
+      "name": "LaunchSocket_03",
+      "type": "EMPTY",
+      "parent": "LauncherPitch"
+    },
+    {
+      "name": "LaunchSocket_04",
+      "type": "EMPTY",
+      "parent": "LauncherPitch"
+    },
+    {
+      "name": "LaunchSocket_05",
+      "type": "EMPTY",
+      "parent": "LauncherPitch"
+    },
+    {
+      "name": "LaunchSocket_06",
+      "type": "EMPTY",
+      "parent": "LauncherPitch"
+    },
+    {
+      "name": "LaunchSocket_07",
+      "type": "EMPTY",
+      "parent": "LauncherPitch"
+    },
+    {
+      "name": "LaunchSocket_08",
+      "type": "EMPTY",
+      "parent": "LauncherPitch"
+    },
+    {
+      "name": "LaunchSocket_09",
+      "type": "EMPTY",
+      "parent": "LauncherPitch"
+    },
+    {
+      "name": "LaunchSocket_10",
+      "type": "EMPTY",
+      "parent": "LauncherPitch"
+    },
+    {
+      "name": "LaunchSocket_11",
+      "type": "EMPTY",
+      "parent": "LauncherPitch"
+    },
+    {
+      "name": "LaunchSocket_12",
+      "type": "EMPTY",
+      "parent": "LauncherPitch"
+    },
+    {
+      "name": "LaunchSocket_13",
+      "type": "EMPTY",
+      "parent": "LauncherPitch"
+    },
+    {
+      "name": "LaunchSocket_14",
+      "type": "EMPTY",
+      "parent": "LauncherPitch"
+    },
+    {
+      "name": "LaunchSocket_15",
+      "type": "EMPTY",
+      "parent": "LauncherPitch"
+    },
+    {
+      "name": "LaunchSocket_16",
+      "type": "EMPTY",
+      "parent": "LauncherPitch"
+    },
+    {
+      "name": "LaunchSocket_17",
+      "type": "EMPTY",
+      "parent": "LauncherPitch"
+    },
+    {
+      "name": "LaunchSocket_18",
+      "type": "EMPTY",
+      "parent": "LauncherPitch"
+    },
+    {
+      "name": "LaunchSocket_19",
+      "type": "EMPTY",
+      "parent": "LauncherPitch"
+    },
+    {
+      "name": "LaunchSocket_20",
+      "type": "EMPTY",
+      "parent": "LauncherPitch"
+    },
+    {
+      "name": "LaunchSocket_21",
+      "type": "EMPTY",
+      "parent": "LauncherPitch"
+    },
+    {
+      "name": "LaunchSocket_22",
+      "type": "EMPTY",
+      "parent": "LauncherPitch"
+    },
+    {
+      "name": "LaunchSocket_23",
+      "type": "EMPTY",
+      "parent": "LauncherPitch"
+    },
+    {
+      "name": "LaunchSocket_24",
+      "type": "EMPTY",
+      "parent": "LauncherPitch"
+    },
+    {
+      "name": "LaunchSocket_25",
+      "type": "EMPTY",
+      "parent": "LauncherPitch"
+    },
+    {
+      "name": "LaunchSocket_26",
+      "type": "EMPTY",
+      "parent": "LauncherPitch"
+    },
+    {
+      "name": "LaunchSocket_27",
+      "type": "EMPTY",
+      "parent": "LauncherPitch"
+    },
+    {
+      "name": "LaunchSocket_28",
+      "type": "EMPTY",
+      "parent": "LauncherPitch"
+    },
+    {
+      "name": "LaunchSocket_29",
+      "type": "EMPTY",
+      "parent": "LauncherPitch"
+    },
+    {
+      "name": "LaunchSocket_30",
+      "type": "EMPTY",
+      "parent": "LauncherPitch"
+    },
+    {
+      "name": "LaunchSocket_31",
+      "type": "EMPTY",
+      "parent": "LauncherPitch"
+    },
+    {
+      "name": "LaunchSocket_32",
+      "type": "EMPTY",
+      "parent": "LauncherPitch"
+    },
+    {
+      "name": "LaunchSocket_33",
+      "type": "EMPTY",
+      "parent": "LauncherPitch"
+    },
+    {
+      "name": "LaunchSocket_34",
+      "type": "EMPTY",
+      "parent": "LauncherPitch"
+    },
+    {
+      "name": "LaunchSocket_35",
+      "type": "EMPTY",
+      "parent": "LauncherPitch"
+    },
+    {
+      "name": "LaunchSocket_36",
+      "type": "EMPTY",
+      "parent": "LauncherPitch"
+    },
+    {
+      "name": "LaunchSocket_37",
+      "type": "EMPTY",
+      "parent": "LauncherPitch"
+    },
+    {
+      "name": "LaunchSocket_38",
+      "type": "EMPTY",
+      "parent": "LauncherPitch"
+    },
+    {
+      "name": "LaunchSocket_39",
+      "type": "EMPTY",
+      "parent": "LauncherPitch"
+    },
+    {
+      "name": "LaunchSocket_40",
+      "type": "EMPTY",
+      "parent": "LauncherPitch"
+    },
+    {
+      "name": "TurntableFixed",
+      "type": "MESH",
+      "parent": "Root"
+    },
+    {
+      "name": "PitchAxle",
+      "type": "MESH",
+      "parent": "LauncherPitch"
+    },
+    {
+      "name": "ControlShaft",
+      "type": "MESH",
+      "parent": "LauncherYaw"
+    },
+    {
+      "name": "LiftAnchor_L",
+      "type": "EMPTY",
+      "parent": "LauncherPitch"
+    },
+    {
+      "name": "LiftLowerPin_L",
+      "type": "MESH",
+      "parent": "LauncherYaw"
+    },
+    {
+      "name": "LiftUpperPin_L",
+      "type": "MESH",
+      "parent": "LauncherPitch"
+    },
+    {
+      "name": "LiftUpperBracket_L",
+      "type": "MESH",
+      "parent": "LauncherPitch"
+    },
+    {
+      "name": "LiftLowerBracket_L",
+      "type": "MESH",
+      "parent": "LauncherYaw"
+    },
+    {
+      "name": "LiftLowerCrosspin_L",
+      "type": "MESH",
+      "parent": "LauncherYaw"
+    },
+    {
+      "name": "LiftBarrel_L",
+      "type": "MESH",
+      "parent": "LiftBarrel_L_Transform"
+    },
+    {
+      "name": "LiftRod_L",
+      "type": "MESH",
+      "parent": "LiftRod_L_Transform"
+    },
+    {
+      "name": "LiftCollar_L",
+      "type": "MESH",
+      "parent": "LiftCollar_L_Transform"
+    },
+    {
+      "name": "LiftBarrel_L_Transform",
+      "type": "EMPTY",
+      "parent": "LauncherYaw"
+    },
+    {
+      "name": "LiftRod_L_Transform",
+      "type": "EMPTY",
+      "parent": "LauncherYaw"
+    },
+    {
+      "name": "LiftCollar_L_Transform",
+      "type": "EMPTY",
+      "parent": "LauncherYaw"
+    },
+    {
+      "name": "LiftAnchor_R",
+      "type": "EMPTY",
+      "parent": "LauncherPitch"
+    },
+    {
+      "name": "LiftLowerPin_R",
+      "type": "MESH",
+      "parent": "LauncherYaw"
+    },
+    {
+      "name": "LiftUpperPin_R",
+      "type": "MESH",
+      "parent": "LauncherPitch"
+    },
+    {
+      "name": "LiftUpperBracket_R",
+      "type": "MESH",
+      "parent": "LauncherPitch"
+    },
+    {
+      "name": "LiftLowerBracket_R",
+      "type": "MESH",
+      "parent": "LauncherYaw"
+    },
+    {
+      "name": "LiftLowerCrosspin_R",
+      "type": "MESH",
+      "parent": "LauncherYaw"
+    },
+    {
+      "name": "LiftBarrel_R",
+      "type": "MESH",
+      "parent": "LiftBarrel_R_Transform"
+    },
+    {
+      "name": "LiftRod_R",
+      "type": "MESH",
+      "parent": "LiftRod_R_Transform"
+    },
+    {
+      "name": "LiftCollar_R",
+      "type": "MESH",
+      "parent": "LiftCollar_R_Transform"
+    },
+    {
+      "name": "LiftBarrel_R_Transform",
+      "type": "EMPTY",
+      "parent": "LauncherYaw"
+    },
+    {
+      "name": "LiftRod_R_Transform",
+      "type": "EMPTY",
+      "parent": "LauncherYaw"
+    },
+    {
+      "name": "LiftCollar_R_Transform",
+      "type": "EMPTY",
+      "parent": "LauncherYaw"
+    },
+    {
+      "name": "Wheel_L_-327_Steer",
+      "type": "EMPTY",
+      "parent": "Root"
+    },
+    {
+      "name": "Wheel_L_-327_Spin",
+      "type": "EMPTY",
+      "parent": "Wheel_L_-327_Steer"
+    },
+    {
+      "name": "Wheel_L_149_Steer",
+      "type": "EMPTY",
+      "parent": "Root"
+    },
+    {
+      "name": "Wheel_L_149_Spin",
+      "type": "EMPTY",
+      "parent": "Wheel_L_149_Steer"
+    },
+    {
+      "name": "Wheel_L_340_Steer",
+      "type": "EMPTY",
+      "parent": "Root"
+    },
+    {
+      "name": "Wheel_L_340_Spin",
+      "type": "EMPTY",
+      "parent": "Wheel_L_340_Steer"
+    },
+    {
+      "name": "Wheel_R_-327_Steer",
+      "type": "EMPTY",
+      "parent": "Root"
+    },
+    {
+      "name": "Wheel_R_-327_Spin",
+      "type": "EMPTY",
+      "parent": "Wheel_R_-327_Steer"
+    },
+    {
+      "name": "Wheel_R_149_Steer",
+      "type": "EMPTY",
+      "parent": "Root"
+    },
+    {
+      "name": "Wheel_R_149_Spin",
+      "type": "EMPTY",
+      "parent": "Wheel_R_149_Steer"
+    },
+    {
+      "name": "Wheel_R_340_Steer",
+      "type": "EMPTY",
+      "parent": "Root"
+    },
+    {
+      "name": "Wheel_R_340_Spin",
+      "type": "EMPTY",
+      "parent": "Wheel_R_340_Steer"
+    }
+  ],
+  "lod_triangles": {
+    "LOD0": 18190
+  }
+}

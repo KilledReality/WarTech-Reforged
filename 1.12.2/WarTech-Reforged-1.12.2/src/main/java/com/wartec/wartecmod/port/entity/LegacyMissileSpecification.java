@@ -73,7 +73,14 @@ public enum LegacyMissileSpecification {
     INVALID(MissileProfile.INVALID, FlightFamily.INVALID, Payload.NONE,
             RadarTargetType.MISSILE_TIER0, 0, 0),
     GERAN_5(MissileProfile.GERAN_5, FlightFamily.GERAN, Payload.GERAN,
-            RadarTargetType.MISSILE_TIER2, 6, 2);
+            RadarTargetType.MISSILE_TIER2, 6, 2),
+    FP5(MissileProfile.FP5, FlightFamily.SUBSONIC, Payload.HE_25, RadarTargetType.MISSILE_TIER1, 10, 2),
+    FP7(MissileProfile.FP7, FlightFamily.BALLISTIC, Payload.HE_25, RadarTargetType.MISSILE_TIER2, 7, 6),
+    S8000(MissileProfile.S8000, FlightFamily.SUBSONIC, Payload.HE_25, RadarTargetType.MISSILE_TIER1, 6, 2),
+    GRAD_ROCKET(MissileProfile.GRAD_ROCKET, FlightFamily.BALLISTIC, Payload.HE_25, RadarTargetType.MISSILE_TIER1, 2, 4),
+    URAGAN_ROCKET(MissileProfile.URAGAN_ROCKET, FlightFamily.BALLISTIC, Payload.HE_25, RadarTargetType.MISSILE_TIER1, 4, 5),
+    SMERCH_ROCKET(MissileProfile.SMERCH_ROCKET, FlightFamily.BALLISTIC, Payload.HE_25, RadarTargetType.MISSILE_TIER1, 5, 5),
+    HIMARS_ROCKET(MissileProfile.HIMARS_ROCKET, FlightFamily.BALLISTIC, Payload.HE_25, RadarTargetType.MISSILE_TIER2, 5, 5);
 
     private static final Map<MissileProfile, LegacyMissileSpecification> BY_PROFILE =
             new EnumMap<MissileProfile, LegacyMissileSpecification>(MissileProfile.class);

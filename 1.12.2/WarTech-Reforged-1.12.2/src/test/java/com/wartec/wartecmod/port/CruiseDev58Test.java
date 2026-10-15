@@ -18,15 +18,13 @@ import static org.junit.Assert.*;
 public class CruiseDev58Test {
     @BeforeClass public static void bootstrap() { Bootstrap.register(); }
     @Test public void appendedRackHasARecipeAndFuturePartsCannotBeSilentlyMissing() throws Exception {
-        String source=new String(java.nio.file.Files.readAllBytes(java.nio.file.Paths.get(
-                "src/main/java/com/wartec/wartecmod/port/integration/WarTechRecipeRegistration.java")),
-                java.nio.charset.StandardCharsets.UTF_8);
-        String method=source.substring(source.indexOf("private static void registerUavModuleRecipes"));
-        String rows=method.substring(method.indexOf("Object[][] ingredients"),method.indexOf("};"));
-        java.util.regex.Matcher matcher=java.util.regex.Pattern.compile("(?m)^\\s*\\{[^}]+\\}").matcher(rows);
-        int count=0;while(matcher.find()) count++;
-        assertEquals(UavPartDefinition.values().length,count);
-        assertTrue(method.contains("ingredients.length != definitions.length"));
+        Set<Integer> covered=new HashSet<>();
+        for(com.google.gson.JsonObject r:com.wartec.wartecmod.port.production.ProductionCatalog.recipes()) {
+            String ref=r.get("output").getAsString();
+            if(ref.startsWith("wartecmod:uavmodule@") && r.get("status").getAsString().equals("proposed"))covered.add(Integer.parseInt(ref.split("@")[1]));
+        }
+        assertEquals(UavPartDefinition.values().length,covered.size());
+        for(UavPartDefinition part:UavPartDefinition.values())assertTrue(part.name(),covered.contains(part.ordinal()));
     }
     @Test public void allFourBodiesAreFirstWithoutChangingMetadata() {
         NonNullList<ItemStack> items=NonNullList.create();

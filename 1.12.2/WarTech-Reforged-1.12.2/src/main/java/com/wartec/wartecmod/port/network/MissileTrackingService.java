@@ -44,6 +44,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.WeakHashMap;
 import net.minecraft.entity.Entity;
+import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
 
@@ -286,6 +287,78 @@ public final class MissileTrackingService {
     }
 
     private static Entity findThreat(World world, double d, double d2, double d3, int n, double d4, long l, boolean bl, String string) {
+        return findThreat(world,d,d2,d3,n,d4,l,bl,string,false);
+    }
+
+    public static boolean hasDefenseContact(World world, Entity target, Vec3d origin, String team, boolean externalOnly) {
+        if(world==null || world.isRemote || target==null || target.isDead || getThreatTier(target)==0) return false;
+        WorldTracks tracks=getWorldTracks(world);long now=world.getTotalWorldTime();
+        refresh(world,tracks,now);expireRadars(tracks,now);expireNetworkNodes(tracks,now);
+        Track track=tracks.tracks.get(target.getEntityId());
+        if(NetworkTeamHelper.isFriendly(team,target) || track!=null && isFriendlyTrack(normalizeTeam(team),track)) return false;
+        CommandStation command=findLinkedCommand(tracks,origin.x,origin.y,origin.z,now,team);
+        if(track!=null && (hasLinkedRadarContact(track,tracks,origin.x,origin.y,origin.z,now,team)
+                || command!=null && hasCommandRadarContact(track,tracks,command,now))) return true;
+        return !externalOnly && target.getDistanceSq(origin.x,origin.y,origin.z)<=110*110
+                && AirDefenseVisibility.visible(world,origin,target);
+    }
+
+    /** Pretracking does not reserve ammunition or extend the weapon's meeting-point range. */
+    public static Entity findTrackingThreat(World world, Vec3d origin, int tier, double range,
+            long key, String team, int currentId, boolean externalOnly) {
+        return selectDefenseThreat(world,origin,tier,range,key,team,currentId,externalOnly,24,null);
+    }
+
+    /** An expired firing window must not hide another physically engageable contact. */
+    public static Entity findLaunchThreat(World world, Vec3d origin, int tier, double range,
+            long key, String team, boolean externalOnly, int preparationTicks,
+            java.util.function.Predicate<Entity> eligible) {
+        return selectDefenseThreat(world,origin,tier,range,key,team,-1,externalOnly,preparationTicks,
+            eligible==null?target->true:eligible);
+    }
+
+    private static Entity selectDefenseThreat(World world, Vec3d origin, int tier, double range,
+            long key, String team, int currentId, boolean externalOnly, int preparationTicks,
+            java.util.function.Predicate<Entity> eligible) {
+        if(world==null || world.isRemote) return null;
+        WorldTracks tracks=getWorldTracks(world);long now=world.getTotalWorldTime();
+        refresh(world,tracks,now);expireReservations(world,tracks,now);
+        Entity best=null;double bestScore=Double.MAX_VALUE;
+        updateLauncher(tracks,key,origin.x,origin.y,origin.z,tier,team,now);
+        for(Track track:tracks.tracks.values()) {
+            Entity target=track.entity;
+            if(target.isDead || getThreatTier(target)>tier || !canInterceptorEngage(target,tier,range)
+                    || !hasDefenseContact(world,target,origin,team,externalOnly)) continue;
+            if(!com.wartec.wartecmod.port.planning.DefenseDoctrine.allowed(world,key,origin,team,target))continue;
+            Reservation reservation=tracks.reservations.get(track.entityId);
+            if(reservation!=null && reservation.expiresAt>=now
+                    && (reservation.ownerKey!=key || reservation.interceptorId>=0)) continue;
+            Long blocked=tracks.blockedUntil.get(track.entityId);
+            if(blocked!=null && blocked>now) continue;
+            double speed=Math.sqrt(track.velocityX*track.velocityX+target.motionY*target.motionY+track.velocityZ*track.velocityZ);
+            // A fresh radar track's smoothed velocity may still be near zero.
+            // Do not delay pretracking an already fast projectile while that estimate settles.
+            speed=Math.max(speed,Math.sqrt(target.motionX*target.motionX+target.motionY*target.motionY+target.motionZ*target.motionZ));
+            double distance=target.getPositionVector().distanceTo(origin);
+            if(distance>Math.min(2000,range+Math.max(2,speed)*120)) continue;
+            Threat threat=evaluateThreat(track,origin.x,origin.z,now,Math.max(192,range));
+            if(!threat.threatening || !confirmThreat(track,key,now,threat.immediate)) continue;
+            boolean ready=com.wartec.wartecmod.port.integration.AirDefenseFireControl.canLaunch(target,origin,range,tier,preparationTicks);
+            if(eligible!=null && (!ready || !eligible.test(target)))continue;
+            double score=(ready?0:10000)+threat.timeToClosest*20+distance;
+            score*=com.wartec.wartecmod.port.planning.DefenseDoctrine.priority(world,key,origin,team,target);
+            if(target.getEntityId()==currentId) score*=.8;
+            if(score<bestScore) {bestScore=score;best=target;}
+        }
+        return best;
+    }
+
+    /** Sequential animated channels must select a new target after each release. */
+    public static Entity findUnassignedThreat(World world,double x,double y,double z,int tier,double range,long key,String team) {
+        return findThreat(world,x,y,z,tier,range,key,false,team,true);
+    }
+
+    private static Entity findThreat(World world, double d, double d2, double d3, int n, double d4, long l, boolean bl, String string, boolean unassigned) {
         if (world == null || world.isRemote) {
             return null;
         }
@@ -309,10 +382,12 @@ public final class MissileTrackingService {
             Entity entity2 = track.entity;
             int n2 = MissileTrackingService.getTargetTier(entity2);
             if (n2 == 0 || entity2.isDead || MissileTrackingService.isFriendlyTrack(string2, track) || !MissileTrackingService.canInterceptorEngage(entity2, n, d4)) continue;
+            if(!com.wartec.wartecmod.port.planning.DefenseDoctrine.allowed(world,l,new Vec3d(d,d2,d3),string2,entity2))continue;
             Integer n3 = track.entityId;
             Long l3 = worldTracks.blockedUntil.get(n3);
             if (!bl && l3 != null && l3 > l2) continue;
             Reservation reservation = worldTracks.reservations.get(n3);
+            if (unassigned && reservation != null && reservation.expiresAt >= l2 && reservation.interceptorId >= 0) continue;
             if (!bl && reservation != null && reservation.expiresAt >= l2 && reservation.ownerKey != l) continue;
             double d7 = entity2.posX - d;
             double d8 = entity2.posY - d2;
@@ -340,6 +415,7 @@ public final class MissileTrackingService {
             }
             if (!MissileTrackingService.confirmThreat(track, l, l2, threat.immediate)) continue;
             double d14 = threat.timeToClosest * 120.0 + threat.closestDistance * 4.0 + Math.sqrt(d10);
+            d14*=com.wartec.wartecmod.port.planning.DefenseDoctrine.priority(world,l,new Vec3d(d,d2,d3),string2,entity2);
             int n4 = n2 - n;
             if (n4 == 1) {
                 d14 *= 2.5;
@@ -384,7 +460,7 @@ public final class MissileTrackingService {
     }
 
     private static int updateRadarSweep(World world, int n, double d, double d2, double d3, double d4, double d5, int n2, String string, int n3, boolean bl) {
-        if (world == null || world.isRemote || n <= 0) {
+        if (world == null || world.isRemote || n < 0) {
             return 0;
         }
         WorldTracks worldTracks = MissileTrackingService.getWorldTracks(world);
@@ -429,6 +505,7 @@ public final class MissileTrackingService {
             track.radarQuality.put(n5, Float.valueOf((float)d10));
             if (bl2 && n4 < n2 && d10 >= 0.34) {
                 track.radarSeen.put(n5, l);
+                if(!MissileTrackingService.isFriendlyTrack(radarStation.team,track))com.wartec.wartecmod.port.planning.PlanningHooks.detected(world,radarStation.team,entity);
                 ++n4;
                 continue;
             }
@@ -466,7 +543,7 @@ public final class MissileTrackingService {
     }
 
     public static void removeRadar(World world, int n) {
-        if (world == null || world.isRemote || n <= 0) {
+        if (world == null || world.isRemote || n < 0) {
             return;
         }
         WorldTracks worldTracks = MissileTrackingService.getWorldTracks(world);
@@ -480,7 +557,7 @@ public final class MissileTrackingService {
     }
 
     public static int[] getRadarBlips(World world, int n, double d, double d2, int n2) {
-        if (world == null || world.isRemote || n <= 0 || n2 <= 0) {
+        if (world == null || world.isRemote || n < 0 || n2 <= 0) {
             return new int[0];
         }
         WorldTracks worldTracks = MissileTrackingService.getWorldTracks(world);
@@ -524,6 +601,16 @@ public final class MissileTrackingService {
         return Math.max(Short.MIN_VALUE, Math.min(Short.MAX_VALUE, n));
     }
 
+    public static FactionContact[] getPlanningContacts(World world,String scope,double x,double z){
+        if(scope.startsWith("team:"))return getFactionSnapshot(world,scope.substring(5),x,z).contacts;
+        if(!(world instanceof net.minecraft.world.WorldServer) || !scope.startsWith("player:"))return new FactionContact[0];
+        WorldTracks tracks=getWorldTracks(world);long now=world.getTotalWorldTime();refresh(world,tracks,now);expireRadars(tracks,now);expireReservations(world,tracks,now);
+        java.util.List<com.wartec.wartecmod.port.planning.PlanningAsset> sensors=new java.util.ArrayList<>();
+        for(com.wartec.wartecmod.port.planning.PlanningAsset a:com.wartec.wartecmod.port.planning.PlanningWorldData.get(world).assets.values())if(a.loaded && a.defense && com.wartec.wartecmod.port.planning.PlanningAccessPolicy.same(scope,a.scope)){Object source=com.wartec.wartecmod.port.planning.PlanningAssetRegistry.resolve((net.minecraft.world.WorldServer)world,a.key);if(source!=null && com.wartec.wartecmod.port.planning.PlanningAccessPolicy.same(scope,com.wartec.wartecmod.port.planning.PlanningAssetRegistry.scope(source)))sensors.add(a);}
+        java.util.Set<Integer> owned=new java.util.HashSet<>();for(RadarStation radar:tracks.radars.values())if(now-radar.lastUpdate<=30 && radar.team.isEmpty())for(com.wartec.wartecmod.port.planning.PlanningAsset a:sensors){Object source=com.wartec.wartecmod.port.planning.PlanningAssetRegistry.resolve((net.minecraft.world.WorldServer)world,a.key);boolean identity=source instanceof Entity?((Entity)source).getEntityId()==radar.entityId:source instanceof com.wartec.wartecmod.port.gameplay.TileEntityWarTechMachine && ((com.wartec.wartecmod.port.gameplay.TileEntityWarTechMachine)source).getCommandRadarId()==radar.entityId;if(identity && Math.hypot(a.x-radar.x,a.z-radar.z)<=3 && Math.abs(a.y-radar.y)<=256){owned.add(radar.entityId);break;}}
+        java.util.List<FactionContact> contacts=new java.util.ArrayList<>();java.util.UUID owner;try{owner=java.util.UUID.fromString(scope.substring(7));}catch(IllegalArgumentException e){return new FactionContact[0];}
+        for(Track t:tracks.tracks.values()){if(t.entity==null || t.entity.isDead || now-t.lastSeen>40)continue;float quality=0;int sources=0;for(java.util.Map.Entry<Integer,Long> seen:t.radarSeen.entrySet())if(owned.contains(seen.getKey()) && now-seen.getValue()<=30){sources++;quality=Math.max(quality,t.radarQuality.getOrDefault(seen.getKey(),0F));}if(sources==0)continue;boolean friendly=t.entity instanceof com.wartec.wartecmod.port.entity.EntityWarTechBase && owner.equals(((com.wartec.wartecmod.port.entity.EntityWarTechBase)t.entity).getOwnerUuid());contacts.add(new FactionContact(t.entityId,classifyFactionContact(t.entity),getTargetTier(t.entity),t.lastX,t.lastY,t.lastZ,t.velocityX,t.velocityZ,quality,sources,tracks.reservations.containsKey(t.entityId),friendly));if(!friendly)com.wartec.wartecmod.port.planning.PlanningHooks.detectedScope(world,scope,t.entity);if(contacts.size()>=128)break;}return contacts.toArray(new FactionContact[0]);
+    }
     public static FactionSnapshot getFactionSnapshot(World world, String string, double d, double d2) {
         String string2 = MissileTrackingService.normalizeTeam(string);
         if (world == null || world.isRemote || string2.length() == 0) {
@@ -634,7 +721,7 @@ public final class MissileTrackingService {
     }
 
     public static CommandSnapshot updateCommandPost(World world, int n, double d, double d2, double d3, String string) {
-        if (world == null || world.isRemote || n <= 0) {
+        if (world == null || world.isRemote || n < 0) {
             return CommandSnapshot.EMPTY;
         }
         WorldTracks worldTracks = MissileTrackingService.getWorldTracks(world);
@@ -673,7 +760,7 @@ public final class MissileTrackingService {
     }
 
     public static void removeCommandPost(World world, int n) {
-        if (world == null || world.isRemote || n <= 0) {
+        if (world == null || world.isRemote || n < 0) {
             return;
         }
         MissileTrackingService.getWorldTracks((World)world).commands.remove(n);
@@ -787,6 +874,7 @@ public final class MissileTrackingService {
         if (MissileTrackingService.distanceSquared(d, d2, d3, d4, d5, d6) <= d7 * d7) {
             return true;
         }
+        if(hubLink(worldTracks,d,d2,d3,d4,d5,d6,string,l,d7))return true;
         List<CommunicationRelay> list = MissileTrackingService.collectReachableRelays(worldTracks, d, d2, d3, string, l);
         double d8 = 5760000.0;
         for (CommunicationRelay communicationRelay : list) {
@@ -842,7 +930,7 @@ public final class MissileTrackingService {
     }
 
     private static boolean isFriendlyTrack(String string, Track track) {
-        return track != null && NetworkTeamHelper.areFriendly(MissileTrackingService.normalizeTeam(string), MissileTrackingService.normalizeTeam(track.team));
+        return track != null && (NetworkTeamHelper.areFriendly(MissileTrackingService.normalizeTeam(string), MissileTrackingService.normalizeTeam(track.team)) || track.entity!=null && NetworkTeamHelper.isFriendly(string,track.entity));
     }
 
     private static String findNetworkTeamNear(WorldTracks worldTracks, double d, double d2, double d3, long l) {
@@ -873,6 +961,21 @@ public final class MissileTrackingService {
             string = communicationRelay.team;
         }
         return string;
+    }
+
+    /** Uses the same direct, relay and command links as launcher target acquisition. */
+    public static int linkedRadarCount(World world,double x,double y,double z,String team) {
+        if(world==null || world.isRemote) return 0;
+        WorldTracks tracks=getWorldTracks(world);long now=world.getTotalWorldTime();
+        expireRadars(tracks,now);expireNetworkNodes(tracks,now);
+        CommandStation command=findLinkedCommand(tracks,x,y,z,now,team);
+        String effective=normalizeTeam(team);if(effective.isEmpty() && command!=null) effective=command.team;
+        int count=0;
+        for(RadarStation radar:tracks.radars.values()) {
+            if(!NetworkTeamHelper.canShareNetwork(effective,radar.team)) continue;
+            if(command!=null?isRadarLinkedToCommand(radar,command,tracks,now):endpointsConnected(tracks,x,y,z,radar.x,radar.y,radar.z,effective,now,800)) count++;
+        }
+        return count;
     }
 
     private static boolean hasLinkedRadarContact(Track track, WorldTracks worldTracks, double d, double d2, double d3, long l, String string) {
@@ -930,7 +1033,7 @@ public final class MissileTrackingService {
             return true;
         }
         if (entity instanceof EntityStrategicMissile) {
-            return true;
+            return !((EntityStrategicMissile)entity).isFallingDebris();
         }
         if (entity instanceof EntityWarTechMissile) {
             FlightFamily family = ((EntityWarTechMissile) entity)
@@ -987,7 +1090,8 @@ public final class MissileTrackingService {
     }
 
     public static boolean canInterceptorEngage(Entity entity, int n, double d) {
-        if (MissileTrackingService.getTargetTier(entity) == 0 || n < 1 || n > 3) {
+        if(n==4)return com.wartec.wartecmod.port.silo.SiloDefense.eligible(entity);
+        if (MissileTrackingService.getTargetTier(entity) == 0 || getTargetTier(entity)>=4 || n < 1 || n > 3) {
             return false;
         }
         return !MissileTrackingService.isHbmArtilleryShell(entity) || n <= 2 && d <= 220.0;
@@ -1048,11 +1152,21 @@ public final class MissileTrackingService {
     }
 
     public static boolean tryReserve(World world, int n, long l) {
-        if (world == null || n <= 0) {
+        if (world == null || n < 0) {
+            return false;
+        }
+        Entity target = world.getEntityByID(n);
+        if (target == null || target.isDead) {
             return false;
         }
         WorldTracks worldTracks = MissileTrackingService.getWorldTracks(world);
         long l2 = world.getTotalWorldTime();
+        // Local launchers can acquire a target before the next radar refresh.
+        LauncherStation station=worldTracks.launchers.get(l);
+        if(station!=null && !com.wartec.wartecmod.port.planning.DefenseDoctrine.allowed(world,l,new Vec3d(station.x,station.y,station.z),station.team,target))return false;
+        // Keep its track alive so another launcher cannot expire this reservation.
+        Track targetTrack = MissileTrackingService.getOrCreateTrack(worldTracks, target, l2);
+        MissileTrackingService.updateTrackFromEntity(targetTrack, target, l2);
         MissileTrackingService.expireReservations(world, worldTracks, l2);
         Integer n2 = n;
         Long l3 = worldTracks.blockedUntil.get(n2);
@@ -1063,12 +1177,12 @@ public final class MissileTrackingService {
         if (reservation != null && reservation.expiresAt >= l2) {
             return false;
         }
-        worldTracks.reservations.put(n2, new Reservation(l, 0, l2 + 80L));
+        worldTracks.reservations.put(n2, new Reservation(l, -1, l2 + 80L));
         return true;
     }
 
     public static void confirmReservation(World world, int n, long l, int n2) {
-        if (world == null || n <= 0) {
+        if (world == null || n < 0) {
             return;
         }
         WorldTracks worldTracks = MissileTrackingService.getWorldTracks(world);
@@ -1080,31 +1194,31 @@ public final class MissileTrackingService {
     }
 
     public static void releaseReservation(World world, int n, int n2) {
-        if (world == null || n <= 0) {
+        if (world == null || n < 0) {
             return;
         }
         WorldTracks worldTracks = MissileTrackingService.getWorldTracks(world);
         Integer n3 = n;
         Reservation reservation = worldTracks.reservations.get(n3);
-        if (reservation == null || n2 == 0 || reservation.interceptorId == 0 || reservation.interceptorId == n2) {
+        if (reservation == null || n2 < 0 || reservation.interceptorId < 0 || reservation.interceptorId == n2) {
             worldTracks.reservations.remove(n3);
         }
     }
 
     public static void releaseReservation(World world, int n, long l) {
-        if (world == null || n <= 0) {
+        if (world == null || n < 0) {
             return;
         }
         WorldTracks worldTracks = MissileTrackingService.getWorldTracks(world);
         Integer n2 = n;
         Reservation reservation = worldTracks.reservations.get(n2);
-        if (reservation != null && reservation.ownerKey == l && reservation.interceptorId == 0) {
+        if (reservation != null && reservation.ownerKey == l && reservation.interceptorId < 0) {
             worldTracks.reservations.remove(n2);
         }
     }
 
     public static void deferTarget(World world, int n) {
-        if (world == null || n <= 0 || world.isRemote) {
+        if (world == null || n < 0 || world.isRemote) {
             return;
         }
         WorldTracks worldTracks = MissileTrackingService.getWorldTracks(world);
@@ -1113,7 +1227,7 @@ public final class MissileTrackingService {
 
     private static void deferTarget(World world, WorldTracks worldTracks, Integer n) {
         long l = world.getTotalWorldTime();
-        long l2 = 40L + (long)world.rand.nextInt(21);
+        long l2 = 4L;
         Long l3 = worldTracks.blockedUntil.get(n);
         long l4 = l + l2;
         if (l3 == null || l3 < l4) {
@@ -1124,6 +1238,10 @@ public final class MissileTrackingService {
     }
 
     private static Threat evaluateThreat(Track track, double d, double d2, long l) {
+        return evaluateThreat(track,d,d2,l,192);
+    }
+
+    private static Threat evaluateThreat(Track track, double d, double d2, long l,double protectedRadius) {
         boolean bl;
         double d3;
         double d4;
@@ -1136,7 +1254,7 @@ public final class MissileTrackingService {
         if (track.explicitLaunch && !track.team.isEmpty() && d7 <= 110.0)
             return new Threat(true,true,0.0,d7);
         double d8 = 36864.0;
-        if (track.targetKnown && (d4 = (double)track.targetX - d) * d4 + (d3 = (double)track.targetZ - d2) * d3 <= d8) {
+        if (track.targetKnown && (d4 = (double)track.targetX - d) * d4 + (d3 = (double)track.targetZ - d2) * d3 <= protectedRadius*protectedRadius) {
             return new Threat(true, true, 0.0, 0.0);
         }
         d4 = track.velocityX;
@@ -1158,7 +1276,7 @@ public final class MissileTrackingService {
         double d13 = d6 + d3 * d11;
         double d14 = Math.sqrt(d12 * d12 + d13 * d13);
         boolean bl3 = d7 <= 110.0 && !bl;
-        boolean bl4 = bl3 || !bl && d14 <= 192.0;
+        boolean bl4 = bl3 || !bl && d14 <= protectedRadius;
         boolean bl5 = bl3 || d11 <= 20.0;
         return bl4 ? new Threat(true, bl5, d11, d14) : Threat.NONE;
     }
@@ -1276,6 +1394,7 @@ public final class MissileTrackingService {
     }
 
     private static void readCoordinates(Track track, Entity entity) {
+        if(entity instanceof EntityStrategicMissile){EntityStrategicMissile missile=(EntityStrategicMissile)entity;track.targetKnown=true;track.targetX=(int)Math.floor(missile.getTargetX());track.targetZ=(int)Math.floor(missile.getTargetZ());return;}
         if(entity instanceof EntityCustomCruise) {
             Vec3d strike=((EntityCustomCruise)entity).getTrackedStrikeTarget();
             track.targetKnown=strike!=null;
@@ -1353,7 +1472,15 @@ public final class MissileTrackingService {
     }
 
     private static int getTargetTier(Entity entity) {
+        if(entity instanceof com.wartec.wartecmod.port.entity.EntitySiloInterceptor)return 0;
         if (StrategicFeature.isDisabledEntity(entity)) return 0;
+        if(entity instanceof EntityStrategicMissile && ((EntityStrategicMissile)entity).isFallingDebris()) return 0;
+        // Terminal vehicles have already flown their boost phase; no new 50-tick blind period.
+        if(entity instanceof EntityStrategicMissile && !entity.isDead) {
+            EntityStrategicMissile strategic=(EntityStrategicMissile)entity;
+            int tier=strategic.getStrategicSystem().getDefenseTier();
+            return strategic.isReentryVehicle()?tier:applyRadarActivationEnvelope(entity,tier);
+        }
         int n;
         String string;
         if (entity == null || entity.isDead) {
@@ -1370,6 +1497,14 @@ public final class MissileTrackingService {
             return MissileTrackingService.isHbmHeavyArtilleryRocket(entity) ? 2 : 1;
         }
         if (entity instanceof EntityWarTechMissile) {
+            com.wartec.wartecmod.port.entity.ModernMissileProfile modern=com.wartec.wartecmod.port.entity.ModernMissileProfile.of(((EntityWarTechMissile)entity).getMissileProfile());
+            if(modern!=null) {
+                if(((EntityWarTechMissile)entity).getTargetType()==IRadarDetectable.RadarTargetType.PLAYER) return 0;
+                return modern==com.wartec.wartecmod.port.entity.ModernMissileProfile.FP7
+                    || modern==com.wartec.wartecmod.port.entity.ModernMissileProfile.HIMARS?2:1;
+            }
+            if(((EntityWarTechMissile)entity).getMissileProfile()==com.wartec.wartecmod.port.content.MissileProfile.ISKANDER)
+                return ((EntityWarTechMissile)entity).getFlightStage()==3?0:com.wartec.wartecmod.port.entity.StrategicSystemProfile.ISKANDER.getDefenseTier();
             FlightFamily family = ((EntityWarTechMissile) entity)
                     .getMissileSpecification().getFlightFamily();
             if (family == FlightFamily.HYPERSONIC) {
@@ -1502,17 +1637,26 @@ public final class MissileTrackingService {
     }
 
     public static boolean holdReservation(World world, int n, long l) {
-        if (world == null || n <= 0) {
+        if (world == null || n < 0) {
             return false;
         }
         WorldTracks worldTracks = MissileTrackingService.getWorldTracks(world);
         Reservation reservation = worldTracks.reservations.get(n);
-        if (reservation == null || reservation.ownerKey != l || reservation.interceptorId != 0) {
+        if (reservation == null || reservation.ownerKey != l || reservation.interceptorId >= 0) {
             return false;
         }
+        LauncherStation station=worldTracks.launchers.get(l);
+        if(station!=null && !com.wartec.wartecmod.port.planning.DefenseDoctrine.allowed(world,l,new Vec3d(station.x,station.y,station.z),station.team,world.getEntityByID(n)))return false;
         reservation.expiresAt = world.getTotalWorldTime() + 160L;
         return true;
     }
+
+    public static NBTTagCompound reservationInfo(World world,int target){
+        NBTTagCompound n=new NBTTagCompound();if(world==null)return n;
+        Reservation r=getWorldTracks(world).reservations.get(target);
+        if(r!=null && r.expiresAt>=world.getTotalWorldTime()){n.setLong("Owner",r.ownerKey);n.setInteger("Interceptor",r.interceptorId);n.setBoolean("Assigned",true);}return n;
+    }
+    public static boolean threatensBattery(World world,int target,Vec3d origin,double range){if(world==null)return false;Track track=getWorldTracks(world).tracks.get(target);return track!=null && evaluateThreat(track,origin.x,origin.z,world.getTotalWorldTime(),Math.max(192,range)).threatening;}
 
     private static int applyRadarActivationEnvelope(Entity entity, int n) {
         int n2;
@@ -1548,16 +1692,16 @@ public final class MissileTrackingService {
             Map.Entry<Integer, Reservation> entry = iterator.next();
             Reservation reservation = entry.getValue();
             Track track = worldTracks.tracks.get(entry.getKey());
-            boolean bl2 = track == null || track.entity.isDead;
-            Entity entity = reservation.interceptorId == 0
+            boolean bl2 = track == null || getThreatTier(track.entity)==0;
+            Entity entity = reservation.interceptorId < 0
                     ? null : world.getEntityByID(reservation.interceptorId);
-            boolean bl3 = reservation.interceptorId != 0
+            boolean bl3 = reservation.interceptorId >= 0
                     && (entity == null || entity.isDead);
             boolean expired = reservation.expiresAt < l;
             if (!expired && !bl2 && !bl3) continue;
             iterator.remove();
             if (bl2 || !expired && !bl3) continue;
-            long l2 = 40L + (long)world.rand.nextInt(21);
+            long l2 = 4L;
             worldTracks.blockedUntil.put(entry.getKey(), l + l2);
             System.out.println("[WarTec PVO] Lost interceptor; retry for target "
                     + entry.getKey() + " delayed by " + l2 + " ticks");
@@ -1572,7 +1716,22 @@ public final class MissileTrackingService {
         }
     }
 
+    public static void updatePlanningHubs(World world,java.util.Set<String> scopes){WorldTracks tracks=getWorldTracks(world);tracks.planningHubs.clear();tracks.planningHubs.addAll(scopes);tracks.hubsUpdated=world.getTotalWorldTime();}
+    public static boolean hasPlanningHub(World world,String scope){WorldTracks tracks=getWorldTracks(world);return world.getTotalWorldTime()-tracks.hubsUpdated<=40 && tracks.planningHubs.contains(scope);}
+    private static boolean hubLink(WorldTracks tracks,double x,double y,double z,double tx,double ty,double tz,String team,long now,double range){
+        if(now-tracks.hubsUpdated>40 || team.isEmpty() || !tracks.planningHubs.contains("team:"+normalizeTeam(team)))return false;
+        boolean first=false,second=false;
+        for(CommandStation c:tracks.commands.values())if(now-c.lastUpdate<=40 && normalizeTeam(team).equals(normalizeTeam(c.team))){
+            first|=localEndpoint(tracks,x,y,z,c,team,now,range);second|=localEndpoint(tracks,tx,ty,tz,c,team,now,range);
+            if(first && second)return true;
+        }return false;
+    }
+    private static boolean localEndpoint(WorldTracks tracks,double x,double y,double z,CommandStation c,String team,long now,double range){
+        if(distanceSquared(x,y,z,c.x,c.y,c.z)<=Math.max(900,range)*Math.max(900,range))return true;
+        for(CommunicationRelay relay:collectReachableRelays(tracks,x,y,z,team,now))if(distanceSquared(relay.x,relay.y,relay.z,c.x,c.y,c.z)<=5760000)return true;return false;
+    }
     private static final class WorldTracks {
+        final java.util.Set<String> planningHubs=new java.util.HashSet<>();long hubsUpdated=-100;
         final Map<Integer, Track> tracks = new HashMap<Integer, Track>();
         final Map<Integer, Reservation> reservations = new HashMap<Integer, Reservation>();
         final Map<Integer, Long> blockedUntil = new HashMap<Integer, Long>();

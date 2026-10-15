@@ -47,6 +47,16 @@ public final class DeployableItem extends PortIntentItem {
     @Override
     public void addInformation(ItemStack stack, @Nullable World world,
             List<String> tooltip, ITooltipFlag flag) {
+        for(com.wartec.wartecmod.port.entity.TubeArtilleryProfile p:com.wartec.wartecmod.port.entity.TubeArtilleryProfile.values())if(p.item()==this){tooltip.add(net.minecraft.util.text.translation.I18n.translateToLocalFormatted("wartec.tube.tooltip",p.minimumRange,p.range,p.reloadTicks/20));tooltip.add(net.minecraft.util.text.translation.I18n.translateToLocal("wartec.tube.help"));return;}
+        for(com.wartec.wartecmod.port.entity.ModernVehicleProfile kind:com.wartec.wartecmod.port.entity.ModernVehicleProfile.values()) if(kind.deploymentItem()==this) {
+            if(kind.isMlrs()) {
+                com.wartec.wartecmod.port.entity.ModernMissileProfile missile=com.wartec.wartecmod.port.entity.ModernMissileProfile.of(((MissileItem)kind.ammunition()).getProfile());
+                tooltip.add(net.minecraft.util.text.translation.I18n.translateToLocalFormatted("wartec.modern.vehicle.mlrs",kind.slots,(int)missile.minimumRange,(int)missile.commandRange,missile.strength));
+            } else if(kind.isRadar()) tooltip.add(net.minecraft.util.text.translation.I18n.translateToLocal("wartec.modern.vehicle.sensor"));
+            else tooltip.add(net.minecraft.util.text.translation.I18n.translateToLocalFormatted("wartec.modern.vehicle.aa",kind.tier,kind.slots,kind.tier==2?250:100));
+            if(kind.ammunition()!=null) tooltip.add(net.minecraft.util.text.translation.I18n.translateToLocalFormatted("wartec.modern.vehicle.ammo",new ItemStack(kind.ammunition()).getDisplayName()));
+            tooltip.add(net.minecraft.util.text.translation.I18n.translateToLocal("wartec.modern.vehicle.controls"));return;
+        }
         String name = getRegistryName() == null
                 ? "" : getRegistryName().getResourcePath();
         if ("mq9reaperdrone".equals(name)) {

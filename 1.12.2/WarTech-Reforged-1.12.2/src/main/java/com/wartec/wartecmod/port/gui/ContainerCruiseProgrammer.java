@@ -36,7 +36,7 @@ public final class ContainerCruiseProgrammer extends Container {
     }
     @Override public boolean canInteractWith(EntityPlayer player) {
         ItemStack stack=player.inventory.getStackInSlot(missileSlot);
-        return player==owner && (missileSlot==40 || player.inventory.currentItem==missileSlot) && stack.getItem()==WarTechContent.ASSEMBLED_CRUISE && CruiseBuild.fromStack(stack).checksum()==checksum;
+        return player==owner && (missileSlot==40 || player.inventory.currentItem==missileSlot) && com.wartec.wartecmod.port.cruise.CruiseBuild.isStore(stack) && CruiseBuild.fromStack(stack).checksum()==checksum;
     }
     @Override public void onContainerClosed(EntityPlayer player) {
         super.onContainerClosed(player);

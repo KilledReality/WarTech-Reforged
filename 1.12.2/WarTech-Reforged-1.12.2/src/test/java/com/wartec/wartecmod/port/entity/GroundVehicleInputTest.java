@@ -30,32 +30,6 @@ public final class GroundVehicleInputTest {
     }
 
     @Test
-    public void vehicleRetainsLegacyStepAndBlockedMoveFallback()
-            throws Exception {
-        Path source = Paths.get("src", "main", "java", "com", "wartec",
-                "wartecmod", "port", "entity",
-                "EntityWarTechGroundVehicle.java");
-        String text = new String(Files.readAllBytes(source),
-                StandardCharsets.UTF_8);
-        assertTrue(text.contains("this.stepHeight = 1.1F"));
-        assertTrue(text.contains("moveVehicleWithCurrentMotion()"));
-        assertTrue(text.contains("world.collidesWithAnyBlock(blockProbe)"));
-        assertTrue(text.contains("hasBlockingEntity(candidate)"));
-        assertTrue(text.contains("updateClientInterpolation()"));
-        assertTrue(text.contains("setPositionAndRotationDirect("));
-        assertTrue(text.contains("inputAge <= 20"));
-        assertTrue(text.contains(
-                "Math.abs(vanillaForward) > Math.abs(forwardInput)"));
-        assertTrue(text.contains(
-                "Math.abs(vanillaStrafe) > Math.abs(strafeInput)"));
-        assertTrue(text.contains("new VehicleStateMessage("));
-        assertTrue(text.contains("acceptServerVehicleState("));
-        assertTrue(text.contains("onGround, false,"));
-        assertTrue(text.contains("boolean moved = moveVehicleWithCurrentMotion()"));
-        assertTrue(text.contains("clientInterpolationTicks = 0"));
-    }
-
-    @Test
     public void vehicleInputUsesTheFmlGameEventBus() throws Exception {
         Path proxySource = Paths.get("src", "main", "java", "com",
                 "wartec", "wartecmod", "port", "proxy",

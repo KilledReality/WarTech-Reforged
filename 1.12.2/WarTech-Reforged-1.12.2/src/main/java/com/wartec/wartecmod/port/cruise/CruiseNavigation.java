@@ -46,6 +46,9 @@ public final class CruiseNavigation {
         for(int i=0;i<128;i++) {
             if(!loaded.test(x,z)) return false;
             if(x==endX && z==endZ) return true;
+            // A ray ending exactly on a mixed-direction corner must not step
+            // past t=1 into the neighbouring chunk beyond its endpoint.
+            if(Math.min(tx,tz)>=1.0D) return loaded.test(endX,endZ);
             if(Math.abs(tx-tz)<1e-9) {
                 if(!loaded.test(x+sx,z)||!loaded.test(x,z+sz)) return false;
                 x+=sx;z+=sz;tx+=stepX;tz+=stepZ;

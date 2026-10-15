@@ -3,7 +3,7 @@
 This document records the current origin and license status of material used by
 WarTech Reforged. It is not a license for the project as a whole.
 
-## Current publication candidate — October 9, 2026
+## Current release — 2.0.0, October 15, 2026
 
 The Modular Warfare Update candidate targets Minecraft 1.12.2 with **NTM
 Community Edition 2.6.1.0** and **MixinBooter 10.7**, not the older Extended
@@ -325,6 +325,27 @@ that the project created those imported models or owns unrestricted rights.
   on October 9, 2026. External creator/source/license details were not independently
   established in this workspace; no invented attribution or blanket license is added.
 
+### User-supplied animated TEL and missile pack (local dev80)
+
+- Inputs supplied by the project owner on October 9, 2026: `Topol_With_MBR.glb`,
+  `Oreshnik_With_MBR.glb` from `MBR/mbr_fixed_v2`, `Iskander_LOD1.glb` and
+  `Iskander_Missile_LOD1.glb` from `ISKANDER/iskander_fixed_v1`, plus fitted
+  `MBR_Topol_LOD1.glb` and `MBR_Oreshnik_LOD1.glb`.
+- Original mesh geometry, normals, UV mapping, BaseColor atlases, rigid node
+  hierarchy and animation channels are retained. UV V is converted to the
+  renderer's Wavefront convention. The runtime uses BaseColor rather than PBR.
+- The accompanying asset readmes describe artistic game proportions, not
+  measured engineering dimensions. Runtime scale is expressed in Minecraft blocks.
+- Integration and distribution authorization was confirmed by the project owner;
+  external authorship and license details have not been independently established.
+  This entry grants no blanket license and does not replace source asset terms.
+- Source SHA-256: Topol assembly
+  `D7214B429A54845DB65058FD90A3A0081EC44B1AEC6BF665C5F904F74BF7BB61`,
+  Oreshnik assembly
+  `F3F401F88EA802DF43E129C485A5B19CF0DAB52216CA963E71116C8FBF0A4E53`,
+  Iskander assembly
+  `CE02F5D5677D3B5BC9C9701D90562E3D779D35FEFE8EA2D49C8FBA5582C8939E`.
+
 ## Monetization Warning
 
 The current asset set includes CC BY-NC and CC BY-NC-SA material. CurseForge or
@@ -340,3 +361,30 @@ legal determination that every donation arrangement satisfies a Creative Commons
 NonCommercial license. Creative Commons states that this assessment depends on
 the purpose and circumstances of the specific use and the applicable jurisdiction.
 
+
+## Additional supplied assets integrated after public 1.7.0
+
+The 2.0.0 CE line includes supplied animated vehicle/weapon packages for Topol-M,
+Oreshnik, Iskander, Grad, HIMARS, Uragan, Smerch, Buk-M3, Osa, 9S18, FP-5/FP-7,
+S8000 and adapted S-400/Patriot/Tor/Pantsir models. Existing named attribution
+above remains applicable wherever those source assets were reused. Added rigid
+animation adapters, game-specific launch sockets, fit corrections, ABM repaint,
+and original game integration do not replace source-asset conditions.
+
+### D-30 and CAESAR supplied model packages
+
+- Source package identifiers: `d-30-howitzer.zip`, `caesar-france.zip`.
+- Archive SHA-256: D-30 `98986E928ED2ACA8F3B6A32341D9FDB3734F0DC254DD365E73704507DD311674`;
+  CAESAR `058787D465BA2FAC9CBDBE6416C29C7DC185F8F52BDFC6D08655C6AA7A05C306`.
+- The supplied archives contain no author/license text. Creator names, source
+  URLs and a new blanket license are not inferred from filenames. The project
+  owner's distribution authorization and existing asset-specific conditions
+  must be preserved; this record does not claim an independent rights review.
+- Changes: D-30 supports aligned, rigid carriage/yaw/elevation/recoil hierarchy,
+  shield/trunnion clearance; CAESAR rotating carrier adapted for game traversal,
+  linked telescoping lifts and corrected opaque materials. Original color maps/UVs
+  retained. Separate game shell models, muzzle sockets, recoil/fire/wheel clips,
+  Minecraft conversion and server/client pose integration were added.
+
+New model packages are not represented as public-domain or universally MIT.
+The source downloads and editable BLEND files are not bundled with the mod release.

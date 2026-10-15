@@ -36,7 +36,14 @@ public enum MissileProfile {
     FRAGMENTATION("cruise_he", FlightClass.SUBSONIC, PayloadClass.HIGH_EXPLOSIVE),
     INVALID("invalid", FlightClass.INVALID, PayloadClass.INVALID),
     // Append: existing saved ordinals must never move.
-    GERAN_5("geran_5", FlightClass.LOITERING, PayloadClass.HIGH_EXPLOSIVE);
+    GERAN_5("geran_5", FlightClass.LOITERING, PayloadClass.HIGH_EXPLOSIVE),
+    FP5("fp5", FlightClass.SUBSONIC, PayloadClass.HIGH_EXPLOSIVE),
+    FP7("fp7", FlightClass.BALLISTIC, PayloadClass.HIGH_EXPLOSIVE),
+    S8000("s8000", FlightClass.SUBSONIC, PayloadClass.HIGH_EXPLOSIVE),
+    GRAD_ROCKET("grad_rocket", FlightClass.BALLISTIC, PayloadClass.HIGH_EXPLOSIVE),
+    URAGAN_ROCKET("uragan_rocket", FlightClass.BALLISTIC, PayloadClass.HIGH_EXPLOSIVE),
+    SMERCH_ROCKET("smerch_rocket", FlightClass.BALLISTIC, PayloadClass.HIGH_EXPLOSIVE),
+    HIMARS_ROCKET("himars_rocket", FlightClass.BALLISTIC, PayloadClass.HIGH_EXPLOSIVE);
 
     private final String intentPath;
     private final FlightClass flightClass;

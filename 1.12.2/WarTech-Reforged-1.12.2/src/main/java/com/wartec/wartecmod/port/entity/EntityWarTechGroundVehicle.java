@@ -5,6 +5,7 @@ import com.wartec.wartecmod.WarTechReforged;
 import com.wartec.wartecmod.port.content.ArtilleryTargetDesignatorItem;
 import com.wartec.wartecmod.port.content.ArtilleryAmmoItem;
 import com.wartec.wartecmod.port.content.HimarsAmmoItem;
+import com.wartec.wartecmod.port.content.MissileProfile;
 import com.wartec.wartecmod.port.content.PantsirAmmoBeltItem;
 import com.wartec.wartecmod.port.content.WarTechContent;
 import com.wartec.wartecmod.port.integration.AircraftCountermeasureCompat;
@@ -12,6 +13,8 @@ import com.wartec.wartecmod.port.integration.DesignatorCompat;
 import com.wartec.wartecmod.port.integration.HbmExplosionCompat;
 import com.wartec.wartecmod.port.integration.MissileChunkLoader;
 import com.wartec.wartecmod.port.integration.NetworkTeamHelper;
+import com.wartec.wartecmod.port.integration.ElectronicWarfareService;
+import com.wartec.wartecmod.port.network.FactionTerritoryData;
 import com.wartec.wartecmod.port.gui.WarTechGuiHandler;
 import com.wartec.wartecmod.port.network.MissileTrackingService;
 import com.wartec.wartecmod.port.network.VehicleStateMessage;
@@ -47,6 +50,10 @@ import net.minecraft.world.World;
 import net.minecraft.world.WorldServer;
 
 public class EntityWarTechGroundVehicle extends EntityWarTechBase {
+    private static final DataParameter<NBTTagCompound> SHORAD_POSE = EntityDataManager.createKey(EntityWarTechGroundVehicle.class,DataSerializers.COMPOUND_TAG);
+    private final ShoradAnimation shorad = new ShoradAnimation();
+    private final ShoradAnimation previousShorad = new ShoradAnimation();
+    private int shoradTarget=-1;
     private static final DataParameter<Integer> GUN_STATE =
             EntityDataManager.createKey(EntityWarTechGroundVehicle.class,
                     DataSerializers.VARINT);
@@ -84,6 +91,23 @@ public class EntityWarTechGroundVehicle extends EntityWarTechBase {
     private int lastDriverInputTick = -1;
     private double driveSpeed;
     private double steeringState;
+    private int driverSequence = -1;
+    private boolean driverBrake;
+    private boolean parkingBrake;
+    private boolean exitRequested;
+    private boolean allowingExit;
+    private java.util.UUID inputDriver;
+    private double visualCorrectionX,visualCorrectionY,visualCorrectionZ;
+    private float visualCorrectionYaw;
+    private double previousCorrectionX,previousCorrectionY,previousCorrectionZ;
+    private float previousCorrectionYaw,visualCorrectionPitch,previousCorrectionPitch;
+    private boolean localPrediction;
+    private int predictionEpoch;
+    private double wheelTravel;
+    private static final DataParameter<Float> DRIVE_SPEED = EntityDataManager.createKey(EntityWarTechGroundVehicle.class,DataSerializers.FLOAT);
+    private static final DataParameter<Float> DRIVE_STEERING = EntityDataManager.createKey(EntityWarTechGroundVehicle.class,DataSerializers.FLOAT);
+    private static final DataParameter<Boolean> PARKING_BRAKE = EntityDataManager.createKey(EntityWarTechGroundVehicle.class,DataSerializers.BOOLEAN);
+    private static final DataParameter<Integer> DRIVE_AMMO = EntityDataManager.createKey(EntityWarTechGroundVehicle.class,DataSerializers.VARINT);
     private double clientTargetX;
     private double clientTargetY;
     private double clientTargetZ;
@@ -146,13 +170,27 @@ public class EntityWarTechGroundVehicle extends EntityWarTechBase {
         dataManager.register(ARTILLERY_CRANE, 0.0F);
         dataManager.register(ARTILLERY_RECOIL, 0.0F);
         dataManager.register(ARTILLERY_WHITELIST, "");
+        dataManager.register(DRIVE_SPEED,0F);
+        dataManager.register(DRIVE_STEERING,0F);
+        dataManager.register(PARKING_BRAKE,false);
+        dataManager.register(DRIVE_AMMO,0);
+        dataManager.register(SHORAD_POSE,new NBTTagCompound());
     }
 
     @Override
     public void onUpdate() {
+        if(world.isRemote && getProfile()==WarTechEntityProfile.MOBILE_AIR_DEFENSE) {
+            previousShorad.read(shorad.write(),isDeployed());
+            shorad.read(dataManager.get(SHORAD_POSE),isDeployed());
+            if(ticksExisted<2) previousShorad.read(shorad.write(),isDeployed());
+        }
         super.onUpdate();
         if (world.isRemote) {
-            updateClientInterpolation();
+            if(!localPrediction) updateClientInterpolation();
+            previousCorrectionX=visualCorrectionX;previousCorrectionY=visualCorrectionY;previousCorrectionZ=visualCorrectionZ;
+            previousCorrectionYaw=visualCorrectionYaw;previousCorrectionPitch=visualCorrectionPitch;
+            visualCorrectionX*=.80;visualCorrectionY*=.80;visualCorrectionZ*=.80;visualCorrectionYaw*=.80F;visualCorrectionPitch*=.80F;
+            wheelTravel+=getDriveSpeed();
         }
         if (world.isRemote
                 && getProfile() == WarTechEntityProfile.MOBILE_AIR_DEFENSE) {
@@ -179,169 +217,155 @@ public class EntityWarTechGroundVehicle extends EntityWarTechBase {
     @Override
     protected void serverTick(WarTechEntityProfile profile) {
         if (profile == WarTechEntityProfile.MOBILE_AIR_DEFENSE) {
-            if (!isTor() && isDeployed() && isLegacyOperational()) {
+            if (!isTor() && isDeployed() && isLegacyOperational() && shorad.deployment==120
+                    && shoradTarget<0 && shorad.cap==0 && shorad.hold==0) {
+                gunAimYaw=shorad.yaw;gunAimPitch=shorad.pitch;
                 tickPantsirGuns();
             } else {
                 resetGunTracking();
             }
+            tickShorad();
         } else if (profile == WarTechEntityProfile.MOBILE_ARTILLERY) {
             tickMobileArtillery();
         }
-        boolean drivable = profile == WarTechEntityProfile.COMMAND_TRUCK
-                || profile == WarTechEntityProfile.MOBILE_AIR_DEFENSE
-                || profile == WarTechEntityProfile.MOBILE_ARTILLERY
-                || profile == WarTechEntityProfile.STRATEGIC_TOPOL_M
-                || profile == WarTechEntityProfile.STRATEGIC_YARS
-                || profile == WarTechEntityProfile.STRATEGIC_ORESHNIK;
-        if (!drivable) {
-            driveSpeed = 0.0D;
-            steeringState = 0.0D;
-            motionX = motionY = motionZ = 0.0D;
-            return;
+        if(!VehicleChassisProfile.isDrivable(profile)) return;
+        Entity passenger=getControllingPassenger();
+        boolean driving=passenger instanceof EntityPlayer && !passenger.isDead;
+        if(driving && !canManage((EntityPlayer)passenger))requestDriverExit();
+        java.util.UUID uuid=driving?passenger.getUniqueID():null;
+        if(!java.util.Objects.equals(uuid,inputDriver)) {
+            inputDriver=uuid;driverSequence=-1;lastDriverInputTick=-1;driverForward=driverStrafe=0;driverBrake=true;exitRequested=false;
         }
-        net.minecraft.entity.Entity passenger = getControllingPassenger();
-        if (!isDeployed()) {
-            boolean playerDriving = passenger instanceof EntityPlayer;
-            int inputAge = driverInputAge(ticksExisted, lastDriverInputTick);
-            float forwardInput = inputAge <= 20 ? driverForward : 0.0F;
-            float strafeInput = inputAge <= 20 ? driverStrafe : 0.0F;
-            if (playerDriving) {
-                EntityPlayer driver = (EntityPlayer) passenger;
-                float vanillaForward = MathHelper.clamp(
-                        driver.moveForward, -1.0F, 1.0F);
-                float vanillaStrafe = MathHelper.clamp(
-                        driver.moveStrafing, -1.0F, 1.0F);
-                if (Math.abs(vanillaForward) > Math.abs(forwardInput)) {
-                    forwardInput = vanillaForward;
-                }
-                if (Math.abs(vanillaStrafe) > Math.abs(strafeInput)) {
-                    strafeInput = vanillaStrafe;
+        boolean brake=!driving || driverInputAge(ticksExisted,lastDriverInputTick)>10 || driverBrake || exitRequested;
+        float throttle=brake?0:driverForward,turn=brake?0:driverStrafe;
+        simulateDriving(throttle,turn,brake);
+        dataManager.set(DRIVE_SPEED,(float)driveSpeed);dataManager.set(DRIVE_STEERING,(float)steeringState);
+        dataManager.set(PARKING_BRAKE,parkingBrake);
+        if(getProfile()==WarTechEntityProfile.MOBILE_AIR_DEFENSE)dataManager.set(DRIVE_AMMO,countLoadedInterceptors());
+        if(exitRequested && driving && Math.abs(driveSpeed)<.008) trySafeExit((EntityPlayer)passenger);
+        if(passenger instanceof EntityPlayerMP && ((EntityPlayerMP)passenger).connection!=null)
+            WarTechNetwork.CHANNEL.sendTo(new VehicleStateMessage(this,driverSequence),(EntityPlayerMP)passenger);
+    }
+
+    public void simulateDriving(float throttle,float turn,boolean brake) {
+        VehicleChassisProfile p=VehicleChassisProfile.of(this);
+        if(isDeployed() || isShoradMotionBlocked()) { throttle=turn=0;brake=true;driveSpeed=0; }
+        float oldYaw=rotationYaw;
+        if(onGround && !brake && !parkingBrake && !isDeployed() && !isShoradMotionBlocked())driveSpeed+=Math.sin(Math.toRadians(rotationPitch))*.004;
+        GroundVehiclePhysics.Motion next=GroundVehiclePhysics.step(p,driveSpeed,steeringState,
+                rotationYaw,throttle,turn,brake,parkingBrake,onGround);
+        next=GroundVehiclePhysics.withGrip(next,motionX,motionZ,p,isInWater()?.15:.55);
+        driveSpeed=next.speed;steeringState=next.steering;
+        motionX=next.x;motionZ=next.z;
+        motionY=Math.max(-1.2,motionY-.08);
+        double oldHeight=posY;
+        // Vanilla resolves vertical ground/slab contact. Horizontal and rotational
+        // sweeps below use the entire chassis rather than a square at its centre.
+        move(net.minecraft.entity.MoverType.SELF,0,motionY,0);
+        if(!onGround && motionY<=0)retainHullSupport(p,oldHeight);
+        if(onGround)motionY=0;else motionY*=.98;
+        int steps=Math.max(1,Math.min(8,(int)Math.ceil((Math.abs(next.speed)
+                +Math.abs(next.yaw-oldYaw)*Math.PI/180*p.length/2)/.12)));
+        boolean blocked=false;
+        for(int i=0;i<steps;i++) {
+            double x=posX+motionX/steps,z=posZ+motionZ/steps;
+            float yaw=rotationYaw+(next.yaw-oldYaw)/steps;
+            if(VehicleCollisionHull.clear(this,x,posY,z,yaw)) { setPosition(x,posY,z);rotationYaw=yaw;continue; }
+            boolean climbed=false;
+            if(onGround && Math.abs(next.speed)>.004) for(double lift:new double[]{.5,1.0}) {
+                if(lift>stepHeight)break;
+                if(VehicleCollisionHull.clear(this,posX,posY+lift,posZ,rotationYaw)
+                        && VehicleCollisionHull.clear(this,x,posY+lift,z,yaw)) {
+                    setPosition(x,posY+lift,z);rotationYaw=yaw;motionY=0;
+                    if(world.isRemote)visualCorrectionY-=lift;
+                    climbed=true;break;
                 }
             }
-            if (!playerDriving) {
-                driverForward = 0.0F;
-                driverStrafe = 0.0F;
-                forwardInput = 0.0F;
-                strafeInput = 0.0F;
+            if(!climbed) {blocked=true;break;}
+        }
+        collidedHorizontally=blocked;
+        if(blocked) {driveSpeed=0;motionX=motionZ=0;}
+        updateTerrainPitch(p);
+    }
+
+    private void retainHullSupport(VehicleChassisProfile p,double previousHeight) {
+        AxisAlignedBB footprint=VehicleCollisionHull.bounds(p,posX,previousHeight-.25,posZ,rotationYaw,.6);
+        double top=Double.NEGATIVE_INFINITY;
+        for(AxisAlignedBB box:world.getCollisionBoxes(null,footprint)) {
+            if(box.maxY>previousHeight+.02 || box.maxY<posY-.12)continue;
+            if(VehicleCollisionHull.overlaps(p,posX,box.minY-.06,posZ,rotationYaw,box.maxY-box.minY+.1,box))top=Math.max(top,box.maxY);
+        }
+        if(top>=posY && VehicleCollisionHull.clear(this,posX,top,posZ,rotationYaw)) {
+            setPosition(posX,top,posZ);onGround=true;motionY=0;
+        }
+    }
+
+    private void updateTerrainPitch(VehicleChassisProfile p) {
+        if(isDeployed() || isShoradMotionBlocked()) {rotationPitch=0;return;}
+        double front=0,back=0;int nf=0,nb=0;
+        for(int end:new int[]{-1,1}) for(int side:new int[]{-1,1}) {
+            Vec3d offset=p.offset(side*p.width*.34,0,end*p.wheelbase*.45,rotationYaw,0);
+            Vec3d top=new Vec3d(posX+offset.x,posY+1.15,posZ+offset.z);
+            net.minecraft.util.math.RayTraceResult hit=world.rayTraceBlocks(top,top.addVector(0,-2.4,0),false,true,false);
+            if(hit!=null && hit.typeOfHit==net.minecraft.util.math.RayTraceResult.Type.BLOCK) {
+                if(end==1){front+=hit.hitVec.y;nf++;}else{back+=hit.hitVec.y;nb++;}
             }
-            boolean strategic = profile == WarTechEntityProfile.STRATEGIC_TOPOL_M
-                    || profile == WarTechEntityProfile.STRATEGIC_YARS
-                    || profile == WarTechEntityProfile.STRATEGIC_ORESHNIK;
-            double forward = strategic ? 0.27D
-                    : profile == WarTechEntityProfile.MOBILE_AIR_DEFENSE
-                    ? (isTor() ? 0.42D : 0.46D)
-                    : profile == WarTechEntityProfile.MOBILE_ARTILLERY ? 0.38D : 0.36D;
-            double reverse = strategic ? 0.12D
-                    : profile == WarTechEntityProfile.MOBILE_AIR_DEFENSE
-                    ? (isTor() ? 0.20D : 0.22D)
-                    : profile == WarTechEntityProfile.MOBILE_ARTILLERY ? 0.18D : 0.17D;
-            HeavyVehicleDynamics.Motion result = HeavyVehicleDynamics.step(
-                    driveSpeed, steeringState, rotationYaw,
-                    forwardInput, strafeInput, forward, reverse,
-                    onGround, false,
-                    profile == WarTechEntityProfile.MOBILE_AIR_DEFENSE ? 1.7D : 1.0D,
-                    profile == WarTechEntityProfile.MOBILE_AIR_DEFENSE ? 0.68D : 0.38D
-            );
-            driveSpeed = result.speed;
-            steeringState = result.steering;
-            rotationYaw = result.yaw;
-            boolean commandTruck = profile == WarTechEntityProfile.COMMAND_TRUCK;
-            motionX = commandTruck ? -result.motionX : result.motionX;
-            motionZ = commandTruck ? -result.motionZ : result.motionZ;
+        }
+        float target=nf>0 && nb>0?(float)MathHelper.clamp(Math.toDegrees(Math.atan2(back/nb-front/nf,p.wheelbase*.9)),-12,12):0;
+        rotationPitch+=(target-rotationPitch)*.18F;
+    }
+
+    public double getDriveSpeed() { return world.isRemote&&!localPrediction?dataManager.get(DRIVE_SPEED):driveSpeed; }
+    public double getSteeringState() { return world.isRemote&&!localPrediction?dataManager.get(DRIVE_STEERING):steeringState; }
+    public boolean isParkingBrake() {return world.isRemote&&!localPrediction?dataManager.get(PARKING_BRAKE):parkingBrake;}
+    public int getDriveAmmo() {return dataManager.get(DRIVE_AMMO);}
+    public double getWheelTravel(float partial) {return wheelTravel+getDriveSpeed()*partial;}
+    public void setLocalPrediction(boolean value) {localPrediction=value;}
+    public boolean isLocalPrediction() {return localPrediction;}
+    public int getPredictionEpoch() {return predictionEpoch;}
+    public void predictDriverInput(float throttle,float turn,int flags) {
+        if(!world.isRemote)return;
+        if((flags&2)!=0)parkingBrake=!parkingBrake;
+        simulateDriving(throttle,turn,(flags&1)!=0);
+    }
+    public void restoreDrivingState(VehicleStateMessage state) {
+        setPosition(state.x,state.y,state.z);rotationYaw=state.yaw;rotationPitch=state.pitch;
+        motionX=state.motionX;motionY=state.motionY;motionZ=state.motionZ;
+        driveSpeed=state.speed;steeringState=state.steering;parkingBrake=state.parking;onGround=state.grounded;
+    }
+    public void correctVisualPose(double oldX,double oldY,double oldZ,float oldYaw) {
+        correctVisualPose(visualPosition(0),new Vec3d(oldX,oldY,oldZ),visualYaw(0),oldYaw,visualPitch(0),visualPitch(1));
+    }
+    public void correctVisualPose(Vec3d start,Vec3d end,float startYaw,float endYaw,float startPitch,float endPitch) {
+        double distance=distanceSq(end.x,end.z,posX,posZ)+(end.y-posY)*(end.y-posY);
+        if(distance<4 && !collidedHorizontally) {
+            visualCorrectionX=end.x-posX;visualCorrectionY=end.y-posY;visualCorrectionZ=end.z-posZ;
+            visualCorrectionYaw=MathHelper.wrapDegrees(endYaw-rotationYaw);visualCorrectionPitch=endPitch-rotationPitch;
+            // Preserve BOTH interpolation endpoints. Resetting prevPos to pos
+            // made every acknowledgement jump to the end of the current tick.
+            prevPosX=lastTickPosX=posX-(end.x-start.x);
+            prevPosY=lastTickPosY=posY-(end.y-start.y);
+            prevPosZ=lastTickPosZ=posZ-(end.z-start.z);
+            prevRotationYaw=rotationYaw-MathHelper.wrapDegrees(endYaw-startYaw);
+            prevRotationPitch=rotationPitch-(endPitch-startPitch);
         } else {
-            driveSpeed *= profile == WarTechEntityProfile.MOBILE_ARTILLERY
-                    ? 0.55D : 0.0D;
-            steeringState *= 0.72D;
-            motionX = 0.0D;
-            motionZ = 0.0D;
+            resetVisualCorrections();prevPosX=lastTickPosX=posX;prevPosY=lastTickPosY=posY;prevPosZ=lastTickPosZ=posZ;
+            prevRotationYaw=rotationYaw;prevRotationPitch=rotationPitch;
         }
-        if (!isDeployed() && passenger != null
-                && Math.abs(driveSpeed) > 0.04D
-                && ticksExisted % 24 == 0) {
-            playLegacyDriveSound(profile);
-        }
-
-        if (!this.onGround) {
-            this.motionY -= 0.08D;
-        } else if (this.motionY < 0.0D) {
-            this.motionY = 0.0D;
-        }
-        if (collidedHorizontally && onGround
-                && Math.abs(driveSpeed) > 0.04D) {
-            motionY = Math.max(motionY, 0.2D);
-        }
-        double previousY = posY;
-        boolean moved = moveVehicleWithCurrentMotion();
-        if (!moved && Math.abs(driveSpeed) > 0.002D) {
-            driveSpeed *= profile == WarTechEntityProfile.MOBILE_AIR_DEFENSE
-                    ? 0.68D : 0.38D;
-        }
-        rotationPitch = HeavyVehicleDynamics.suspensionPitch(
-                rotationPitch, posY - previousY);
-        this.motionX *= 0.72D;
-        this.motionZ *= 0.72D;
-        this.motionY *= 0.98D;
-        if (passenger instanceof EntityPlayerMP) {
-            WarTechNetwork.CHANNEL.sendTo(new VehicleStateMessage(
-                    getEntityId(), posX, posY, posZ,
-                    motionX, motionY, motionZ,
-                    rotationYaw, rotationPitch),
-                    (EntityPlayerMP) passenger);
-        }
+        previousCorrectionX=visualCorrectionX;previousCorrectionY=visualCorrectionY;previousCorrectionZ=visualCorrectionZ;
+        previousCorrectionYaw=visualCorrectionYaw;previousCorrectionPitch=visualCorrectionPitch;
     }
-
-    private boolean moveVehicleWithCurrentMotion() {
-        double desiredX = motionX;
-        double desiredZ = motionZ;
-        double startX = posX;
-        double startZ = posZ;
-        moveWithCurrentMotion();
-        if (desiredX * desiredX + desiredZ * desiredZ < 1.0E-8D) {
-            return true;
-        }
-        if (distanceSq(startX, startZ, posX, posZ) > 1.0E-10D) {
-            return true;
-        }
-
-        AxisAlignedBB candidate = getEntityBoundingBox().offset(
-                desiredX, 0.0D, desiredZ);
-        AxisAlignedBB blockProbe = new AxisAlignedBB(
-                candidate.minX + 0.01D,
-                candidate.minY + 0.05D,
-                candidate.minZ + 0.01D,
-                candidate.maxX - 0.01D,
-                candidate.maxY - 0.01D,
-                candidate.maxZ - 0.01D);
-        if (world.collidesWithAnyBlock(blockProbe)
-                || hasBlockingEntity(candidate)) {
-            return false;
-        }
-
-        setPosition(posX + desiredX, posY, posZ + desiredZ);
-        motionX = desiredX;
-        motionZ = desiredZ;
-        collidedHorizontally = false;
-        return true;
+    private void resetVisualCorrections() {
+        visualCorrectionX=visualCorrectionY=visualCorrectionZ=previousCorrectionX=previousCorrectionY=previousCorrectionZ=0;
+        visualCorrectionYaw=previousCorrectionYaw=visualCorrectionPitch=previousCorrectionPitch=0;
     }
-
-    private boolean hasBlockingEntity(AxisAlignedBB candidate) {
-        List<Entity> nearby = world.getEntitiesWithinAABBExcludingEntity(
-                this, candidate.grow(0.25D));
-        for (Entity entity : nearby) {
-            if (isRidingSameEntity(entity)) {
-                continue;
-            }
-            AxisAlignedBB box = entity.getCollisionBoundingBox();
-            if (box != null && box.intersects(candidate)) {
-                return true;
-            }
-            box = getCollisionBox(entity);
-            if (box != null && box.intersects(candidate)) {
-                return true;
-            }
-        }
-        return false;
+    public Vec3d visualPosition(float partial) {
+        return new Vec3d(prevPosX+(posX-prevPosX)*partial+previousCorrectionX+(visualCorrectionX-previousCorrectionX)*partial,
+                prevPosY+(posY-prevPosY)*partial+previousCorrectionY+(visualCorrectionY-previousCorrectionY)*partial,
+                prevPosZ+(posZ-prevPosZ)*partial+previousCorrectionZ+(visualCorrectionZ-previousCorrectionZ)*partial);
     }
+    public float visualYaw(float partial) {return prevRotationYaw+MathHelper.wrapDegrees(rotationYaw-prevRotationYaw)*partial+previousCorrectionYaw+(visualCorrectionYaw-previousCorrectionYaw)*partial;}
+    public float visualPitch(float partial) {return prevRotationPitch+(rotationPitch-prevRotationPitch)*partial+previousCorrectionPitch+(visualCorrectionPitch-previousCorrectionPitch)*partial;}
 
     private static double distanceSq(double startX, double startZ,
             double endX, double endZ) {
@@ -395,6 +419,13 @@ public class EntityWarTechGroundVehicle extends EntityWarTechBase {
                     positionIncrements, teleport);
             return;
         }
+        if(localPrediction && !teleport)return;
+        if(localPrediction && teleport) {
+            ++predictionEpoch;setPosition(x,y,z);rotationYaw=prevRotationYaw=yaw;rotationPitch=prevRotationPitch=pitch;
+            prevPosX=lastTickPosX=x;prevPosY=lastTickPosY=y;prevPosZ=lastTickPosZ=z;
+            resetVisualCorrections();
+            motionX=motionY=motionZ=driveSpeed=0;clientInterpolationTicks=0;return;
+        }
         clientTargetX = x;
         clientTargetY = y;
         clientTargetZ = z;
@@ -444,6 +475,16 @@ public class EntityWarTechGroundVehicle extends EntityWarTechBase {
 
     public int getArtilleryAmmoType() {
         return dataManager.get(ARTILLERY_AMMO_TYPE);
+    }
+    public NBTTagCompound productionChassis(){
+        NBTTagCompound n=new NBTTagCompound();
+        if(getProfile()==WarTechEntityProfile.MOBILE_ARTILLERY && getVisualVariant()==2){n.setInteger("ArtilleryAmmoType",dataManager.get(ARTILLERY_AMMO_TYPE));n.setInteger("ArtilleryAmmoCount",dataManager.get(ARTILLERY_AMMO_COUNT));}
+        return n;
+    }
+    public void restoreProductionChassis(NBTTagCompound n){
+        if(getProfile()!=WarTechEntityProfile.MOBILE_ARTILLERY || getVisualVariant()!=2)return;
+        int type=n.getInteger("ArtilleryAmmoType");int count=type>=0 && type<8?MathHelper.clamp(n.getInteger("ArtilleryAmmoCount"),0,HimarsAmmoItem.rackCapacity(type)):0;
+        dataManager.set(ARTILLERY_AMMO_TYPE,count>0?type:-1);dataManager.set(ARTILLERY_AMMO_COUNT,count);
     }
 
     public int getArtilleryAmmoCount() {
@@ -958,6 +999,74 @@ public class EntityWarTechGroundVehicle extends EntityWarTechBase {
                 + (clientGunPitch - clientPreviousGunPitch) * partialTicks;
     }
 
+    public float getShoradDeployment(float partial) {return (previousShorad.deployment+(shorad.deployment-previousShorad.deployment)*partial)/120F;}
+    public float getShoradYaw(float partial) {return interpolateAngle(previousShorad.yaw,shorad.yaw,partial);}
+    public float getShoradPitch(float partial) {return previousShorad.pitch+(shorad.pitch-previousShorad.pitch)*partial;}
+    public float getShoradRadar(float partial) {return interpolateAngle(previousShorad.radar,shorad.radar,partial);}
+    public float getShoradCap(float partial) {return (previousShorad.cap+(shorad.cap-previousShorad.cap)*partial)/12F;}
+    public int getShoradSlot() {return shorad.slot;}
+    @Override public net.minecraft.nbt.NBTTagCompound commandDefenseTelemetry(){net.minecraft.nbt.NBTTagCompound n=super.commandDefenseTelemetry();if(getProfile()==WarTechEntityProfile.MOBILE_AIR_DEFENSE){n.setInteger("Pending",shoradTarget);n.setInteger("Delay",24+12-shorad.cap);n.setString("Stage",shorad.hold>0?"exit":shorad.cap>0?"opening":shoradTarget>=0?"tracking":"guard");n.setBoolean("Deployed",getShoradDeployment(1)>=1);}return n;}
+    public boolean isShoradMotionBlocked() {return getProfile()==WarTechEntityProfile.MOBILE_AIR_DEFENSE && shorad.blocksDriving();}
+    private static float interpolateAngle(float a,float b,float t) {return LegacySamGeometry.wrap(a+LegacySamGeometry.wrap(b-a)*t);}
+    @Override protected void launchLegacyInterceptor(Entity target) {
+        if(getProfile()!=WarTechEntityProfile.MOBILE_AIR_DEFENSE) {super.launchLegacyInterceptor(target);return;}
+        if(!isDeployed() || shorad.cap>0 || shorad.hold>0 || shoradTarget>=0)return;
+        int slot=-1;
+        for(int i=0;i<(isTor()?8:12);i++) if(isRequiredInterceptor(getStackInSlot(i))) {slot=i;break;}
+        if(slot>=0) {shorad.slot=slot;shoradTarget=target.getEntityId();}
+    }
+    private void tickShorad() {
+        previousShorad.read(shorad.write(),isDeployed());
+        Vec3d sensor=getPositionVector().addVector(0,3,0);
+        int tier=isTor()?2:1;
+        if(isDeployed() && isLegacyOperational() && getLegacyFireMode()!=0 && shorad.cap==0 && shorad.hold==0) {
+            Entity tracked=legacyLaunchCooldown==0?MissileTrackingService.findLaunchThreat(world,sensor,tier,getDefenseEngagementRange(),getLauncherKey(),getOwnerTeam(),false,36,null):null;
+            if(tracked==null)tracked=MissileTrackingService.findTrackingThreat(world,sensor,tier,getDefenseEngagementRange(),getLauncherKey(),getOwnerTeam(),shoradTarget,false);
+            if(tracked!=null) {
+                int slot=-1;for(int i=0;i<(isTor()?8:12);i++) if(isRequiredInterceptor(getStackInSlot(i))) {slot=i;break;}
+                shoradTarget=slot<0?-1:tracked.getEntityId();if(slot>=0)shorad.slot=slot;
+            } else shoradTarget=-1;
+        }
+        Entity target=shoradTarget<0?null:world.getEntityByID(shoradTarget);
+        boolean tracking=target!=null && !target.isDead && isDeployed() && isLegacyOperational()
+                && getLegacyFireMode()!=0 && MissileTrackingService.getThreatTier(target)<=tier
+                && MissileTrackingService.hasDefenseContact(world,target,sensor,getOwnerTeam(),false);
+        if(!tracking) {shoradTarget=-1;target=null;}
+        boolean request=tracking && legacyLaunchCooldown==0 && getLegacyPower()>=50000 && shorad.slot>=0
+                && isRequiredInterceptor(getStackInSlot(shorad.slot))
+                && com.wartec.wartecmod.port.integration.AirDefenseFireControl.canLaunch(target,sensor,getDefenseEngagementRange(),tier,24+(12-shorad.cap));
+        Vec3d aim=tracking?com.wartec.wartecmod.port.integration.AirDefenseFireControl.lead(target,sensor,12-shorad.cap,tier):sensor;
+        float yaw=tracking?ShoradGeometry.desiredYaw(aim,getPositionVector(),rotationYaw):gunAimYaw;
+        double horizontal=tracking?Math.hypot(aim.x-posX,aim.z-posZ):1;
+        float pitch=tracking?(float)Math.toDegrees(Math.atan2(aim.y-(posY+2.625*VehicleDimensions.scale(getProfile())),Math.max(.001,horizontal)))-3:gunAimPitch;
+        pitch=MathHelper.clamp(pitch,0,65);
+        boolean release=shorad.tick(isDeployed(),yaw,pitch,request,isTor());
+        if(release && request) releaseShorad(target);
+        dataManager.set(SHORAD_POSE,shorad.write());
+    }
+    private void releaseShorad(Entity target) {
+        long key=getLauncherKey();int slot=shorad.slot;
+        if(!MissileTrackingService.tryReserve(world,target.getEntityId(),key)) {shoradTarget=-1;return;}
+        LegacySamGeometry.Shot shot=ShoradGeometry.shot(isTor(),1,shorad.yaw,shorad.pitch,slot,getPositionVector(),rotationYaw,rotationPitch);
+        EntityWarTechMissile missile=LegacyEntityFactory.missile(world,isTor()?MissileProfile.ANTI_AIR_TIER_2:MissileProfile.ANTI_AIR_TIER_1);
+        missile.setPosition(shot.origin.x,shot.origin.y,shot.origin.z);missile.setOwnerIdentity(getOwnerUuid(),getOwnerTeam());
+        missile.setVisual("missile/anti_air_tier_"+(isTor()?"2":"1"),0);
+        boolean malfunction=com.wartec.wartecmod.port.integration.VlsInterceptorGuidance.configureMobileLaunch(missile,target,isTor()?2:1,isTor());
+        missile.configureSamVisual(shot.scale,shot.direction,shot.scale[1]+.18F);
+        Vec3d motion=shot.direction.scale(.45);missile.motionX=motion.x;missile.motionY=motion.y;missile.motionZ=motion.z;
+        missile.rotationYaw=(float)Math.toDegrees(Math.atan2(motion.x,motion.z));missile.rotationPitch=(float)-Math.toDegrees(Math.atan2(motion.y,Math.hypot(motion.x,motion.z)));
+        if(MissileChunkLoader.spawnFlight(missile)) {
+            com.wartec.wartecmod.port.planning.PlanningHooks.defenseShot(world,this,missile,target);
+            if(malfunction) {MissileTrackingService.releaseReservation(world,target.getEntityId(),key);MissileTrackingService.deferTarget(world,target.getEntityId());}
+            else MissileTrackingService.confirmReservation(world,target.getEntityId(),key,missile.getEntityId());
+            com.wartec.wartecmod.port.integration.VlsInterceptorGuidance.spawnLaunchSmoke(world,shot.mouth.x,shot.mouth.y,shot.mouth.z,isTor()?2:1);
+            setInventorySlotContents(slot,ItemStack.EMPTY);setLegacyPower(getLegacyPower()-50000);
+            legacyLaunchCooldown=isTor()?(getLegacyFireMode()==2?3:8):4;
+            shorad.released(missile.getModernVisual().getInteger("ExitTicks"));markDirty();
+        } else MissileTrackingService.releaseReservation(world,target.getEntityId(),key);
+        shoradTarget=-1;
+    }
+
     private void tickPantsirGuns() {
         if (gunCooldown > 0) {
             --gunCooldown;
@@ -993,7 +1102,7 @@ public class EntityWarTechGroundVehicle extends EntityWarTechBase {
         }
 
         double dx = target.posX - posX;
-        double dy = target.posY + 0.45D - (posY + 3.15D*VehicleDimensions.scale(getProfile()));
+        double dy = target.posY + 0.45D - (posY + 2.625D*VehicleDimensions.scale(getProfile()));
         double dz = target.posZ - posZ;
         double distance = Math.sqrt(dx * dx + dy * dy + dz * dz);
         double leadTime = Math.max(0.35D, Math.min(4.0D, distance / 14.0D));
@@ -1001,15 +1110,15 @@ public class EntityWarTechGroundVehicle extends EntityWarTechBase {
         double leadY = target.posY + 0.45D + target.motionY * leadTime;
         double leadZ = target.posZ + target.motionZ * leadTime;
         dx = leadX - posX;
-        dy = leadY - (posY + 3.15D*VehicleDimensions.scale(getProfile()));
+        dy = leadY - (posY + 2.625D*VehicleDimensions.scale(getProfile()));
         dz = leadZ - posZ;
         double horizontal = Math.max(0.001D, Math.sqrt(dx * dx + dz * dz));
         float targetYaw = wrapDegrees((float) Math.toDegrees(
                 Math.atan2(-dx, dz)) - rotationYaw);
         float targetPitch = MathHelper.clamp((float) Math.toDegrees(
                 Math.atan2(dy, horizontal)), -8.0F, 78.0F);
-        gunAimYaw = approachAngle(gunAimYaw, targetYaw, 3.2F);
-        gunAimPitch = approach(gunAimPitch, targetPitch, 2.2F);
+        gunAimYaw = approachAngle(gunAimYaw, targetYaw, AirDefenseTraverse.PANTSIR_YAW);
+        gunAimPitch = approach(gunAimPitch, targetPitch, AirDefenseTraverse.PANTSIR_PITCH);
         syncGunAim();
 
         float yawError = Math.abs(wrapDegrees(targetYaw - gunAimYaw));
@@ -1069,6 +1178,7 @@ public class EntityWarTechGroundVehicle extends EntityWarTechBase {
         boolean decoyed = AircraftCountermeasureCompat.tryDecoy(target, 1);
         boolean hit = !decoyed && (tier != 1 || gunTierOneSolution)
                 && world.rand.nextDouble() < hitChance;
+        java.util.UUID reportShot=com.wartec.wartecmod.port.planning.PlanningHooks.gunBurst(this,target,consumed);
         emitGunBurst(leadX, leadY, leadZ, hit);
         if (decoyed) {
             gunHitScore = Math.max(0, gunHitScore - 1);
@@ -1083,6 +1193,7 @@ public class EntityWarTechGroundVehicle extends EntityWarTechBase {
         }
         if (gunHitScore >= requiredHits && !target.isDead) {
             destroyGunTarget(target);
+            com.wartec.wartecmod.port.planning.PlanningHooks.gunOutcome(this,reportShot,target);
         }
     }
 
@@ -1203,8 +1314,8 @@ public class EntityWarTechGroundVehicle extends EntityWarTechBase {
             clientGunBurstSerial = serial;
             return;
         }
-        clientGunYaw = approachAngle(clientGunYaw, yaw, 4.5F);
-        clientGunPitch = approach(clientGunPitch, pitch, 3.2F);
+        clientGunYaw = approachAngle(clientGunYaw, yaw, AirDefenseTraverse.PANTSIR_YAW);
+        clientGunPitch = approach(clientGunPitch, pitch, AirDefenseTraverse.PANTSIR_PITCH);
         if (serial != clientGunBurstSerial) {
             clientGunBurstSerial = serial;
             spawnClientGunBurst();
@@ -1249,11 +1360,6 @@ public class EntityWarTechGroundVehicle extends EntityWarTechBase {
         }
     }
 
-    private long getLauncherKey() {
-        return 0x4D41445300000000L
-                | (long) getEntityId() & 0xFFFFFFFFL;
-    }
-
     private static float approach(float current, float target, float rate) {
         if (current < target) {
             return Math.min(target, current + rate);
@@ -1275,6 +1381,7 @@ public class EntityWarTechGroundVehicle extends EntityWarTechBase {
 
     @Override
     public boolean processInitialInteract(EntityPlayer player, EnumHand hand) {
+        if (!world.isRemote && !canManage(player)) return true;
         if (getProfile() != WarTechEntityProfile.MOBILE_ARTILLERY) {
             return super.processInitialInteract(player, hand);
         }
@@ -1308,40 +1415,7 @@ public class EntityWarTechGroundVehicle extends EntityWarTechBase {
             }
             return true;
         }
-        if (player.isSneaking()) {
-            if (getVisualVariant() == 0) {
-                player.sendMessage(new TextComponentString(
-                        "This chassis has no artillery module."));
-                return true;
-            }
-            boolean deploy = !isDeployed();
-            setDeployed(deploy);
-            motionX = motionY = motionZ = 0.0D;
-            driveSpeed = 0.0D;
-            if (!deploy) {
-                setLegacyOperational(false);
-                artilleryTargetId = -1;
-            }
-            playArtillerySound("minecraft:block.anvil.use",
-                    0.7F, deploy ? 0.72F : 1.15F);
-            player.sendMessage(new TextComponentString(deploy
-                    ? "Artillery platform deployed."
-                    : "Artillery platform retracted."));
-            return true;
-        }
-        if (isDeployed()) {
-            player.openGui(WarTechReforged.instance,
-                    WarTechGuiHandler.GUI_MOBILE_ARTILLERY,
-                    world, getEntityId(), 0, 0);
-        } else {
-            Entity current = getControllingPassenger();
-            if (current == null || current == player) {
-                player.startRiding(this, true);
-            } else {
-                player.sendMessage(new TextComponentString(
-                        "The driver's seat is occupied."));
-            }
-        }
+        player.openGui(WarTechReforged.instance,WarTechGuiHandler.guiForEntity(this),world,getEntityId(),0,0);
         return true;
     }
 
@@ -1423,6 +1497,7 @@ public class EntityWarTechGroundVehicle extends EntityWarTechBase {
 
     @Override
     public boolean handleLegacyGuiAction(int action, EntityPlayer player) {
+        if(action>=90 && action<=93) return handleVehiclePanelAction(action,player);
         if (getProfile() != WarTechEntityProfile.MOBILE_ARTILLERY) {
             return super.handleLegacyGuiAction(action, player);
         }
@@ -1443,16 +1518,94 @@ public class EntityWarTechGroundVehicle extends EntityWarTechBase {
         return true;
     }
 
-    public void acceptDriverInput(EntityPlayer player, float forward, float strafe) {
-        if (world.isRemote || !isDrivenBy(player) || isDeployed()) return;
-        driverForward = MathHelper.clamp(forward, -1.0F, 1.0F);
-        driverStrafe = MathHelper.clamp(strafe, -1.0F, 1.0F);
-        lastDriverInputTick = ticksExisted;
+    public boolean canDriveFromPanel() { return !isDeployed() && !isShoradMotionBlocked() && !isBeingRidden(); }
+    public boolean supportsDeployment() { return getProfile()!=WarTechEntityProfile.ELECTRONIC_WARFARE && !(getProfile()==WarTechEntityProfile.MOBILE_ARTILLERY && getVisualVariant()==0); }
+    private boolean handleVehiclePanelAction(int action,EntityPlayer player) {
+        if(world.isRemote || !isUsableByPlayer(player) || (!getOwnerTeam().isEmpty() && !NetworkTeamHelper.areFriendly(getOwnerTeam(),NetworkTeamHelper.getPlayerTeam(player)))) return false;
+        if(action==90) {
+            if(!canDriveFromPanel()) return false;
+            player.closeScreen();return player.startRiding(this,true);
+        }
+        if(action==91 && supportsDeployment()) {
+            if(isBeingRidden() || Math.abs(getDriveSpeed())>.01) return false;
+            if(!isDeployed()) {
+                AxisAlignedBB box=getEntityBoundingBox();
+                if(world.getCollisionBoxes(null,new AxisAlignedBB(box.minX+.05,box.minY-.125,box.minZ+.05,box.maxX-.05,box.minY+.001,box.maxZ-.05)).isEmpty()) return false;
+                if(getProfile()==WarTechEntityProfile.COMMAND_TRUCK) {
+                    int claim=FactionTerritoryData.claimAt(world,getOwnerTeam(),posX,posZ);
+                    if(claim==FactionTerritoryData.CONFLICT || claim==FactionTerritoryData.INVALID_TEAM || claim==FactionTerritoryData.LIMIT_REACHED) return false;
+                }
+            }
+            setDeployed(!isDeployed());motionX=motionY=motionZ=driveSpeed=0;
+            if(getProfile()==WarTechEntityProfile.S400_RADAR) setLegacyEnabled(isDeployed());
+            if(!isDeployed()) {setLegacyOperational(false);artilleryTargetId=-1;}
+            return true;
+        }
+        if(getProfile()==WarTechEntityProfile.ELECTRONIC_WARFARE) {
+            if(action==92) { setLegacyEnabled(!isLegacyEnabled());if(!isLegacyEnabled()) ElectronicWarfareService.removeNode(world,getEntityId());return true; }
+            if(action==93) {setLegacySelectedPayload((getLegacySelectedPayload()+1)%4);return true;}
+        }
+        return false;
     }
-
+    public void acceptDriverInput(EntityPlayer player,float forward,float strafe) {
+        acceptDriverInput(player,forward,strafe,0,driverSequence+1);
+    }
+    public void acceptDriverInput(EntityPlayer player,float forward,float strafe,int flags,int sequence) {
+        if(world.isRemote || !isDrivenBy(player) || !canManage(player) || isDeployed()
+                || !Float.isFinite(forward) || !Float.isFinite(strafe))return;
+        if(!player.getUniqueID().equals(inputDriver)) {
+            inputDriver=player.getUniqueID();driverSequence=-1;driverForward=driverStrafe=0;exitRequested=false;
+        }
+        if(sequence<0 || sequence<=driverSequence)return;
+        driverSequence=sequence;driverForward=GroundVehiclePhysics.finiteClamp(forward);
+        driverStrafe=GroundVehiclePhysics.finiteClamp(strafe);driverBrake=(flags&1)!=0;
+        lastDriverInputTick=ticksExisted;
+        if((flags&2)!=0)parkingBrake=!parkingBrake;
+        if((flags&4)!=0) {
+            driverBrake=true;driverForward=driverStrafe=0;
+            player.openGui(WarTechReforged.instance,WarTechGuiHandler.guiForEntity(this),world,getEntityId(),0,0);
+        }
+        if((flags&8)!=0)requestDriverExit();
+    }
     public boolean isDrivenBy(EntityPlayer player) {
-        return player != null && (getControllingPassenger() == player
-                || player.getRidingEntity() == this);
+        return player!=null && player.getRidingEntity()==this && getControllingPassenger()==player;
+    }
+    public void requestDriverExit() {exitRequested=true;driverBrake=true;driverForward=driverStrafe=0;}
+    public boolean allowsImmediateExit() {return allowingExit || isDead || isDeployed() || !VehicleChassisProfile.isDrivable(getProfile());}
+    public void acceptForcedClientExit(EntityPlayer player) {
+        if(!world.isRemote)return;
+        allowingExit=true;
+        try {if(player.getRidingEntity()==this)player.dismountRidingEntity();} finally {allowingExit=false;}
+        localPrediction=false;
+    }
+    @Override protected void removePassenger(Entity passenger) {
+        super.removePassenger(passenger);
+        if(!world.isRemote && passenger instanceof EntityPlayerMP && ((EntityPlayerMP)passenger).connection!=null)
+            WarTechNetwork.CHANNEL.sendTo(new VehicleStateMessage(this,driverSequence),(EntityPlayerMP)passenger);
+        driverForward=driverStrafe=0;driverBrake=true;
+    }
+    private void trySafeExit(EntityPlayer player) {
+        VehicleChassisProfile p=VehicleChassisProfile.of(this);
+        for(double forward:new double[]{p.seatForward,0,-p.length*.55}) for(int side:new int[]{-1,1}) {
+            Vec3d off=p.offset(side*(p.width/2+.8),0,forward,rotationYaw,0);
+            Vec3d top=new Vec3d(posX+off.x,posY+3,posZ+off.z);
+            net.minecraft.util.math.RayTraceResult hit=world.rayTraceBlocks(top,top.addVector(0,-6,0),false,true,false);
+            if(hit==null || hit.typeOfHit!=net.minecraft.util.math.RayTraceResult.Type.BLOCK)continue;
+            double y=hit.hitVec.y+.02;
+            AxisAlignedBB box=new AxisAlignedBB(top.x-player.width/2,y,top.z-player.width/2,
+                    top.x+player.width/2,y+player.height,top.z+player.width/2);
+            if(!world.getCollisionBoxes(null,box).isEmpty())continue;
+            boolean busy=false;
+            for(Entity other:world.getEntitiesWithinAABBExcludingEntity(player,box)) {
+                if(other==this || other.isDead)continue;
+                if(other instanceof EntityWarTechGroundVehicle || other.canBeCollidedWith()){busy=true;break;}
+            }
+            if(busy || VehicleCollisionHull.overlaps(p,posX,posY,posZ,rotationYaw,height,box))continue;
+            allowingExit=true;
+            try {player.dismountRidingEntity();player.setPositionAndUpdate(top.x,y,top.z);} finally {allowingExit=false;}
+            exitRequested=false;parkingBrake=true;return;
+        }
+        if(ticksExisted%40==0)player.sendMessage(new net.minecraft.util.text.TextComponentTranslation("wartecmod.vehicle.exit_blocked"));
     }
 
     static int driverInputAge(int currentTick, int lastInputTick) {
@@ -1466,48 +1619,35 @@ public class EntityWarTechGroundVehicle extends EntityWarTechBase {
     public net.minecraft.entity.Entity getControllingPassenger() {
         return getPassengers().isEmpty() ? null : getPassengers().get(0);
     }
+    @Override public boolean canPassengerSteer() {
+        // Vanilla CPacketVehicleMove competes with the authoritative input/ACK
+        // protocol and lets stale client positions move the server a second time.
+        return false;
+    }
+    @Override public void setVelocity(double x,double y,double z) {
+        if(world.isRemote && localPrediction)return;
+        super.setVelocity(x,y,z);
+    }
 
     @Override
     public void updatePassenger(net.minecraft.entity.Entity passenger) {
-        if (!isPassenger(passenger)) return;
-        double yaw = Math.toRadians(rotationYaw);
-        boolean artillery =
-                getProfile() == WarTechEntityProfile.MOBILE_ARTILLERY;
-        double forward = artillery ? 3.35D
-                : getProfile() == WarTechEntityProfile.MOBILE_AIR_DEFENSE
-                        ? (isTor() ? 2.05D : 2.45D) : 1.55D;
-        double side = artillery ? 0.56D
-                : getProfile() == WarTechEntityProfile.MOBILE_AIR_DEFENSE
-                        ? (isTor() ? 0.42D : 0.48D) : 0.48D;
-        double direction = getProfile() == WarTechEntityProfile.COMMAND_TRUCK ? -1.0D : 1.0D;
-        double scale=VehicleDimensions.scale(getProfile());forward*=scale;side*=scale;
-        double x = posX + direction * (-Math.sin(yaw) * forward)
-                - Math.cos(yaw) * side;
-        double z = posZ + direction * (Math.cos(yaw) * forward)
-                - Math.sin(yaw) * side;
-        passenger.setPosition(x, posY + (artillery ? 1.08D : 0.98D)*scale
-                + passenger.getYOffset(), z);
+        if(!isPassenger(passenger))return;
+        VehicleChassisProfile p=VehicleChassisProfile.of(this);
+        Vec3d seat=p.seat(rotationYaw,rotationPitch);
+        passenger.setPosition(posX+seat.x,posY+seat.y+passenger.getYOffset(),posZ+seat.z);
+        if(passenger instanceof net.minecraft.entity.EntityLivingBase)
+            ((net.minecraft.entity.EntityLivingBase)passenger).renderYawOffset=rotationYaw+p.frontYaw;
     }
-
-    @Override
-    public double getMountedYOffset() {
-        return (getProfile() == WarTechEntityProfile.MOBILE_ARTILLERY
-                ? 1.45D : 1.3D)*VehicleDimensions.scale(getProfile());
+    @Override public double getMountedYOffset() {return VehicleChassisProfile.of(this).seatHeight;}
+    @Override public boolean canBePushed() {return false;}
+    @Override public void applyEntityCollision(Entity other) { }
+    @Override public AxisAlignedBB getCollisionBox(Entity other) {
+        return other==null || isRidingSameEntity(other)?null:other.getEntityBoundingBox();
     }
-
-    @Override
-    public boolean canBePushed() {
-        return true;
-    }
-
-    @Override
-    public AxisAlignedBB getCollisionBox(Entity entity) {
-        return entity.getEntityBoundingBox();
-    }
-
-    @Override
-    public AxisAlignedBB getCollisionBoundingBox() {
-        return getEntityBoundingBox();
+    @Override public AxisAlignedBB getCollisionBoundingBox() {return getEntityBoundingBox();}
+    @Override public AxisAlignedBB getRenderBoundingBox() {
+        if(!VehicleChassisProfile.isDrivable(getProfile()))return super.getRenderBoundingBox();
+        return VehicleCollisionHull.bounds(VehicleChassisProfile.of(this),posX,posY,posZ,rotationYaw,height).grow(1);
     }
 
     @Override
@@ -1597,7 +1737,7 @@ public class EntityWarTechGroundVehicle extends EntityWarTechBase {
         WarTechEntityProfile profile = getProfile();
         int loadedInterceptors = profile == WarTechEntityProfile.MOBILE_AIR_DEFENSE
                 ? countLoadedInterceptors() : 0;
-        if (profile == WarTechEntityProfile.MOBILE_AIR_DEFENSE) {
+        if (profile == WarTechEntityProfile.MOBILE_AIR_DEFENSE || ModernVehicleProfile.of(profile)!=null || this instanceof EntityTubeArtillery) {
             dropAllStoredItems();
         } else if (profile == WarTechEntityProfile.COMMAND_TRUCK
                 || profile == WarTechEntityProfile.RADAR_TRUCK
@@ -1649,8 +1789,10 @@ public class EntityWarTechGroundVehicle extends EntityWarTechBase {
     @Override
     protected void writeEntityToNBT(NBTTagCompound compound) {
         super.writeEntityToNBT(compound);
+        compound.setTag("ShoradPose",shorad.write());
         compound.setDouble("DriveSpeed", driveSpeed);
         compound.setDouble("SteeringState", steeringState);
+        compound.setBoolean("ParkingBrake",parkingBrake);
         compound.setFloat("ArtilleryYaw",
                 dataManager.get(ARTILLERY_YAW));
         compound.setFloat("ArtilleryPitch",
@@ -1679,8 +1821,14 @@ public class EntityWarTechGroundVehicle extends EntityWarTechBase {
     @Override
     protected void readEntityFromNBT(NBTTagCompound compound) {
         super.readEntityFromNBT(compound);
+        shorad.read(compound.getCompoundTag("ShoradPose"),isDeployed());
+        previousShorad.read(shorad.write(),isDeployed());dataManager.set(SHORAD_POSE,shorad.write());shoradTarget=-1;
         driveSpeed = compound.getDouble("DriveSpeed");
         steeringState = compound.getDouble("SteeringState");
+        if(!Double.isFinite(driveSpeed))driveSpeed=0;
+        if(!Double.isFinite(steeringState))steeringState=0;
+        parkingBrake=compound.getBoolean("ParkingBrake");
+        lastDriverInputTick=-1;driverForward=driverStrafe=0;driverBrake=true;
         dataManager.set(ARTILLERY_YAW,
                 compound.getFloat("ArtilleryYaw"));
         dataManager.set(ARTILLERY_PITCH,

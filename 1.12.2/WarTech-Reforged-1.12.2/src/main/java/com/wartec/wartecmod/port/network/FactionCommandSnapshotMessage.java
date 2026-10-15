@@ -28,23 +28,23 @@ public final class FactionCommandSnapshotMessage implements IMessage {
         double centerX = buffer.readInt();
         double centerZ = buffer.readInt();
         long generatedAt = buffer.readLong();
-        int sectorCount = Math.min(MAX_SECTORS, buffer.readUnsignedShort());
+        int sectorCount = count(buffer,MAX_SECTORS);
         FactionCommandSnapshot.Sector[] sectors =
                 new FactionCommandSnapshot.Sector[sectorCount];
         for (int index = 0; index < sectorCount; ++index) {
             sectors[index] = new FactionCommandSnapshot.Sector(
                     buffer.readInt(), buffer.readInt());
         }
-        int nodeCount = Math.min(MAX_NODES, buffer.readUnsignedShort());
+        int nodeCount = count(buffer,MAX_NODES);
         FactionCommandSnapshot.Node[] nodes =
                 new FactionCommandSnapshot.Node[nodeCount];
         for (int index = 0; index < nodeCount; ++index) {
             nodes[index] = new FactionCommandSnapshot.Node(
                     buffer.readUnsignedByte(), buffer.readLong(),
                     buffer.readInt(), buffer.readInt(), buffer.readInt(),
-                    buffer.readInt(), buffer.readUnsignedByte());
+                    buffer.readInt(), buffer.readUnsignedByte(),readString(buffer,96),buffer.readInt(),buffer.readInt(),buffer.readUnsignedByte());
         }
-        int contactCount = Math.min(MAX_CONTACTS, buffer.readUnsignedShort());
+        int contactCount = count(buffer,MAX_CONTACTS);
         FactionCommandSnapshot.Contact[] contacts =
                 new FactionCommandSnapshot.Contact[contactCount];
         for (int index = 0; index < contactCount; ++index) {
@@ -58,7 +58,7 @@ public final class FactionCommandSnapshotMessage implements IMessage {
                     buffer.readBoolean(), buffer.readBoolean());
         }
         snapshot = new FactionCommandSnapshot(team, dimension,
-                centerX, centerZ, generatedAt, sectors, nodes, contacts);
+                centerX, centerZ, generatedAt, sectors, nodes, contacts,readTerrain(buffer));
     }
 
     @Override
@@ -85,6 +85,7 @@ public final class FactionCommandSnapshotMessage implements IMessage {
             buffer.writeInt(floor(node.z));
             buffer.writeInt(node.value);
             buffer.writeByte(node.band);
+            writeString(buffer,node.system,96);buffer.writeInt(node.range);buffer.writeInt(node.ammo);buffer.writeByte(node.status);
         }
         int contactCount = Math.min(MAX_CONTACTS, snapshot.contacts.length);
         buffer.writeShort(contactCount);
@@ -104,14 +105,29 @@ public final class FactionCommandSnapshotMessage implements IMessage {
             buffer.writeBoolean(contact.assigned);
             buffer.writeBoolean(contact.friendly);
         }
+        FactionCommandSnapshot.Terrain terrain=snapshot.terrain;
+        buffer.writeDouble(terrain.x);buffer.writeDouble(terrain.z);buffer.writeInt(terrain.radius);
+        int size=terrain.colors.length==FactionCommandSnapshot.Terrain.WIDTH*FactionCommandSnapshot.Terrain.HEIGHT?terrain.colors.length:0;
+        buffer.writeShort(size);for(int i=0;i<size;i++) buffer.writeInt(terrain.colors[i]);
     }
 
+    public FactionCommandSnapshot getSnapshot() { return snapshot; }
+    private static int count(ByteBuf buffer,int maximum) {
+        int count=buffer.readUnsignedShort();if(count>maximum) throw new IllegalArgumentException("Command packet count exceeds limit");return count;
+    }
+    private static FactionCommandSnapshot.Terrain readTerrain(ByteBuf buffer) {
+        double x=buffer.readDouble(),z=buffer.readDouble();int radius=buffer.readInt();
+        int size=count(buffer,FactionCommandSnapshot.Terrain.WIDTH*FactionCommandSnapshot.Terrain.HEIGHT);
+        if(size!=0 && size!=FactionCommandSnapshot.Terrain.WIDTH*FactionCommandSnapshot.Terrain.HEIGHT || radius<64 || radius>16384 || !Double.isFinite(x) || !Double.isFinite(z)) throw new IllegalArgumentException("Invalid command map");
+        int[] colors=new int[size];for(int i=0;i<size;i++) colors[i]=buffer.readInt();
+        return new FactionCommandSnapshot.Terrain(x,z,radius,colors);
+    }
     private static int floor(double value) {
         return (int) Math.floor(value);
     }
 
     private static String readString(ByteBuf buffer, int maximum) {
-        int length = Math.min(maximum, buffer.readUnsignedShort());
+        int length = count(buffer,maximum);
         byte[] bytes = new byte[length];
         buffer.readBytes(bytes);
         return new String(bytes, StandardCharsets.UTF_8);
@@ -121,6 +137,7 @@ public final class FactionCommandSnapshotMessage implements IMessage {
         byte[] bytes = (value == null ? "" : value)
                 .getBytes(StandardCharsets.UTF_8);
         int length = Math.min(maximum, bytes.length);
+        while(length>0 && length<bytes.length && (bytes[length]&0xC0)==0x80) length--;
         buffer.writeShort(length);
         buffer.writeBytes(bytes, 0, length);
     }

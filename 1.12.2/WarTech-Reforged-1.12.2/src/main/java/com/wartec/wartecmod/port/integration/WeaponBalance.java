@@ -5,8 +5,11 @@ import com.wartec.wartecmod.port.uav.UavAirframe;
 
 /** Minecraft units only: distance in blocks, speed in blocks/tick, blast strength is NOT radius. */
 public final class WeaponBalance {
+    public static final float ISKANDER_BLAST_STRENGTH=28F;
     private WeaponBalance() { }
     public static double missileRange(MissileProfile profile) {
+        com.wartec.wartecmod.port.entity.ModernMissileProfile modern=com.wartec.wartecmod.port.entity.ModernMissileProfile.of(profile);
+        if(modern!=null) return modern.commandRange;
         switch (profile) {
             case GERAN_2: case GERAN_5: return 1800;
             case ANTI_RADIATION: return 3000;

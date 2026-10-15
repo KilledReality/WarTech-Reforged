@@ -104,7 +104,7 @@ public final class VlsInterceptorGuidance {
         }
 
         Entity target = world.getEntityByID(targetId);
-        if (!isValidTarget(target) || NetworkTeamHelper.isFriendly(interceptor.getOwnerTeam(),target)) {
+        if (!isValidTarget(target) || getTargetTier(target)>=4 || NetworkTeamHelper.isFriendly(interceptor.getOwnerTeam(),target)) {
             MissileTrackingService.releaseReservation(world, targetId,
                     interceptor.getEntityId());
             beginAbort(world, interceptor, tier, targetId,
@@ -125,11 +125,12 @@ public final class VlsInterceptorGuidance {
                 successfulIntercept(world,interceptor,target);return;
             }
         }
+        Vec3d departureMotion=new Vec3d(interceptor.motionX,interceptor.motionY,interceptor.motionZ);
         int targetTier = getTargetTier(target);
         double speed = getInterceptorSpeed(tier, targetTier, target);
         boolean artilleryRocket = MissileTrackingService.isHbmArtilleryRocket(target);
         int verticalLaunchTicks = artilleryRocket ? 1 : tier == 1 ? 4 : 12;
-        if (interceptor.ticksExisted <= verticalLaunchTicks) {
+        if (!interceptor.hasModernVisual() && interceptor.ticksExisted <= verticalLaunchTicks) {
             interceptor.motionX *= 0.75D;
             interceptor.motionY = tier == 3 ? 2.8D : tier == 2 ? 2.4D : 2.2D;
             interceptor.motionZ *= 0.75D;
@@ -176,6 +177,7 @@ public final class VlsInterceptorGuidance {
             }
         }
 
+        smoothSamDeparture(interceptor,departureMotion);
         double nextX = interceptor.posX + interceptor.motionX;
         double nextY = interceptor.posY + interceptor.motionY;
         double nextZ = interceptor.posZ + interceptor.motionZ;
@@ -232,6 +234,7 @@ public final class VlsInterceptorGuidance {
         double directionX = speed > 0.001D ? interceptor.motionX / speed : 0.0D;
         double directionY = speed > 0.001D ? interceptor.motionY / speed : 1.0D;
         double directionZ = speed > 0.001D ? interceptor.motionZ / speed : 0.0D;
+        double tail=interceptor.getModernVisual().getBoolean("SamLaunch")?interceptor.getModernVisual().getFloat("ScaleY")*.5:0;
         if (interceptor.ticksExisted <= 12) {
             for (int index = 0; index < 2; ++index) {
                 double spread = 0.09D;
@@ -239,13 +242,13 @@ public final class VlsInterceptorGuidance {
                         index == 0
                                 ? EnumParticleTypes.SMOKE_LARGE
                                 : EnumParticleTypes.SMOKE_NORMAL,
-                        interceptor.posX - interceptor.motionX * 0.18D
+                        interceptor.posX - directionX * (tail+speed*.18D)
                                 + (interceptor.world.rand.nextDouble() - 0.5D)
                                         * spread,
-                        interceptor.posY - interceptor.motionY * 0.18D
+                        interceptor.posY - directionY * (tail+speed*.18D)
                                 + (interceptor.world.rand.nextDouble() - 0.5D)
                                         * spread,
-                        interceptor.posZ - interceptor.motionZ * 0.18D
+                        interceptor.posZ - directionZ * (tail+speed*.18D)
                                 + (interceptor.world.rand.nextDouble() - 0.5D)
                                         * spread,
                         -interceptor.motionX * 0.025D,
@@ -254,7 +257,7 @@ public final class VlsInterceptorGuidance {
             }
         }
         for (int index = 0; index < 5; ++index) {
-            double offset = 0.35D + index * 0.32D;
+            double offset = tail + 0.35D + index * 0.32D;
             double spread = index == 0 ? 0.035D : 0.11D;
             interceptor.world.spawnParticle(
                     index == 0 ? EnumParticleTypes.SMOKE_LARGE : EnumParticleTypes.SMOKE_NORMAL,
@@ -318,6 +321,7 @@ public final class VlsInterceptorGuidance {
 
     private static void beginAbort(World world, EntityWarTechMissile interceptor,
             int tier, int targetId, GuidanceState guidance) {
+        Vec3d before=new Vec3d(interceptor.motionX,interceptor.motionY,interceptor.motionZ);
         double directionX = interceptor.motionX;
         double directionZ = interceptor.motionZ;
         double horizontal = Math.sqrt(
@@ -343,12 +347,15 @@ public final class VlsInterceptorGuidance {
         int delay = 55 + world.rand.nextInt(26);
         double turnRate = (world.rand.nextBoolean() ? 1.0D : -1.0D)
                 * (0.008D + world.rand.nextDouble() * 0.008D);
-        ABORT_STATES.put(interceptor,
-                new AbortState(interceptor.ticksExisted, delay, turnRate, targetId));
+        smoothSamDeparture(interceptor,before);
+        AbortState state=new AbortState(interceptor.ticksExisted,delay,turnRate,targetId);
+        state.initialMotion=before;ABORT_STATES.put(interceptor,state);
     }
 
     private static void tickAbort(World world, EntityWarTechMissile interceptor,
             int tier, AbortState abort) {
+        Vec3d before=abort.initialMotion==null?new Vec3d(interceptor.motionX,interceptor.motionY,interceptor.motionZ):abort.initialMotion;
+        abort.initialMotion=null;
         int elapsed = interceptor.ticksExisted - abort.startTick;
         double cosine = Math.cos(abort.turnRate);
         double sine = Math.sin(abort.turnRate);
@@ -359,6 +366,7 @@ public final class VlsInterceptorGuidance {
         if (elapsed > 6) {
             interceptor.motionY -= 0.08D;
         }
+        smoothSamDeparture(interceptor,before);
         double nextX = interceptor.posX + interceptor.motionX;
         double nextY = interceptor.posY + interceptor.motionY;
         double nextZ = interceptor.posZ + interceptor.motionZ;
@@ -375,6 +383,7 @@ public final class VlsInterceptorGuidance {
 
     private static void tickMalfunction(World world, EntityWarTechMissile interceptor,
             int tier) {
+        Vec3d before=new Vec3d(interceptor.motionX,interceptor.motionY,interceptor.motionZ);
         if (interceptor.ticksExisted > 12) {
             interceptor.motionY -= 0.12D;
             interceptor.motionX *= 0.995D;
@@ -382,6 +391,7 @@ public final class VlsInterceptorGuidance {
             interceptor.motionX += (world.rand.nextDouble() - 0.5D) * 0.04D;
             interceptor.motionZ += (world.rand.nextDouble() - 0.5D) * 0.04D;
         }
+        smoothSamDeparture(interceptor,before);
         double nextX = interceptor.posX + interceptor.motionX;
         double nextY = interceptor.posY + interceptor.motionY;
         double nextZ = interceptor.posZ + interceptor.motionZ;
@@ -395,6 +405,14 @@ public final class VlsInterceptorGuidance {
         interceptor.setPosition(nextX, nextY, nextZ);
         updateRotation(interceptor);
     }
+    private static void smoothSamDeparture(EntityWarTechMissile interceptor,Vec3d previous) {
+        if(interceptor.hasModernVisual() && interceptor.getModernVisual().getBoolean("Interceptor")
+                && interceptor.getModernAge()<=interceptor.getModernVisual().getInteger("ExitTicks")+16) {
+            Vec3d blended=com.wartec.wartecmod.port.entity.LegacySamGeometry.departureVelocity(previous,
+                new Vec3d(interceptor.motionX,interceptor.motionY,interceptor.motionZ));
+            interceptor.motionX=blended.x;interceptor.motionY=blended.y;interceptor.motionZ=blended.z;
+        }
+    }
 
     private static void intercept(World world, EntityWarTechMissile interceptor,
             Entity target, int interceptorTier, int targetTier) {
@@ -407,6 +425,7 @@ public final class VlsInterceptorGuidance {
     }
 
     private static void successfulIntercept(World world,EntityWarTechMissile interceptor,Entity target) {
+        com.wartec.wartecmod.port.planning.PlanningHooks.defenseOutcome(interceptor,target,true);
         double x = target.posX;
         double y = target.posY;
         double z = target.posZ;
@@ -427,6 +446,7 @@ public final class VlsInterceptorGuidance {
 
     private static void failedIntercept(World world,
             EntityWarTechMissile interceptor, Entity target,int tier) {
+        com.wartec.wartecmod.port.planning.PlanningHooks.defenseOutcome(interceptor,target,false);
         double x = interceptor.posX;
         double y = interceptor.posY;
         double z = interceptor.posZ;
@@ -613,6 +633,7 @@ public final class VlsInterceptorGuidance {
     }
 
     private static final class AbortState {
+        Vec3d initialMotion;
         final int startTick;
         final int detonationDelay;
         final double turnRate;

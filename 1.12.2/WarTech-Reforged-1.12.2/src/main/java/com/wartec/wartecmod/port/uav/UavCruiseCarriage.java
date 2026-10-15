@@ -62,15 +62,19 @@ public final class UavCruiseCarriage {
         double scale=com.wartec.wartecmod.port.entity.VehicleDimensions.uavScale(frame);
         // Scale the existing compact pylon with the carrier, not the independent store.
         double oldAttach=frame==UavAirframe.RECON?-.097:.210;
-        double clearance=frame==UavAirframe.STRIKE?(missile!=null && missile.getAirframe()==CruisePartDefinition.BODY_CLASSIC?.19:.10):0;
+        double clearance=missile!=null && missile.isS8000()?0:frame==UavAirframe.STRIKE?(missile!=null && missile.getAirframe()==CruisePartDefinition.BODY_CLASSIC?.19:.10):0;
         return attachY(frame)-Math.min(.42,(oldAttach-old-oldTop)*scale)-storeTop(missile)-clearance;
     }
     public static double attachY(UavAirframe frame) {
         return (frame==UavAirframe.RECON?-.121:.252)*com.wartec.wartecmod.port.entity.VehicleDimensions.uavScale(frame);
     }
     public static double storeTop(CruiseBuild missile) {
+        if(missile!=null && missile.isS8000()) return .313;
         return (missile!=null && missile.getAirframe()==CruisePartDefinition.BODY_CLASSIC?.266:.106)
             *CruiseAirframes.modelScale(missile==null?CruisePartDefinition.BODY_LIGHT:missile.getAirframe());
+    }
+    public static double storeBodyTop(CruiseBuild missile) {
+        return missile!=null && missile.isS8000()?.118:storeTop(missile);
     }
     public static double groundLift(CruiseBuild missile) { return missile.getAirframe()==CruisePartDefinition.BODY_CLASSIC?.40:0; }
 }

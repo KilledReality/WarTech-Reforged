@@ -1,47 +1,59 @@
-# WarTech Reforged — Modular Warfare Update
+# WarTech Reforged 2.0.0 — Combined Operations / Объединённое вооружение
+
+**Experimental / Экспериментальный релиз.** Minecraft 1.12.2, Forge 14.23.5.2860,
+HBM NTM **Community Edition 2.6.1.0**, MixinBooter 10.7, Java 8.
+Use the same 2.0.0 on server and clients. Back up worlds before updating.
 
 ## Русский
 
-Крупное обновление системы вооружения: собственные крылатые ракеты,
-расширенные возможности БПЛА и единая логика их применения с авиацией и ПВО.
+Обновление после публичной 1.7.0 объединяет уже реализованные системы:
 
-- Конструктор КР: 44 детали, 4 корпуса, 13 БЧ, сохраняемые чертежи.
-- Координатные и поисковые задания, разные головки наведения,
-  навигация по уровню оборудования и разнообразие подходов при умном залпе.
-- Наземный пуск по команде; кастомные ракеты на F-16C, Су-27, Ту-95
-  и подходящих модульных БПЛА, с ограничениями нагрузки и рубежа пуска.
-- Скачиваемые предметы-отчёты разведки и реактивная «Герань-5»
-  с ручным управлением и усиленной БЧ.
-- Пересмотр баланса, уровней сложности перехвата, последствий сбития,
-  удалённых пусков и работы вне зоны игрока; обновлённые интерфейсы и иконки.
+- Тополь-М/Орешник с холодным стартом, Искандер с двумя независимыми целями;
+  готовая подземная шахта и ПРО «Заслон-4» по Тополю/Орешнику и их блокам.
+- Град/HIMARS/Ураган/Смерч; Д-30 и CAESAR со снарядами Greg, баллистикой,
+  плавным наведением/откатом и привязкой целеуказателя; FP-5/FP-7/S8000.
+- Бук-М3, Оса, 9С18, анимированные С-400/Patriot, общая ПВО и вождение техники.
+- Штаб: три карты, девять страниц, именованные операции, мастер атаки,
+  зависимости, роли, разведка и отчётность по фактическим событиям.
+- 54 промышленные детали и 322 прямых рецепта, реальные станки HBM и JEI,
+  сохранность энергии, боезапаса, NBT и оплаченных конструкций.
+- Серверные права, защита чужих карт/команд, большие сетевые планы,
+  восстановление приказов и одиночного расхода после рестарта.
 
-**Совместимость:** Minecraft 1.12.2, Forge 14.23.5.2860,
-NTM Community Edition 2.6.1.0, MixinBooter 10.7. Не для Extended или 1.7.10.
-Экспериментальная линия: сделайте бэкап, используйте одинаковые версии на
-сервере и клиентах. Рецепты нового контента ещё не финальны.
-
-В архиве документации: `CHANGELOG.ru.md` и `GUIDE.ru.md` в
-`docs/modular-warfare/`. Распакуйте архив целиком для рабочих ссылок.
+Конструкторы КР/БПЛА, авиация, Герань-2/5, РЭБ, ESM и HARM сохраняются.
+Ярс отключён; автоматической доставки и полноценных детальных кабин нет.
+Полное survival от руды, длительная MP-кампания, нагрузка всего модпака и
+комплексная миграция пользовательского мира остаются непроверенными.
 
 ## English
 
-A major weapon-systems update: custom cruise missiles, expanded UAV
-capabilities and connected operations with aviation and air defense.
+Changes since public 1.7.0 combine implemented systems:
 
-- Cruise constructor: 44 parts, 4 bodies, 13 warheads and reusable blueprints.
-- Coordinate and search missions, different seekers, equipment-dependent
-  navigation and varied approaches during advanced group attacks.
-- Ground launch on command; custom stores for F-16C, Su-27, Tu-95 and
-  compatible modular UAVs, with payload and release-envelope restrictions.
-- Downloadable reconnaissance-report items and jet-powered Geran-5 with
-  manual piloting and a strengthened warhead.
-- Revised balance, interception difficulty, shoot-down consequences,
-  remote launch and operation away from players; refreshed interfaces and icons.
+- Cold-launched Topol-M/Oreshnik, two-target Iskander, complete underground
+  silos and Zaslon-4 ABM against Topol/Oreshnik missiles and reentry vehicles.
+- Grad/HIMARS/Uragan/Smerch; D-30/CAESAR with Greg ammunition, ballistic flight,
+  smooth aiming/recoil and designator binding; FP-5/FP-7/S8000.
+- Buk-M3, Osa, 9S18, animated S-400/Patriot, shared defense and vehicle driving.
+- Headquarters: three maps, nine workspaces, named operations, guided attacks,
+  dependencies, roles, reconnaissance and reports based on actual events.
+- 54 industrial parts, 322 direct recipes, native HBM machines and JEI,
+  preservation of power, ammunition, NBT and paid construction materials.
+- Server-side access, protected foreign maps/orders, large network plans
+  and restart recovery without duplicate launch expenditure.
 
-**Compatibility:** Minecraft 1.12.2, Forge 14.23.5.2860,
-NTM Community Edition 2.6.1.0, MixinBooter 10.7. Not for Extended or 1.7.10.
-Experimental branch: back up your world and match client/server versions.
-New-content recipes are not final.
+Cruise/UAV constructors, aviation, Geran-2/5, EW, ESM and HARM remain.
+Yars is disabled; automatic supply delivery and full detailed cabins are absent.
+Complete survival progression, long MP campaigns, full-modpack load and
+comprehensive old-user-world migration remain unverified.
 
-The documentation archive contains `CHANGELOG.en.md` and `GUIDE.en.md` under
-`docs/modular-warfare/`. Extract the whole archive to preserve working links.
+## Downloads / Файлы
+
+- `WarTech-Reforged-1.12.2-NTM-CE-2.0.0.jar` — mod only; dependencies are external.
+- `WarTech-Reforged-2.0.0-Docs-RU-EN.zip` — full manual, changes, recipes and credits.
+- `SHA256SUMS.txt` — checksums / контрольные суммы.
+- Separate RU/EN changelogs and Discord announcement files.
+
+[Руководство RU](https://github.com/KilledReality/WarTech-Reforged/blob/v2.0.0/docs/modular-warfare/GUIDE.ru.md) ·
+[Manual EN](https://github.com/KilledReality/WarTech-Reforged/blob/v2.0.0/docs/modular-warfare/GUIDE.en.md) ·
+[Validation](https://github.com/KilledReality/WarTech-Reforged/blob/v2.0.0/docs/modular-warfare/VALIDATION.md) ·
+[Credits](https://github.com/KilledReality/WarTech-Reforged/blob/v2.0.0/THIRD_PARTY_NOTICES.md)

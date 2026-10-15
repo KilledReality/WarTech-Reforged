@@ -25,6 +25,8 @@ public final class ClientUavChainTooltip {
         }
         if (!UavChainDetonator.isDetonator(event.getItemStack())) return;
         int links = UavChainDetonator.linkCount(event.getItemStack());
+        event.getToolTip().add(TextFormatting.AQUA+I18n.format("wartec.tel.chain.tooltip",com.wartec.wartecmod.port.integration.TelChainDetonator.count(event.getItemStack())));
+        event.getToolTip().add(TextFormatting.GRAY+I18n.format("wartec.tel.chain.hint"));
         event.getToolTip().add(TextFormatting.AQUA+I18n.format("cruise.chain.tooltip",com.wartec.wartecmod.port.integration.CruiseChainDetonator.count(event.getItemStack())));
         event.getToolTip().add(TextFormatting.GRAY+I18n.format("cruise.chain.hint"));
         event.getToolTip().add(TextFormatting.AQUA

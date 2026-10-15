@@ -24,6 +24,7 @@ public final class CruisePayloadEffects {
         if(world==null || world.isRemote || part==null) return;
         double x=source.posX,y=source.posY,z=source.posZ;
         float power=(float)part.getPrimary();
+        if(source instanceof com.wartec.wartecmod.port.entity.EntityCustomCruise && ((com.wartec.wartecmod.port.entity.EntityCustomCruise)source).getBuild().isS8000()) power=10;
         if(reduced) { world.createExplosion(source,x,y,z,Math.min(3,power*0.3F),true);return; }
         switch(CruiseWarheads.effect(part)) {
             case EMP:

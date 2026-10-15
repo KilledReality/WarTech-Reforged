@@ -60,6 +60,7 @@ public final class ContainerUavFabricator extends Container {
 
     @Override
     public ItemStack transferStackInSlot(EntityPlayer player, int index) {
+        if (!canInteractWith(player)) return ItemStack.EMPTY;
         if (index < 0 || index >= inventorySlots.size()) return ItemStack.EMPTY;
         Slot source = inventorySlots.get(index);
         if (source == null || !source.getHasStack()) return ItemStack.EMPTY;

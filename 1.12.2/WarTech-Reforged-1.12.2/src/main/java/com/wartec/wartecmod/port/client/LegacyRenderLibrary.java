@@ -45,7 +45,7 @@ final class LegacyRenderLibrary {
                     return size() > 256;
                 }
             };
-    static void reloadPreviews() { GUI_BOUNDS.clear(); LegacyObjModel.reloadAll(); }
+    static void reloadPreviews() { GUI_BOUNDS.clear(); LegacyObjModel.reloadAll(); AnimatedStrategicModel.reload(); AnimatedModernModel.reload(); }
     /** Prepare known inventory geometry during resource loading, never on opening a tab.
      * Uses the same render path/cache as real items, with framebuffer writes suppressed.
      * No world, entities, mission scans or new thumbnail textures are allocated. */
@@ -177,6 +177,23 @@ final class LegacyRenderLibrary {
             CruiseRenderer.renderEntity((com.wartec.wartecmod.port.entity.EntityCustomCruise) entity,yaw,pitch,partialTicks);
             GL11.glPopAttrib();GL11.glPopMatrix();return;
         }
+        if(entity instanceof com.wartec.wartecmod.port.entity.EntityTubeArtillery){TubeArtilleryRenderer.render((com.wartec.wartecmod.port.entity.EntityTubeArtillery)entity,yaw,pitch,partialTicks);GL11.glPopAttrib();GL11.glPopMatrix();return;}
+        if(entity instanceof com.wartec.wartecmod.port.entity.EntityWarTechArtilleryProjectile && ((com.wartec.wartecmod.port.entity.EntityWarTechArtilleryProjectile)entity).tubeArtilleryProfile()!=null){TubeArtilleryRenderer.shell((com.wartec.wartecmod.port.entity.EntityWarTechArtilleryProjectile)entity,yaw,pitch);GL11.glPopAttrib();GL11.glPopMatrix();return;}
+        if(entity instanceof com.wartec.wartecmod.port.entity.EntityModernVehicle) {
+            ModernModelRenderer.renderVehicle((com.wartec.wartecmod.port.entity.EntityModernVehicle)entity,yaw,pitch,partialTicks);
+            GL11.glPopAttrib();GL11.glPopMatrix();return;
+        }
+        if(entity instanceof EntityWarTechMissile) {
+            if(((EntityWarTechMissile)entity).hasModernVisual() && ((EntityWarTechMissile)entity).getModernVisual().getBoolean("Interceptor")) {
+                ModernModelRenderer.renderFittedInterceptor((EntityWarTechMissile)entity,yaw,pitch,partialTicks);
+                GL11.glPopAttrib();GL11.glPopMatrix();return;
+            }
+            com.wartec.wartecmod.port.entity.ModernMissileProfile modern=com.wartec.wartecmod.port.entity.ModernMissileProfile.of(((EntityWarTechMissile)entity).getMissileProfile());
+            if(modern!=null) {
+                ModernModelRenderer.renderMissile((EntityWarTechMissile)entity,modern,yaw,pitch,partialTicks);
+                GL11.glPopAttrib();GL11.glPopMatrix();return;
+            }
+        }
         if (entity instanceof EntityCustomUav) {
             CustomUavRenderer.renderEntity((EntityCustomUav) entity,
                     yaw, pitch, partialTicks);
@@ -188,7 +205,8 @@ final class LegacyRenderLibrary {
 
         float worldScale=com.wartec.wartecmod.port.entity.VehicleDimensions.worldScale(entity.getProfile(),visual);
         GL11.glScalef(worldScale,worldScale,worldScale);
-        if (visual.contains("storm_shadow")) {
+        if(entity instanceof com.wartec.wartecmod.port.entity.EntitySiloInterceptor){GL11.glRotatef(-yaw,0,1,0);GL11.glRotatef(pitch+90,1,0,0);GL11.glScalef(8,8,8);SiloInterceptorModel.render();if(!((com.wartec.wartecmod.port.entity.EntitySiloInterceptor)entity).isCold())CruiseExhaustRenderer.renderStrategic(entity.ticksExisted,false);
+        } else if (visual.contains("storm_shadow")) {
             renderAdvancedMissile("models/storm_shadow/storm_shadow.obj",
                     "textures/models/storm_shadow/storm_shadow.png",
                     0.010F, -90.0F, 0.37F, 2.8F, 0.0F, false, false, yaw, pitch);
@@ -288,15 +306,18 @@ final class LegacyRenderLibrary {
                     variant, yaw, pitch);
         } else if (visual.contains("strategic_topol_m")
                 || visual.contains("strategic_yars")
-                || visual.contains("strategic_oreshnik")) {
+                || visual.contains("strategic_oreshnik") || visual.contains("strategic_iskander")) {
             GL11.glRotatef(180.0F - yaw, 0.0F, 1.0F, 0.0F);
+            GL11.glRotatef(pitch,1,0,0);
             EntityStrategicTel tel = entity instanceof EntityStrategicTel
                     ? (EntityStrategicTel) entity : null;
             float erection = tel == null ? 0.0F
-                    : tel.getErectionProgress() / 100.0F;
+                    : tel.getAnimatedDeployment(partialTicks);
             boolean loaded = tel == null || tel.isMissileLoaded();
             int launchTicks = tel == null ? 0 : tel.getLaunchTicks();
-            renderStrategicTel(variant, erection, loaded, launchTicks);
+            if(tel!=null)AnimatedStrategicModel.get(tel.getStrategicSystem().getId()).setDrivingPose(tel.getWheelTravel(partialTicks),tel.getSteeringState(),tel.getStrategicSystem().getModelScale());
+            renderAnimatedTel(tel==null?StrategicSystemProfile.byOrdinal(variant):tel.getStrategicSystem(), erection,
+                    tel==null?0:tel.getVisualMissileMask(),tel==null?0:tel.getAnimatedLaunch(partialTicks),tel==null?0:tel.getLaunchSlot());
         } else if (visual.contains("mobile_radar_truck")) {
             GL11.glRotatef(180.0F - yaw, 0.0F, 1.0F, 0.0F);
             renderRadarTruck(0.009F, false,
@@ -328,14 +349,7 @@ final class LegacyRenderLibrary {
                     : vehicle.getRenderPantsirGunAimPitch(partialTicks);
             boolean gunsFiring = vehicle != null
                     && vehicle.isPantsirGunsFiring();
-            renderMobileAirDefense(variant, false,
-                    entity.isDeployed()
-                            ? (entity.ticksExisted + partialTicks) * 1.8F : 0.0F,
-                    gunYaw);
-            if (variant == 1 && gunsFiring) {
-                renderPantsirGunTracers(gunYaw, gunPitch,
-                        entity.ticksExisted + partialTicks);
-            }
+            ShoradRenderer.render(variant,vehicle,partialTicks);
         } else if (visual.contains("mobile_artillery")) {
             GL11.glTranslatef(0.0F, 0.98F, 0.0F);
             GL11.glRotatef(180.0F - yaw, 0.0F, 1.0F, 0.0F);
@@ -348,7 +362,7 @@ final class LegacyRenderLibrary {
             int stage = entity instanceof EntityWarTechMissile
                     ? ((EntityWarTechMissile) entity).getFlightStage() : 1;
             renderLegacyMissile(
-                    visual.substring("missile/".length()), yaw, pitch, stage);
+                    visual.substring("missile/".length()), yaw, pitch, stage,entity.ticksExisted+40+partialTicks);
         } else {
             renderFallbackProfile(entity.getProfile(), yaw, pitch);
         }
@@ -442,7 +456,18 @@ final class LegacyRenderLibrary {
         GL11.glPushAttrib(LEGACY_ATTRIB_MASK);
         setup();
 
-        if ("stormshadow".equals(name)) {
+        com.wartec.wartecmod.port.entity.ModernMissileProfile modern=stack.getItem() instanceof com.wartec.wartecmod.port.content.MissileItem?
+            com.wartec.wartecmod.port.entity.ModernMissileProfile.of(((com.wartec.wartecmod.port.content.MissileItem)stack.getItem()).getProfile()):null;
+        com.wartec.wartecmod.port.entity.ModernVehicleProfile modernVehicle=null;
+        for(com.wartec.wartecmod.port.entity.ModernVehicleProfile profile:com.wartec.wartecmod.port.entity.ModernVehicleProfile.values())
+            if(profile.deploymentItem()==stack.getItem()) modernVehicle=profile;
+        if(stack.getItem()==com.wartec.wartecmod.port.content.WarTechContent.D30 || stack.getItem()==com.wartec.wartecmod.port.content.WarTechContent.CAESAR){
+            TubeArtilleryRenderer.item(stack.getItem()==com.wartec.wartecmod.port.content.WarTechContent.D30?com.wartec.wartecmod.port.entity.TubeArtilleryProfile.D30:com.wartec.wartecmod.port.entity.TubeArtilleryProfile.CAESAR);
+        } else if(modernVehicle!=null) {
+            ModernModelRenderer.renderVehicleItem(modernVehicle);
+        } else if(modern!=null) {
+            ModernModelRenderer.renderItem(modern);
+        } else if ("stormshadow".equals(name)) {
             renderAdvancedInventory("models/storm_shadow/storm_shadow.obj",
                     "textures/models/storm_shadow/storm_shadow.png",
                     0.010F, 0.28F, 135.0F, 0.37F, 2.8F, 0.0F,
@@ -502,14 +527,14 @@ final class LegacyRenderLibrary {
             GL11.glRotatef(-32.0F, 0.0F, 0.0F, 1.0F);
             renderStrategicBomb(variant, inventory ? 0.42F : 0.72F);
         } else if ("topolmtel".equals(name) || "yarstel".equals(name)
-                || "oreshniktel".equals(name)) {
+                || "oreshniktel".equals(name) || "iskandertel".equals(name)) {
             applyVehicleItemTransform(type,
                     -0.30F, 0.75F,
                     0.65F, 0.35F, 0.15F, 0.11F, 0.15F);
             GL11.glRotatef(22.0F, 1.0F, 0.0F, 0.0F);
             GL11.glRotatef(138.0F, 0.0F, 1.0F, 0.0F);
             renderStrategicTel("topolmtel".equals(name) ? 0
-                    : "yarstel".equals(name) ? 1 : 2,
+                    : "yarstel".equals(name) ? 1 : "iskandertel".equals(name)?3:2,
                     0.0F, true, 0);
         } else if ("mobileradartruck".equals(name)) {
             applyVehicleItemTransform(type,
@@ -555,6 +580,11 @@ final class LegacyRenderLibrary {
             GL11.glRotatef(135.0F, 0.0F, 1.0F, 0.0F);
             GL11.glScalef(0.42F, 0.42F, 0.42F);
             renderMobileArtillery(variant, true);
+        } else if("silointerceptor".equals(name)){applyLegacyModelAngles(inventory);GL11.glRotatef(-38,0,0,1);GL11.glScalef(.42F,.42F,.42F);GL11.glTranslatef(0,-1,0);SiloInterceptorModel.render();
+        } else if ("strategicmissile".equals(name)) {
+            applyLegacyModelAngles(inventory);
+            GL11.glRotatef(-38,0,0,1);GL11.glScalef(.42F,.42F,.42F);GL11.glTranslatef(0,-1,0);
+            renderStrategicMissileModel(StrategicSystemProfile.byOrdinal(variant));
         } else if ("itemkalibrmissile".equals(name) || "itemtomahawkmissile".equals(name)
                 || "itemcj10missile".equals(name) || "itemiskandermissile".equals(name)) {
             renderLegacyMissileItem(name, type);
@@ -583,6 +613,11 @@ final class LegacyRenderLibrary {
     }
 
     static boolean isCustomItem(String path) {
+        if(path.equals("d30") || path.equals("caesar"))return true;
+        if(path.equals("grad") || path.equals("himars") || path.equals("uragan") || path.equals("smerch")
+            || path.equals("bukm3") || path.equals("osa") || path.equals("radar9s18")) return true;
+        if(path.equals("fp5missile") || path.equals("fp7missile") || path.equals("s8000missile")
+            || path.equals("gradrocket") || path.equals("uraganrocket") || path.equals("smerchrocket") || path.equals("himarsrocket")) return true;
         return path.equals("stormshadow") || path.equals("gerandrone") || path.equals("geran5drone")
                 || path.equals("antiradiationmissile") || path.equals("kh555missile")
                 || path.equals("mq9reaperdrone") || path.equals("assembleduav") || path.equals("assembledcruise")
@@ -592,8 +627,8 @@ final class LegacyRenderLibrary {
                 || path.equals("mobileradartruck") || path.equals("s400longrangeradar")
                 || path.equals("airdefensecommandtruck") || path.equals("electronicwarfareunit")
                 || path.equals("mobileairdefensesystem") || path.equals("mobileartillery")
-                || path.equals("topolmtel") || path.equals("yarstel")
-                || path.equals("oreshniktel")
+                || path.equals("iskandertel") || path.equals("topolmtel") || path.equals("yarstel")
+                || path.equals("oreshniktel") || path.equals("strategicmissile") || path.equals("silointerceptor")
                 || path.equals("itemkalibrmissile") || path.equals("itemtomahawkmissile")
                 || path.equals("itemcj10missile") || path.equals("itemiskandermissile")
                 || path.startsWith("itemmissileantiairtier") || path.equals("itemmissileasat")
@@ -626,7 +661,7 @@ final class LegacyRenderLibrary {
             renderElectronicWarfare(0, false);
         } else if (profile == WarTechEntityProfile.STRATEGIC_TOPOL_M
                 || profile == WarTechEntityProfile.STRATEGIC_YARS
-                || profile == WarTechEntityProfile.STRATEGIC_ORESHNIK) {
+                || profile == WarTechEntityProfile.STRATEGIC_ORESHNIK || profile == WarTechEntityProfile.TACTICAL_ISKANDER) {
             GL11.glRotatef(180.0F - yaw, 0.0F, 1.0F, 0.0F);
             renderStrategicTel(StrategicSystemProfile
                     .fromVehicleProfile(profile).ordinal(),
@@ -1067,36 +1102,7 @@ final class LegacyRenderLibrary {
 
     private static void renderMobileAirDefense(int variant, boolean inventory,
             float radarAngle, float gunYaw) {
-        GL11.glPushMatrix();
-        if (variant == 1) {
-            LegacyObjModel model = model("models/shorad/pantsir_s2.obj");
-            GL11.glScalef(0.65F, 0.65F, 0.65F);
-            GL11.glTranslatef(0.0F, 0.35F, -1.70F);
-            bind("textures/models/shorad/pantsir_s2.png");
-            renderParts(model, PANTSIR_STATIC);
-            GL11.glPushMatrix();
-            GL11.glTranslatef(0.0F, 3.03F, 0.56F);
-            GL11.glRotatef(-gunYaw, 0.0F, 1.0F, 0.0F);
-            GL11.glTranslatef(0.0F, -3.03F, -0.56F);
-            renderParts(model, PANTSIR_TURRET);
-            GL11.glPushMatrix();
-            GL11.glTranslatef(0.0F, 4.03F, 0.56F);
-            GL11.glRotatef(radarAngle, 0.0F, 1.0F, 0.0F);
-            GL11.glTranslatef(0.0F, -4.03F, -0.56F);
-            model.renderPart("weapon0_radar");
-            GL11.glPopMatrix();
-            GL11.glPopMatrix();
-        } else {
-            LegacyObjModel model = model("models/shorad/tor_m1.obj");
-            GL11.glRotatef(-90.0F, 1.0F, 0.0F, 0.0F);
-            GL11.glScalef(0.72F, 0.72F, 0.72F);
-            GL11.glTranslatef(0.885F, -12.943F, 2.420F);
-            for (int index = 0; index < TOR_PARTS.length; index++) {
-                bind("textures/models/shorad/" + TOR_TEXTURES[index]);
-                model.renderPart(TOR_PARTS[index]);
-            }
-        }
-        GL11.glPopMatrix();
+        ShoradRenderer.render(variant,null,0);
     }
 
     private static void renderPantsirGunTracers(float gunYaw, float gunPitch,
@@ -1304,6 +1310,13 @@ final class LegacyRenderLibrary {
 
     private static void renderLegacyMissile(
             String id, float yaw, float pitch, int stage) {
+        renderLegacyMissile(id,yaw,pitch,stage,41);
+    }
+    private static void renderLegacyMissile(String id,float yaw,float pitch,int stage,float age) {
+        if("iskander".equals(id)) {
+            GL11.glRotatef(yaw,0,1,0);GL11.glRotatef(-pitch,1,0,0);GL11.glScalef(5.7F,5.7F,5.7F);
+            AnimatedStrategicModel.get("iskander").renderDetached(StrategicSystemProfile.ISKANDER,age,stage!=3,false);return;
+        }
         GL11.glRotatef(yaw - 90.0F, 0.0F, 1.0F, 0.0F);
         GL11.glRotatef(pitch, 0.0F, 0.0F, 1.0F);
         if (id.startsWith("cruise_")) {
@@ -1316,9 +1329,6 @@ final class LegacyRenderLibrary {
         } else if ("cj10".equals(id)) {
             renderSingle("models/entity_cj10_missile.obj",
                     "textures/models/entity_cj10_missile_tex.png");
-        } else if ("iskander".equals(id)) {
-            renderSingle("models/entity_iskander_missile.obj",
-                    "textures/models/entity_iskander_missile_tex.png");
         } else if ("slbm".equals(id)) {
             renderSingle("models/entity_slbm_missile.obj",
                     "textures/models/entity_slbm_missile_tex.png");
@@ -1444,8 +1454,8 @@ final class LegacyRenderLibrary {
             renderSingle("models/entity_cj10_missile.obj",
                     "textures/models/entity_cj10_missile_tex.png");
         } else {
-            renderSingle("models/entity_iskander_missile.obj",
-                    "textures/models/entity_iskander_missile_tex.png");
+            GL11.glPushMatrix();GL11.glRotatef(-90,0,0,1);GL11.glScalef(5.7F,5.7F,5.7F);
+            AnimatedStrategicModel.get("iskander_missile").renderAll();GL11.glPopMatrix();
         }
     }
 
@@ -1480,15 +1490,15 @@ final class LegacyRenderLibrary {
             applySimpleInventoryTransform(type, -0.35F, 0.9F);
             GL11.glRotatef(25.0F, 1.0F, 0.0F, 0.0F);
             GL11.glRotatef(135.0F, 0.0F, 1.0F, 0.0F);
-            GL11.glScalef(0.075F, 0.075F, 0.075F);
-            GL11.glTranslatef(2.42275F, 0.047F, 0.0F);
+            GL11.glScalef(0.125F, 0.125F, 0.125F);
+            GL11.glRotatef(-90,0,1,0);
             renderPatriot();
         } else if ("s400launcher".equals(name)) {
             applySimpleInventoryTransform(type, -0.35F, 0.9F);
             GL11.glRotatef(25.0F, 1.0F, 0.0F, 0.0F);
             GL11.glRotatef(135.0F, 0.0F, 1.0F, 0.0F);
-            GL11.glScalef(0.0009F, 0.0009F, 0.0009F);
-            GL11.glTranslatef(0.0F, 1.9531822F, 116.85965F);
+            GL11.glScalef(0.1125F, 0.1125F, 0.1125F);
+            GL11.glRotatef(180,0,1,0);
             renderS400Launcher();
         } else if ("strategicearlywarningradar".equals(name)) {
             applySimpleInventoryTransform(type, -0.2F, 0.65F);
@@ -1514,74 +1524,22 @@ final class LegacyRenderLibrary {
     }
 
     private static void renderPatriot() {
-        LegacyObjModel model = model("models/patriot/patriot_launcher.obj");
-        bind("textures/models/patriot/mim-104_d.png");
-        model.renderPart("pac_3_laun");
-        bind("textures/models/patriot/mim-104_tractor_d.png");
-        model.renderPart("window");
-        model.renderPart("pac_3_lau0");
+        LegacySamRenderer.render(true,null,0);
     }
 
     private static void renderS400Launcher() {
-        LegacyObjModel model = model("models/s400/s400_launcher.obj");
-        bind("textures/models/s400/t_s400_rockets_01_01_a.png");
-        model.renderPart("SM_S400_VarA_01_01_Rockets_4_0");
-        model.renderPart("SM_S400_VarA_01_01_Rockets_4_1");
-        bind("textures/models/s400/t_s400_truck_01_01_a.png");
-        model.renderPart("SM_S400_VarA_01_01_Truck_1_0");
+        LegacySamRenderer.render(false,null,0);
     }
 
     private static void renderStrategicTel(int variant, float erection,
             boolean loaded, int launchTicks) {
-        StrategicSystemProfile system = StrategicSystemProfile.byOrdinal(variant);
-        float vehicleScale = system == StrategicSystemProfile.YARS ? 0.78F
-                : system == StrategicSystemProfile.ORESHNIK ? 0.72F : 0.76F;
-        float bodyR = system == StrategicSystemProfile.YARS ? 0.16F : 0.21F;
-        float bodyG = system == StrategicSystemProfile.ORESHNIK ? 0.24F : 0.28F;
-        float bodyB = system == StrategicSystemProfile.ORESHNIK ? 0.14F : 0.17F;
-        float progress = Math.max(0.0F, Math.min(1.0F, erection));
-        float angle = -90.0F * progress;
-        boolean capClosed = launchTicks < 14 || launchTicks > 72;
+        renderAnimatedTel(StrategicSystemProfile.byOrdinal(variant),erection,loaded?3:0,launchTicks,0);
+    }
 
-        GL11.glPushMatrix();
-        GL11.glScalef(vehicleScale, vehicleScale, vehicleScale);
-        GL11.glTranslatef(2.45F, 0.0F, 0.0F);
-        LegacyObjModel tel = model("models/strategic/cc0_transporter_erector.obj");
-        GL11.glDisable(GL11.GL_TEXTURE_2D);
-        renderColoredPart(tel, "chassis_body", bodyR, bodyG, bodyB);
-        renderColoredPart(tel, "chassis_dark", 0.075F, 0.085F, 0.070F);
-        renderColoredPart(tel, "chassis_glass", 0.055F, 0.105F, 0.120F);
-        renderColoredPart(tel, "wheel_tire", 0.035F, 0.037F, 0.033F);
-        renderColoredPart(tel, "wheel_hub", 0.19F, 0.21F, 0.17F);
-
-        GL11.glPushMatrix();
-        GL11.glTranslatef(6.60F, 3.05F, 0.0F);
-        GL11.glRotatef(angle, 0.0F, 0.0F, 1.0F);
-        GL11.glTranslatef(-6.60F, -3.05F, 0.0F);
-        renderColoredPart(tel, "erector_body", bodyR * 0.90F,
-                bodyG * 0.90F, bodyB * 0.90F);
-        renderColoredPart(tel, "erector_dark", 0.065F, 0.070F, 0.060F);
-        GL11.glEnable(GL11.GL_TEXTURE_2D);
-
-        float length = system == StrategicSystemProfile.TOPOL_M ? 16.1F
-                : system == StrategicSystemProfile.YARS ? 15.7F : 14.4F;
-        float radius = system == StrategicSystemProfile.ORESHNIK ? 0.64F : 0.76F;
-        GL11.glPushMatrix();
-        GL11.glTranslatef(6.45F, 4.55F, 0.0F);
-        GL11.glRotatef(90.0F, 0.0F, 0.0F, 1.0F);
-        renderCanister(radius, length, capClosed);
-        if (loaded && !capClosed && launchTicks < 44) {
-            float rise = Math.max(0.0F, launchTicks - 14) / 30.0F * 3.0F;
-            GL11.glPushMatrix();
-            GL11.glTranslatef(0.0F, 0.55F + rise, 0.0F);
-            GL11.glScalef(0.43F, 1.08F, 0.43F);
-            renderStrategicMissileModel(system);
-            GL11.glPopMatrix();
-        }
-        GL11.glPopMatrix();
-        GL11.glPopMatrix();
-        GL11.glColor4f(1.0F, 1.0F, 1.0F, 1.0F);
-        GL11.glEnable(GL11.GL_TEXTURE_2D);
+    private static void renderAnimatedTel(StrategicSystemProfile system,float deployment,int mask,float launch,int slot) {
+        if(!system.isAvailable()) return;
+        GL11.glPushMatrix();float scale=system.getModelScale();GL11.glScalef(scale,scale,scale);
+        AnimatedStrategicModel.get(system.getId()).render(system,deployment,mask,launch,slot);
         GL11.glPopMatrix();
     }
 
@@ -1659,21 +1617,19 @@ final class LegacyRenderLibrary {
         GL11.glRotatef(-yaw, 0.0F, 1.0F, 0.0F);
         GL11.glRotatef(pitch + 90.0F, 1.0F, 0.0F, 0.0F);
         boolean reentry = missile != null && missile.isReentryVehicle();
-        float scale = reentry ? 0.13F
-                : system == StrategicSystemProfile.YARS ? 0.61F
-                : system == StrategicSystemProfile.ORESHNIK ? 0.52F : 0.58F;
-        GL11.glScalef(scale, scale, scale);
-        renderStrategicMissileModel(system);
+        float scale = system.getModelScale()*(reentry?.14F:1F);
+        GL11.glScalef(scale,scale,scale);
+        if(missile!=null && missile.isSiloLaunch() && !reentry){
+            AnimatedStrategicModel.get(system.getId()+"_missile").renderAll();
+            if(!missile.isSiloCold() && !missile.isFallingDebris())CruiseExhaustRenderer.renderStrategic(missile.ticksExisted,false);
+            return;
+        }
+        AnimatedStrategicModel.get(system.getId()).renderDetached(system,missile==null?0:missile.ticksExisted+(reentry?0:system.getSeparationTick()-system.getIgnitionTick()+1),
+                missile!=null && !missile.isFallingDebris(),reentry);
     }
 
-    private static void renderStrategicMissileModel(
-            StrategicSystemProfile system) {
-        String texture = system == StrategicSystemProfile.YARS
-                ? "hbm:textures/models/missiles/missile_huge_bu.png"
-                : system == StrategicSystemProfile.ORESHNIK
-                ? "hbm:textures/models/missiles/missile_huge_cl.png"
-                : "hbm:textures/models/missiles/missile_huge.png";
-        renderSingle("hbm:models/missile_huge.obj", texture);
+    private static void renderStrategicMissileModel(StrategicSystemProfile system) {
+        if(system.isAvailable()) AnimatedStrategicModel.get(system.getId()+"_missile").renderAll();
     }
 
     static void renderBlock(String name, double x, double y, double z,
@@ -1690,7 +1646,10 @@ final class LegacyRenderLibrary {
                     "textures/models/geran/geran_catapult.png");
             if (tile != null && !tile.getStackInSlot(0).isEmpty()) {
                 GL11.glPushMatrix();
-                if(tile.getStackInSlot(0).getItem()==com.wartec.wartecmod.port.content.WarTechContent.GERAN_5_DRONE) {
+                if(tile.getStackInSlot(0).getItem()==com.wartec.wartecmod.port.content.WarTechContent.FP5_MISSILE) {
+                    GL11.glScalef(1/scale,1/scale,1/scale);GL11.glTranslated(0,1.368,.18);
+                    ModernModelRenderer.renderBody(com.wartec.wartecmod.port.entity.ModernMissileProfile.FP5,0,-12,0,1);
+                } else if(tile.getStackInSlot(0).getItem()==com.wartec.wartecmod.port.content.WarTechContent.GERAN_5_DRONE) {
                     // A low sliding cradle supports the pod and fuselage, with no
                     // changes to the user's mesh and no rail inside its wing.
                     GL11.glRotatef(-12,1,0,0);
@@ -1713,18 +1672,12 @@ final class LegacyRenderLibrary {
             GL11.glTranslated(x + 0.5D, y, z + 0.5D);
             float scale=com.wartec.wartecmod.port.entity.VehicleDimensions.blockScale(name);
             GL11.glScalef(scale,scale,scale);
-            GL11.glRotatef(90.0F, 0.0F, 1.0F, 0.0F);
-            GL11.glScalef(0.60F, 0.60F, 0.60F);
-            GL11.glTranslatef(2.42275F, 0.047F, 0.0F);
-            renderPatriot();
+            LegacySamRenderer.render(true,tile,partialTicks);
         } else if ("s400launcher".equals(name)) {
             GL11.glTranslated(x + 0.5D, y, z + 0.5D);
             float scale=com.wartec.wartecmod.port.entity.VehicleDimensions.blockScale(name);
             GL11.glScalef(scale,scale,scale);
-            GL11.glRotatef(180.0F, 0.0F, 1.0F, 0.0F);
-            GL11.glScalef(0.008F, 0.008F, 0.008F);
-            GL11.glTranslatef(0.0F, 1.9531822F, 116.85965F);
-            renderS400Launcher();
+            LegacySamRenderer.render(false,tile,partialTicks);
         } else if ("strategicearlywarningradar".equals(name)) {
             GL11.glTranslated(x + 0.5D, y, z + 0.5D);
             renderSingle("models/network/strategic_radar.obj",
@@ -1775,6 +1728,10 @@ final class LegacyRenderLibrary {
         }
         MissileItem item = (MissileItem) tile.getStackInSlot(0).getItem();
         String id = item.getProfile().getIntentPath();
+        if(item.getProfile()==com.wartec.wartecmod.port.content.MissileProfile.FP7) {
+            GL11.glPushMatrix();GL11.glTranslated(0,4.25,0);
+            ModernModelRenderer.renderBody(com.wartec.wartecmod.port.entity.ModernMissileProfile.FP7,0,-90,0,1);GL11.glPopMatrix();return;
+        }
         GL11.glPushMatrix();
         GL11.glTranslated(0.0D, 1.0D, 0.0D);
         float scale=com.wartec.wartecmod.port.entity.VehicleDimensions.missileScale(id);
@@ -1946,7 +1903,11 @@ final class LegacyRenderLibrary {
         }
     }
 
-    private static String resolveVisual(EntityWarTechBase entity) {
+    static String resolveVisual(EntityWarTechBase entity) {
+        // A TEL-created legacy entity can have no visual tag (or an old fallback).
+        // Its synced ammunition profile is authoritative, including after reload.
+        if(entity instanceof EntityWarTechMissile && ((EntityWarTechMissile)entity).getMissileProfile()==MissileProfile.ISKANDER)
+            return "missile/iskander";
         String visual = entity.getVisualId().toLowerCase(Locale.ROOT);
         if (!visual.isEmpty()) {
             return visual;
@@ -1968,6 +1929,7 @@ final class LegacyRenderLibrary {
             case MOBILE_AIR_DEFENSE: return "deployment/mobile_air_defense";
             case MOBILE_ARTILLERY: return "deployment/mobile_artillery";
             case ELECTRONIC_WARFARE: return "deployment/electronic_warfare_unit";
+            case TACTICAL_ISKANDER: return "deployment/strategic_iskander";
             case STRATEGIC_TOPOL_M: return "deployment/strategic_topol_m";
             case STRATEGIC_YARS: return "deployment/strategic_yars";
             case STRATEGIC_ORESHNIK: return "deployment/strategic_oreshnik";

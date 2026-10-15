@@ -13,9 +13,9 @@ import net.minecraft.item.ItemStack;
 public final class ContainerLegacyTile extends Container {
     private final TileEntityWarTechMachine tile;
     private final int guiId;
-    private final int[] clientFields = new int[46];
-    private final WindowPropertySync propertySync = new WindowPropertySync(46);
-    private final int[] properties = new int[46];
+    private final int[] clientFields = new int[50];
+    private final WindowPropertySync propertySync = new WindowPropertySync(50);
+    private final int[] properties = new int[50];
 
     public ContainerLegacyTile(InventoryPlayer playerInventory,
             TileEntityWarTechMachine tile, int guiId) {
@@ -31,6 +31,12 @@ public final class ContainerLegacyTile extends Container {
     }
 
     private void addLauncherSlots(InventoryPlayer inventory) {
+        if(tile.isAnimatedSam()) {
+            int[] order={0,1,3,4,5,6,7,8};
+            for(int i=0;i<order.length;i++) addSlotToContainer(new MachineSlot(tile,order[i],151+(i%4)*18,38+(i/4)*18));
+            addSlotToContainer(new BatterySlot(tile,2,290,84));
+            addPlayerSlots(inventory,8,146,204);return;
+        }
         if (tile.isVlsExhaust()) {
             int[] order = {0, 1, 3, 4, 5, 6, 7, 8, 2};
             for (int column = 0; column < 9; ++column) {
@@ -42,7 +48,7 @@ public final class ContainerLegacyTile extends Container {
             addSlotToContainer(new MachineSlot(tile, 1, 82, 39));
             addSlotToContainer(new MachineSlot(tile, 2, 136, 39));
         }
-        addPlayerSlots(inventory, 18, 120, 178);
+        addPlayerSlots(inventory, 18, tile.isAnimatedSam()?142:120, tile.isAnimatedSam()?200:178);
     }
 
     private void addPlayerSlots(InventoryPlayer inventory, int x, int y, int hotbarY) {
@@ -89,6 +95,8 @@ public final class ContainerLegacyTile extends Container {
         properties[11]=tile.isOpen()?1:0;
         properties[12]=tile.getLaunchCountdown();
         properties[13]=tile.isAlarmActive()?1:0;
+        properties[48]=tile.getSamNetworkRadars();properties[49]=tile.isSamAutoFire()?1:0;
+        properties[46]=tile.isSamEnabled()?1:0;properties[47]=Math.round(tile.getSamDeployment(1)*120);
         for (int index = 0; index < 16; ++index) {
             int packed = tile.getRadarBlip(index);
             properties[14+index*2]=packed & 65535;
@@ -107,6 +115,10 @@ public final class ContainerLegacyTile extends Container {
                     clientFields[7], clientFields[8], clientFields[9],
                     clientFields[10], clientFields[11], clientFields[12],
                     clientFields[13]);
+        } else if(id==48 || id==49) {
+            clientFields[id]=value;tile.setClientSamNetwork(clientFields[48],clientFields[49]!=0);
+        } else if(id==46 || id==47) {
+            clientFields[id]=value;tile.setClientSamState(clientFields[46]!=0,clientFields[47]);
         } else if (id >= 14 && id < 46) {
             int index = (id - 14) / 2;
             int packed = tile.getRadarBlip(index);
@@ -132,6 +144,7 @@ public final class ContainerLegacyTile extends Container {
 
     @Override
     public ItemStack transferStackInSlot(EntityPlayer player, int index) {
+        if (!canInteractWith(player)) return ItemStack.EMPTY;
         if (index < 0 || index >= inventorySlots.size()) return ItemStack.EMPTY;
         Slot slot = inventorySlots.get(index);
         if (slot == null || !slot.getHasStack()) return ItemStack.EMPTY;

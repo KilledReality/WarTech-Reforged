@@ -22,6 +22,7 @@ public final class DesignatorCompat {
     /** X/Z-only HBM designators are valid inputs; elevation is resolved on the server. */
     public static net.minecraft.util.math.Vec3d getHorizontalTarget(ItemStack stack) {
         if(!isDesignator(stack) || !stack.hasTagCompound()) return null;
+        if(stack.getItem()==WarTechContent.ARTILLERY_TARGET_DESIGNATOR){net.minecraft.util.math.Vec3d aim=artilleryAim(stack);return aim==null?null:new net.minecraft.util.math.Vec3d(aim.x,0,aim.z);}
         NBTTagCompound tag=stack.getTagCompound();
         for(String[] keys:new String[][]{{"xCoord","zCoord"},{"x","z"},{"targetX","targetZ"}}) {
             if(!tag.hasKey(keys[0],99) || !tag.hasKey(keys[1],99)) continue;
@@ -32,6 +33,7 @@ public final class DesignatorCompat {
     }
     public static boolean resolveSavedTarget(net.minecraft.world.WorldServer world,ItemStack stack,double explicitY,
             java.util.function.BooleanSupplier valid,java.util.function.Consumer<net.minecraft.util.math.Vec3d> complete) {
+        if(stack.getItem()==WarTechContent.ARTILLERY_TARGET_DESIGNATOR && stack.hasTagCompound() && stack.getTagCompound().getInteger("WarTechAimDimension")!=world.provider.getDimension())return false;
         net.minecraft.util.math.Vec3d point=getSavedTarget(world,stack,explicitY);
         if(point!=null) { if(valid.getAsBoolean()) complete.accept(point);return true; }
         net.minecraft.util.math.Vec3d horizontal=getHorizontalTarget(stack);
@@ -74,6 +76,7 @@ public final class DesignatorCompat {
     /** Complete stored coordinates only; never queries/generates a distant chunk. */
     public static net.minecraft.util.math.Vec3d getSavedTarget(ItemStack stack) {
         if(!isDesignator(stack) || !stack.hasTagCompound()) return null;
+        if(stack.getItem()==WarTechContent.ARTILLERY_TARGET_DESIGNATOR)return artilleryAim(stack);
         NBTTagCompound tag=stack.getTagCompound();
         for(String[] keys:new String[][]{{"xCoord","yCoord","zCoord"},{"x","y","z"},{"targetX","targetY","targetZ"}}) {
             if(tag.hasKey("WarTechResolvedX",99) && (tag.getDouble("WarTechResolvedX")!=tag.getDouble(keys[0])
@@ -90,6 +93,7 @@ public final class DesignatorCompat {
 
     /** HBM long-range items intentionally store X/Z only. Resolve Y without loading chunks. */
     public static net.minecraft.util.math.Vec3d getSavedTarget(World world,ItemStack stack,double explicitY) {
+        if(stack!=null && !stack.isEmpty() && stack.getItem()==WarTechContent.ARTILLERY_TARGET_DESIGNATOR){if(world!=null && stack.hasTagCompound() && stack.getTagCompound().getInteger("WarTechAimDimension")!=world.provider.getDimension())return null;return artilleryAim(stack);}
         net.minecraft.util.math.Vec3d complete=getSavedTarget(stack);
         if(complete!=null) return complete;
         if(!isDesignator(stack) || !stack.hasTagCompound()) return null;
@@ -131,5 +135,12 @@ public final class DesignatorCompat {
             }
         }
         return null;
+    }
+
+    private static net.minecraft.util.math.Vec3d artilleryAim(ItemStack stack){
+        if(stack==null || !stack.hasTagCompound())return null;NBTTagCompound n=stack.getTagCompound();
+        for(String key:new String[]{"WarTechAimX","WarTechAimY","WarTechAimZ"})if(!n.hasKey(key,99))return null;
+        double x=n.getDouble("WarTechAimX"),y=n.getDouble("WarTechAimY"),z=n.getDouble("WarTechAimZ");
+        return Double.isFinite(x) && Double.isFinite(y) && Double.isFinite(z) && Math.abs(x)<=29999984 && Math.abs(z)<=29999984 && y>=0 && y<=255?new net.minecraft.util.math.Vec3d(x,y,z):null;
     }
 }

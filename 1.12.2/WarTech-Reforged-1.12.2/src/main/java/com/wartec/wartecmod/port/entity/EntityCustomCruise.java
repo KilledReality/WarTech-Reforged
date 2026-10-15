@@ -58,11 +58,13 @@ public final class EntityCustomCruise extends EntityWarTechBase {
     }
     @Override protected boolean isFriendlyOrOwner(Entity entity) {
         return super.isFriendlyOrOwner(entity) || (getOwnerUuid()!=null && entity instanceof EntityWarTechBase
+            && (getOwnerTeam().isEmpty() || ((EntityWarTechBase)entity).getOwnerTeam().isEmpty())
             && getOwnerUuid().equals(((EntityWarTechBase)entity).getOwnerUuid()));
     }
 
     public EntityCustomCruise(World world) { super(world,WarTechEntityProfile.STORM_SHADOW);configureDimensions(); }
     private void configureDimensions() {
+        if(getBuild().isS8000()) { setSize(.52F,.45F);return; }
         float scale=CruiseAirframes.modelScale(getBuild().getAirframe());
         setSize(.8F*scale,.6F*scale);
     }
@@ -79,11 +81,12 @@ public final class EntityCustomCruise extends EntityWarTechBase {
     @Override public WarTechEntityType getEntityType() { return WarTechEntityType.MISSILE; }
     public CruiseBuild getBuild() { return world!=null && world.isRemote?CruiseBuild.read(dataManager.get(BUILD)):build; }
     @Override protected float getMaximumHealthValue() {
+        if(build!=null && build.isS8000()) return 6;
         return CruiseAirframes.maximumHealth(build==null?null:build.getAirframe());
     }
     public int getFlightStage() { return dataManager.get(STAGE); }
     public boolean applyCommand(CruiseMission updated,EntityPlayer player) {
-        if(world.isRemote || isDead || crashing || delay>=0 || getOwnerUuid()==null
+        if(player==null || !canManage(player) || world.isRemote || isDead || crashing || delay>=0 || getOwnerUuid()==null
             || !getOwnerUuid().equals(player.getUniqueID()) || build.get(CruiseSlot.LINK)!=CruisePartDefinition.LINK_COMMAND
             || getDistanceSq(player)>build.get(CruiseSlot.LINK).getPrimary()*build.get(CruiseSlot.LINK).getPrimary()
             || !updated.isValidFor(build,world.provider.getDimension())
@@ -97,7 +100,7 @@ public final class EntityCustomCruise extends EntityWarTechBase {
         build=CruiseBuild.fromStack(stack);stats=build.calculateStats();mission=CruiseMission.fromStack(stack);
         navigationState.reset();seekerTrack.reset();terminalStrike.reset();routePlan.reset();salvoPlan.reset();terminalTarget=null;
         accuracy.initialise(getUniqueID(),mission.routeLength(getPositionVector()));
-        dataManager.set(BUILD,build.write());setOwner(owner);setArmed(true);setHealthValue(CruiseAirframes.maximumHealth(build.getAirframe()));
+        dataManager.set(BUILD,build.write());setOwner(owner);setArmed(true);setHealthValue(getMaximumHealthValue());
         setCustomNameTag(build.getName());
         configureDimensions();
     }
@@ -105,12 +108,17 @@ public final class EntityCustomCruise extends EntityWarTechBase {
         CruiseBuild build=CruiseBuild.fromStack(stack);CruiseStats stats=build.calculateStats();CruiseMission mission=CruiseMission.fromStack(stack);
         if(!stats.isValid()) return "cruise.error.invalid_build";
         if(!mission.isValidFor(build,world.provider.getDimension())) return "cruise.error.invalid_program";
+        if(build.isS8000() && !ModernMissileProfile.S8000.accepts(Math.hypot(mission.getTargets().get(0).x-start.x,mission.getTargets().get(0).z-start.z))) return "cruise.error.range";
         if(mission.getTargets().get(0).distanceTo(start)<60) return "cruise.error.too_close";
-        if(mission.routeLength(start)*1.12+80>stats.getRange()) return "cruise.error.range";
+        if(mission.routeLength(start)*(build.isS8000()?1.10:1.12)+80>stats.getRange()) return "cruise.error.range";
         if(start.y<1 || start.y>248 || !world.getWorldBorder().contains(new BlockPos(start))) return "cruise.error.launch_bounds";
         for(Vec3d target:mission.getTargets()) if(!world.getWorldBorder().contains(new BlockPos(target))) return "cruise.error.target_bounds";
         int active=0;for(Entity entity:world.loadedEntityList) if(entity instanceof EntityCustomCruise && !entity.isDead) active++;
         return active>=16?"cruise.error.active_limit":!MissileChunkLoader.hasCapacity(world)?"flight.error.chunks":null;
+    }
+    public void configureGroundLaunch(ItemStack stack,EntityPlayer owner) {
+        configure(stack,owner);
+        if(build.isS8000()) { build.set(CruiseSlot.LAUNCH,CruisePartDefinition.LAUNCH_BOOSTER);dataManager.set(BUILD,build.write()); }
     }
     @Override protected void onLifetimeExpired() { /* Own fuel-distance and crash limits, not legacy Storm Shadow lifetime. */ }
     @Override protected void explodeAndRemove() {
@@ -371,6 +379,7 @@ public final class EntityCustomCruise extends EntityWarTechBase {
             }
         }
         if(hit!=null) {
+            if(!crashing)com.wartec.wartecmod.port.planning.PlanningHooks.impact(this);
             double impactSpeed=Math.sqrt(motionX*motionX+motionY*motionY+motionZ*motionZ);
             setPosition(hit.hitVec.x,hit.hitVec.y,hit.hitVec.z);motionX=motionY=motionZ=0;
             if(crashing) { crashImpact(hit.entityHit,impactSpeed); }

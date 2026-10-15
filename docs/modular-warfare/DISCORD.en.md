@@ -1,19 +1,18 @@
-## WarTech Reforged — Modular Warfare Update
+## WarTech Reforged 2.0.0 — experimental release
 
-Build a weapon for the mission—not a mission for the weapon.
+🚀 **Topol-M, Oreshnik and Iskander:** animated mobile launchers, strategic cold launch and independent Iskander targets. A five-level underground silo with the HBM hatch, plus Zaslon-4 ABM for Topol/Oreshnik missiles and their reentry vehicles.
 
-🚀 **Custom cruise missiles:** 4 bodies, 44 parts and 13 warheads. Choose the engine, fuel, navigation, seeker and launch method. Mass really affects speed and range.
+💥 **Grad, HIMARS, Uragan, Smerch, D-30 and CAESAR.** Physical weapon exits, aiming and animations. Howitzers use Greg shells: D-30 — 80–1200 blocks; CAESAR — 120–2200. FP-5, FP-7 and S8000 are included.
 
-🎯 **More than coordinate flight:** optical, thermal and radar target search, obstacle avoidance according to navigation quality, and varied approach directions for advanced systems during group attacks.
+🛡️ **Defense and vehicles:** Buk-M3, Osa, 9S18, animated S-400/Patriot, tracking and battery coordination. Driving, control panels, camera and ground-vehicle HUD.
 
-✈️ **Carrier integration:** F-16C, Su-27, Tu-95 and compatible modular UAVs. Carriers read missile programs and seek a safe release position. Loading a ground launcher no longer means launching immediately.
+🖥️ **Headquarters:** three maps, nine workspaces, saved operations, guided attacks, stage dependencies, roles, reconnaissance and battle review. Supply uses player tasks.
 
-🛰️ **UAVs and reconnaissance:** reusable blueprints, downloadable recon reports and a single-missile rack. The new jet-powered Geran-5 is faster than Geran-2, with a stronger warhead and manual piloting.
+🏭 **Industrial crafting:** 54 components, 322 direct recipes on HBM machines and in JEI. Boards I–IV, chassis, weapons and paid construction kits. Recovery preserves equipment state.
 
-🛡️ **Connected combat:** varying interception difficulty, meaningful shoot-down outcomes, air-defense repairs, and rebalanced range and power. Remote launch and defense work without a nearby player, using bounded server resources.
+🌐 Server-authoritative access, protected foreign data, large plans and restart recovery. Cruise/UAV constructors, aviation, Geran-2/5 and EW remain available.
 
-Refreshed icons, interfaces, Creative tabs and vehicle sizes. Custom missiles use clean base-body models without external module overlays.
+⚠️ Minecraft **1.12.2** / Forge **14.23.5.2860** / **NTM CE 2.6.1.0** / **MixinBooter 10.7**, Java 8. Match 2.0.0 on clients/server and back up worlds. Long survival/MP campaigns and comprehensive old-world migration remain unverified. Yars is disabled.
 
-⚠️ **Minecraft 1.12.2 / Forge 14.23.5.2860 / NTM Community Edition 2.6.1.0 / MixinBooter 10.7.** Experimental branch: back up your world. Not for NTM Extended or 1.7.10. New-content recipes come later.
-
-📖 Full RU/EN release notes and guides accompany the update on GitHub: https://github.com/KilledReality/WarTech-Reforged/releases
+📥 JAR, changelogs and detailed RU/EN manual:
+https://github.com/KilledReality/WarTech-Reforged/releases/tag/v2.0.0

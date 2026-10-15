@@ -43,6 +43,9 @@ public final class EntityWarTechArtilleryProjectile
             EntityDataManager.createKey(EntityWarTechArtilleryProjectile.class,
                     DataSerializers.VARINT);
 
+    private static final DataParameter<Integer> TUBE=EntityDataManager.createKey(EntityWarTechArtilleryProjectile.class,DataSerializers.VARINT);
+    public void configureTubeArtillery(TubeArtilleryProfile p){dataManager.set(TUBE,p.ordinal()+1);}
+    public TubeArtilleryProfile tubeArtilleryProfile(){int n=dataManager.get(TUBE);return n>=1 && n<=2?TubeArtilleryProfile.values()[n-1]:null;}
     private boolean didWhistle;
     private boolean shouldWhistle;
     private boolean clustered;
@@ -59,7 +62,7 @@ public final class EntityWarTechArtilleryProjectile
     protected void entityInit() {
         super.entityInit();
         dataManager.register(PROJECTILE_KIND, KIND_GREG);
-        dataManager.register(AMMO_TYPE, 0);
+        dataManager.register(AMMO_TYPE, 0);dataManager.register(TUBE,0);
     }
 
     @Override
@@ -160,7 +163,7 @@ public final class EntityWarTechArtilleryProjectile
         }
         if(!moveAndCheckImpact()) return;
         if (!isDead && !cargoStuck) {
-            motionY -= clusterBlastStrength>0?.075D:.4905D;
+            motionY -= clusterBlastStrength>0?.075D:tubeArtilleryProfile()!=null?TubeArtilleryBallistics.GRAVITY:.4905D;
             updateRotationFromMotion();
         }
     }
@@ -577,6 +580,7 @@ public final class EntityWarTechArtilleryProjectile
     @Override
     protected void writeEntityToNBT(NBTTagCompound compound) {
         super.writeEntityToNBT(compound);
+        compound.setInteger("TubeProfile",dataManager.get(TUBE));
         compound.setInteger("ArtilleryKind", getProjectileKind());
         compound.setInteger("ArtilleryAmmoType", getAmmoType());
         compound.setBoolean("ArtilleryWhistle", didWhistle);
@@ -597,6 +601,7 @@ public final class EntityWarTechArtilleryProjectile
                 compound.getInteger("ArtilleryKind"));
         dataManager.set(AMMO_TYPE,
                 compound.getInteger("ArtilleryAmmoType"));
+        dataManager.set(TUBE,MathHelper.clamp(compound.getInteger("TubeProfile"),0,2));
         didWhistle = compound.getBoolean("ArtilleryWhistle");
         shouldWhistle = compound.getBoolean("ArtilleryShouldWhistle");
         clustered = compound.getBoolean("ArtilleryClustered");

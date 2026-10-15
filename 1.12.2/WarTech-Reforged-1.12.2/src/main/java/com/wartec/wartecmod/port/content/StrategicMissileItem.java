@@ -20,6 +20,10 @@ public final class StrategicMissileItem extends VariantItem {
     public StrategicSystemProfile getSystem(ItemStack stack) {
         return StrategicSystemProfile.byOrdinal(getVariant(stack));
     }
+    @Override public void getSubItems(net.minecraft.creativetab.CreativeTabs tab,net.minecraft.util.NonNullList<ItemStack> items) {
+        if(!isInCreativeTab(tab)) return;
+        items.add(new ItemStack(this,1,0));items.add(new ItemStack(this,1,2));
+    }
 
     @Override
     @SideOnly(Side.CLIENT)
@@ -35,5 +39,6 @@ public final class StrategicMissileItem extends VariantItem {
                         : "item.StrategicMissile.kinetic")));
         tooltip.add(I18n.format("item.StrategicMissile.range",
                 (int) system.getMaximumRange()));
+        tooltip.add(I18n.format("item.StrategicMissile.defense",system.getDefenseTier()));
     }
 }

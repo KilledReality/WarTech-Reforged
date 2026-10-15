@@ -89,7 +89,7 @@ public abstract class EntityWarTechBase extends Entity
     private final NonNullList<ItemStack> legacyInventory =
             NonNullList.withSize(14, ItemStack.EMPTY);
     private int operationalAge;
-    private int legacyLaunchCooldown;
+    protected int legacyLaunchCooldown;
     private final int[] legacyBlips = new int[16];
 
     protected EntityWarTechBase(World world, WarTechEntityProfile defaultProfile) {
@@ -441,12 +441,14 @@ public abstract class EntityWarTechBase extends Entity
 
     @Override
     public boolean processInitialInteract(EntityPlayer player, EnumHand hand) {
+        if (!world.isRemote && !canManage(player)) return true;
         if (getEntityType() != WarTechEntityType.AIRCRAFT
             && getEntityType() != WarTechEntityType.GROUND_VEHICLE) {
             return false;
         }
         if (hand != EnumHand.MAIN_HAND) return true;
         if (!world.isRemote) {
+            if(getProfile()==WarTechEntityProfile.COMMAND_TRUCK && getOwnerUuid()==null && getOwnerTeam().isEmpty())setOwnerIdentity(player.getUniqueID(),NetworkTeamHelper.getPlayerTeam(player));
             ItemStack held = player.getHeldItem(hand);
             if (tryRepairDefense(player,held)) return true;
             if (trySalvage(player, held, true)) {
@@ -456,117 +458,9 @@ public abstract class EntityWarTechBase extends Entity
                 chargeFromHeldBattery(held);
                 return true;
             }
-            if (getProfile() == WarTechEntityProfile.ELECTRONIC_WARFARE) {
-                if (player.isSneaking()) {
-                    setLegacyEnabled(!isLegacyEnabled());
-                    if (!isLegacyEnabled()) {
-                        ElectronicWarfareService.removeNode(
-                                world, getEntityId());
-                    }
-                    playLegacySound("hbm:item.techBleep",
-                            SoundEvents.BLOCK_NOTE_PLING, 0.8F,
-                            isLegacyEnabled() ? 1.25F : 0.75F);
-                    player.sendMessage(new TextComponentString(
-                            isLegacyEnabled()
-                                    ? "EW unit online."
-                                    : "EW unit offline."));
-                    return true;
-                }
-                if (getVisualVariant() == 0
-                        || getVisualVariant() == 2) {
-                    setLegacySelectedPayload((getLegacySelectedPayload() + 1) % 4);
-                }
-                String status = isLegacyEnabled() ? "ONLINE" : "OFFLINE";
-                if (getVisualVariant() == 1) {
-                    player.sendMessage(new TextComponentString(
-                            "Passive ESM | emitters: " + getLegacyContacts()
-                                    + " | range: 900 | " + status));
-                } else {
-                    String mode = getVisualVariant() == 0
-                            ? "Synytsia jammer" : "Radar decoy";
-                    player.sendMessage(new TextComponentString(
-                            mode + " | band: "
-                                    + ElectronicWarfareService.bandName(
-                                            getLegacySelectedPayload())
-                                    + " | " + status));
-                }
-                return true;
-            }
-            if (getProfile() == WarTechEntityProfile.COMMAND_TRUCK
-                    && player.isSneaking()) {
-                boolean deploy = !isDeployed();
-                if (deploy) {
-                    if (getOwnerTeam().isEmpty()) {
-                        setOwnerTeam(NetworkTeamHelper.getPlayerTeam(player));
-                    }
-                    int claim = FactionTerritoryData.claimAt(world,
-                            getOwnerTeam(), posX, posZ);
-                    if (claim == FactionTerritoryData.CONFLICT) {
-                        player.sendMessage(new TextComponentString(
-                                "Sector belongs to another IFF faction."));
-                        return true;
-                    }
-                    if (claim == FactionTerritoryData.INVALID_TEAM) {
-                        player.sendMessage(new TextComponentString(
-                                "Assign an IFF faction before deployment."));
-                        return true;
-                    }
-                    if (claim == FactionTerritoryData.LIMIT_REACHED) {
-                        player.sendMessage(new TextComponentString(
-                                "Faction sector limit reached."));
-                        return true;
-                    }
-                    if (claim == FactionTerritoryData.CLAIMED) {
-                        player.sendMessage(new TextComponentString(
-                                "Faction defense sector "
-                                        + FactionTerritoryData.getSectorX(posX)
-                                        + ":" + FactionTerritoryData.getSectorZ(posZ)
-                                        + " claimed."));
-                    }
-                }
-                setDeployed(deploy);
-                motionX = motionY = motionZ = 0.0D;
-                playLegacySound(SoundEvents.BLOCK_ANVIL_USE,
-                        0.75F, deploy ? 0.78F : 1.12F);
-                player.sendMessage(new TextComponentString(deploy
-                        ? "Command post deployed."
-                        : "Command post retracted."));
-                return true;
-            }
-            if (getProfile() == WarTechEntityProfile.MOBILE_AIR_DEFENSE
-                    && player.isSneaking()) {
-                boolean deploy = !isDeployed();
-                setDeployed(deploy);
-                motionX = motionY = motionZ = 0.0D;
-                playLegacySound(SoundEvents.BLOCK_ANVIL_USE,
-                        0.75F, deploy ? 0.78F : 1.12F);
-                player.sendMessage(new TextComponentString(
-                        (isTor() ? "9K331 Tor-M1" : "96K6 Pantsir-S2")
-                                + (deploy ? " deployed." : " retracted.")));
-                return true;
-            }
-            if (getProfile() == WarTechEntityProfile.RADAR_TRUCK
-                    && player.isSneaking()) {
-                setLegacyEnabled(!isLegacyEnabled());
-                playLegacySound("hbm:item.techBleep",
-                        SoundEvents.BLOCK_NOTE_PLING, 0.8F,
-                        isLegacyEnabled() ? 1.25F : 0.75F);
-                return true;
-            }
-            if (getProfile() == WarTechEntityProfile.S400_RADAR
-                    && player.isSneaking()) {
-                setDeployed(!isDeployed());
-                setLegacyEnabled(isDeployed());
-                motionX = motionY = motionZ = 0.0D;
-                playLegacySound(SoundEvents.BLOCK_ANVIL_USE,
-                        0.75F, isDeployed() ? 0.75F : 1.15F);
-                return true;
-            }
-            if ((getProfile() == WarTechEntityProfile.COMMAND_TRUCK
-                    || getProfile() == WarTechEntityProfile.MOBILE_AIR_DEFENSE)
-                    && !isDeployed()) {
-                mountDriver(player);
-                return true;
+            if(getEntityType()==WarTechEntityType.GROUND_VEHICLE && getOwnerTeam().isEmpty()) setOwnerTeam(NetworkTeamHelper.getPlayerTeam(player));
+            if(getProfile()==WarTechEntityProfile.COMMAND_TRUCK && com.wartec.wartecmod.port.planning.PlanningAccessPolicy.same(com.wartec.wartecmod.port.planning.PlanningAccessPolicy.scope(player),com.wartec.wartecmod.port.planning.PlanningAccessPolicy.scope(this))) {
+                player.openGui(WarTechReforged.instance,WarTechGuiHandler.GUI_PLANNING_TERMINAL,world,getEntityId(),-1,0);return true;
             }
             int guiId = WarTechGuiHandler.guiForEntity(this);
             if (guiId < 0) return false;
@@ -582,13 +476,14 @@ public abstract class EntityWarTechBase extends Entity
         return true;
     }
 
-    protected boolean trySalvage(EntityPlayer player, ItemStack held,
+    public boolean trySalvage(EntityPlayer player, ItemStack held,
             boolean grounded) {
         if (player == null || held.isEmpty()
                 || held.getItem() != WarTechContent.WARTEC_SALVAGE_WRENCH
                 || !player.isSneaking()) {
             return false;
         }
+        if (!canManage(player) || world.isRemote) return true;
         if (!grounded) {
             player.sendMessage(new TextComponentString(
                     "Aircraft must be landed before dismantling."));
@@ -606,6 +501,18 @@ public abstract class EntityWarTechBase extends Entity
                 }
             }
             OwnerTeamNbt.write(recovery, getOwnerTeam());
+            if(!recovery.hasTagCompound())recovery.setTagCompound(new NBTTagCompound());
+            recovery.getTagCompound().setBoolean(com.wartec.wartecmod.port.production.ProductionCatalog.FACTORY,true);
+            recovery.getTagCompound().setInteger("WarTechRecoveredPower",getLegacyPower());
+            recovery.getTagCompound().setFloat("WarTechRecoveredHealth",getHealthValue());
+            boolean pristine=getLegacyPower()==0 && getHealthValue()>=getHealthCapacity();
+            if(this instanceof EntityWarTechGroundVehicle){
+                EntityWarTechGroundVehicle ground=(EntityWarTechGroundVehicle)this;
+                recovery.getTagCompound().setTag("WarTechRecoveredChassis",ground.productionChassis());
+                pristine&=ground.productionChassis().getInteger("ArtilleryAmmoCount")==0;
+            }
+            recovery.getTagCompound().setBoolean("WarTechRecoveredPristine",pristine);
+            if(this instanceof EntityStrategicTel)recovery.getTagCompound().setBoolean("StrategicLoaded",((EntityStrategicTel)this).isMissileLoaded());
             entityDropItem(recovery, 0.6F);
         }
         MissileChunkLoader.untrack(this);
@@ -616,7 +523,20 @@ public abstract class EntityWarTechBase extends Entity
         return true;
     }
 
+    public void applyProductionState(ItemStack stack) {
+        if(!com.wartec.wartecmod.port.production.ProductionCatalog.manufactured(stack))return;
+        NBTTagCompound n=stack.getTagCompound();
+        setLegacyPower(n.getInteger("WarTechRecoveredPower"));
+        if(n.hasKey("WarTechRecoveredHealth",99))setHealthValue(Math.min(getHealthCapacity(),Math.max(1,n.getFloat("WarTechRecoveredHealth"))));
+        if(this instanceof EntityWarTechGroundVehicle && n.hasKey("WarTechRecoveredChassis",10))((EntityWarTechGroundVehicle)this).restoreProductionChassis(n.getCompoundTag("WarTechRecoveredChassis"));
+        if(this instanceof EntityStrategicTel)((EntityStrategicTel)this).setMissileLoaded(n.getBoolean("StrategicLoaded"));
+    }
+
     private ItemStack createRecoveryStack() {
+        TubeArtilleryProfile tube=TubeArtilleryProfile.of(getProfile());
+        if(tube!=null)return new ItemStack(tube.item());
+        ModernVehicleProfile modern=ModernVehicleProfile.of(getProfile());
+        if(modern!=null) return new ItemStack(modern.deploymentItem());
         switch (getProfile()) {
             case MQ_9_REAPER:
                 return new ItemStack(WarTechContent.MQ9_REAPER_DRONE);
@@ -649,6 +569,7 @@ public abstract class EntityWarTechBase extends Entity
                 return new ItemStack(
                         WarTechContent.MOBILE_ARTILLERY,
                         1, getVisualVariant());
+            case TACTICAL_ISKANDER: return new ItemStack(WarTechContent.ISKANDER_TEL);
             case STRATEGIC_TOPOL_M:
             case STRATEGIC_YARS:
             case STRATEGIC_ORESHNIK:
@@ -658,12 +579,6 @@ public abstract class EntityWarTechBase extends Entity
                                 : getProfile() == WarTechEntityProfile.STRATEGIC_YARS
                                         ? WarTechContent.YARS_TEL
                                         : WarTechContent.ORESHNIK_TEL);
-                if (this instanceof EntityStrategicTel) {
-                    strategic.setTagInfo("StrategicLoaded",
-                            new net.minecraft.nbt.NBTTagByte(
-                                    (byte) (((EntityStrategicTel) this)
-                                            .isMissileLoaded() ? 1 : 0)));
-                }
                 return strategic;
             default:
                 return ItemStack.EMPTY;
@@ -905,6 +820,8 @@ public abstract class EntityWarTechBase extends Entity
     @Override
     public void setDead() {
         if (world != null && !world.isRemote) {
+            if(getEntityData().hasKey("PlanningDefenseScope"))com.wartec.wartecmod.port.planning.PlanningHooks.defenseOutcome(this,null,false);
+            if(getEntityType()==WarTechEntityType.GROUND_VEHICLE || this instanceof EntityWarTechAircraft || this instanceof EntityCustomUav)com.wartec.wartecmod.port.planning.PlanningEvents.removed(this);
             com.wartec.wartecmod.port.integration.OperationalChunks.forget(this);
             ElectronicWarfareService.removeNode(world, getEntityId());
             MissileTrackingService.removeRadar(world, getEntityId());
@@ -989,11 +906,14 @@ public abstract class EntityWarTechBase extends Entity
         }
     }
 
-    private long getLauncherKey() {
+    protected long getLauncherKey() {
         return 0x4D41445300000000L | (long) getEntityId() & 0xFFFFFFFFL;
     }
+    public NBTTagCompound commandDefenseTelemetry(){
+        NBTTagCompound n=new NBTTagCompound();n.setLong("Key",getLauncherKey());n.setInteger("Cooldown",legacyLaunchCooldown);n.setBoolean("Enabled",getLegacyFireMode()!=0);n.setString("Stage",isDeployed()?"tracking":"stowed");return n;
+    }
 
-    private void launchLegacyInterceptor(Entity target) {
+    protected void launchLegacyInterceptor(Entity target) {
         int capacity = isTor() ? 8 : 12;
         int slot = -1;
         for (int index = 0; index < capacity; ++index) {
@@ -1027,6 +947,7 @@ public abstract class EntityWarTechBase extends Entity
                 MissileTrackingService.confirmReservation(world,
                         target.getEntityId(), launcherKey, missile.getEntityId());
             }
+            com.wartec.wartecmod.port.planning.PlanningHooks.defenseShot(world,this,missile,target);
             VlsInterceptorGuidance.spawnLaunchSmoke(
                     world, missile.posX, missile.posY, missile.posZ,
                     isTor() ? 2 : 1);
@@ -1118,23 +1039,21 @@ public abstract class EntityWarTechBase extends Entity
     }
 
     public boolean handleLegacyGuiAction(int action, EntityPlayer player) {
+        if(action==99 && getProfile()==WarTechEntityProfile.COMMAND_TRUCK && !world.isRemote && player!=null && player.getDistanceSq(this)<=1024
+            && com.wartec.wartecmod.port.planning.PlanningAccessPolicy.same(com.wartec.wartecmod.port.planning.PlanningAccessPolicy.scope(player),com.wartec.wartecmod.port.planning.PlanningAccessPolicy.scope(this))){player.openGui(com.wartec.wartecmod.WarTechReforged.instance,com.wartec.wartecmod.port.gui.WarTechGuiHandler.GUI_PLANNING_TERMINAL,world,getEntityId(),-1,0);return true;}
         WarTechEntityProfile profile = getProfile();
         if (profile == WarTechEntityProfile.RADAR_TRUCK
                 || profile == WarTechEntityProfile.S400_RADAR) {
             if (action != 0) return false;
-            if (profile == WarTechEntityProfile.S400_RADAR) {
-                setDeployed(!isDeployed());
-                setLegacyEnabled(isDeployed());
-            } else {
-                setLegacyEnabled(!isLegacyEnabled());
-            }
+            if(profile==WarTechEntityProfile.S400_RADAR && !isDeployed()) return false;
+            setLegacyEnabled(!isLegacyEnabled());
             return true;
         }
         if (profile == WarTechEntityProfile.MOBILE_AIR_DEFENSE) {
             if (action == 0) setLegacyFireMode((getLegacyFireMode() + 1) % 3);
             else if (action == 1) {
-                if(!isDeployed()) { setDeployed(true);setLegacyEnabled(true);motionX=motionY=motionZ=0; }
-                else setLegacyEnabled(!isLegacyEnabled());
+                if(!isDeployed()) return false;
+                setLegacyEnabled(!isLegacyEnabled());
             }
             else if (action == 2 && !isTor()) setLegacyFlags(getLegacyFlags() ^ 4);
             else return false;
@@ -1264,7 +1183,7 @@ public abstract class EntityWarTechBase extends Entity
     }
     public boolean isPayloadCompatible(ItemStack stack) {
         if (stack.isEmpty()) return false;
-        if (stack.getItem() == WarTechContent.ASSEMBLED_CRUISE) {
+        if (com.wartec.wartecmod.port.cruise.CruiseBuild.isStore(stack)) {
             com.wartec.wartecmod.port.cruise.CruiseBuild build=com.wartec.wartecmod.port.cruise.CruiseBuild.fromStack(stack);
             return (getProfile()==WarTechEntityProfile.F_16C || getProfile()==WarTechEntityProfile.SU_27 || getProfile()==WarTechEntityProfile.TU_95)
                 && (build.getAirframe()!=com.wartec.wartecmod.port.cruise.CruisePartDefinition.BODY_LONG_RANGE || getProfile()==WarTechEntityProfile.TU_95)
@@ -1353,8 +1272,13 @@ public abstract class EntityWarTechBase extends Entity
     @Override public ITextComponent getDisplayName() { return new TextComponentString(getName()); }
     @Override public int getInventoryStackLimit() { return 64; }
     @Override public void markDirty() { updatePayloadMask(); }
+    public boolean canManage(EntityPlayer player) {
+        return player!=null && !player.isDead && !player.isSpectator() && !isDead && player.world==world
+            && (player.capabilities.isCreativeMode || getOwnerUuid()==null && getOwnerTeam().isEmpty()
+                || isFriendlyOrOwner(player));
+    }
     @Override public boolean isUsableByPlayer(EntityPlayer player) {
-        return !isDead && player.getDistanceSq(this) <= 256.0D;
+        return canManage(player) && player.getDistanceSq(this) <= 256.0D;
     }
     @Override public void openInventory(EntityPlayer player) { }
     @Override public void closeInventory(EntityPlayer player) { }
@@ -1405,7 +1329,7 @@ public abstract class EntityWarTechBase extends Entity
 
     private static int payloadCode(ItemStack stack) {
         if (stack.isEmpty()) return 0;
-        if (stack.getItem() == WarTechContent.ASSEMBLED_CRUISE) {
+        if (com.wartec.wartecmod.port.cruise.CruiseBuild.isStore(stack)) {
             com.wartec.wartecmod.port.cruise.CruisePartDefinition body=com.wartec.wartecmod.port.cruise.CruiseBuild.fromStack(stack).getAirframe();
             return body==com.wartec.wartecmod.port.cruise.CruisePartDefinition.BODY_LIGHT?13
                 :body==com.wartec.wartecmod.port.cruise.CruisePartDefinition.BODY_CLASSIC?14:15;

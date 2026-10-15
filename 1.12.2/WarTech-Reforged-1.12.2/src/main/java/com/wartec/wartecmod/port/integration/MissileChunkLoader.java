@@ -88,14 +88,14 @@ public final class MissileChunkLoader implements ForgeChunkManager.LoadingCallba
         if(!isSupportedProjectile(entity)) return entity.world.spawnEntity(entity);
         if(!prepare(entity)) return false;
         boolean spawned=false;
-        try { spawned=entity.world.spawnEntity(entity);return spawned; }
+        try { spawned=entity.world.spawnEntity(entity);if(spawned) com.wartec.wartecmod.port.planning.PlanningHooks.admitted(entity);return spawned; }
         finally { if(!spawned) untrack(entity); }
     }
 
     public static boolean hasCapacity(World world) {
         synchronized (ACTIVE) {
             Map<Integer, ActiveTicket> tickets = ACTIVE.get(world);
-            return tickets == null || tickets.size() < FlightChunkWindow.MAX_FLIGHTS
+            return tickets == null || FlightAdmission.accepts(tickets.size(),countOffensiveTickets(tickets),false)
                     && countCustomUavTickets(tickets) < MAX_ACTIVE_UAV_TICKETS;
         }
     }
@@ -421,7 +421,7 @@ public final class MissileChunkLoader implements ForgeChunkManager.LoadingCallba
                 release(existing, true);
                 tickets.remove(entityId);
             }
-            if (tickets.size() >= FlightChunkWindow.MAX_FLIGHTS || isBoundedModularProjectile(entity)
+            if (!FlightAdmission.accepts(tickets.size(),countOffensiveTickets(tickets),isDefensiveFlight(entity)) || isBoundedModularProjectile(entity)
                     && countCustomUavTickets(tickets) >= MAX_ACTIVE_UAV_TICKETS) {
                 if (world.getTotalWorldTime() % 200L == 0L) {
                     WarTechReforged.logger.warn(
@@ -496,6 +496,19 @@ public final class MissileChunkLoader implements ForgeChunkManager.LoadingCallba
             if (isBoundedModularProjectile(ticket.entity)) ++count;
         }
         return count;
+    }
+
+    private static boolean isDefensiveFlight(Entity entity) {
+        if(entity instanceof EntityWarTechMissile) {
+            com.wartec.wartecmod.port.entity.LegacyMissileSpecification.FlightFamily family=((EntityWarTechMissile)entity).getMissileSpecification().getFlightFamily();
+            return family==com.wartec.wartecmod.port.entity.LegacyMissileSpecification.FlightFamily.INTERCEPTOR
+                || family==com.wartec.wartecmod.port.entity.LegacyMissileSpecification.FlightFamily.NUCLEAR_INTERCEPTOR;
+        }
+        return entity instanceof api.hbm.entity.IRadarDetectable
+            && ((api.hbm.entity.IRadarDetectable)entity).getTargetType()==api.hbm.entity.IRadarDetectable.RadarTargetType.MISSILE_AB;
+    }
+    private static int countOffensiveTickets(Map<Integer,ActiveTicket> tickets) {
+        int count=0;for(ActiveTicket ticket:tickets.values()) if(!isDefensiveFlight(ticket.entity)) count++;return count;
     }
 
     private static void addChunkWindow(Set<ChunkPos> chunks,
@@ -599,6 +612,8 @@ public final class MissileChunkLoader implements ForgeChunkManager.LoadingCallba
         return entity instanceof EntityCustomUav || entity instanceof com.wartec.wartecmod.port.entity.EntityCustomCruise;
     }
     private static boolean isSupportedProjectile(Entity entity) {
+        if(entity instanceof com.wartec.wartecmod.port.entity.EntityStrategicTel)
+            return ((com.wartec.wartecmod.port.entity.EntityStrategicTel)entity).getLaunchTicks()>0;
         if (!(entity instanceof EntityWarTechBase)) {
             return false;
         }

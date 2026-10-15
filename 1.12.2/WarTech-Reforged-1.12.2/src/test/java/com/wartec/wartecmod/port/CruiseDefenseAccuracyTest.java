@@ -197,10 +197,10 @@ public class CruiseDefenseAccuracyTest {
         assertTrue(NetworkTeamHelper.isFriendly("friendly",entity));assertFalse(NetworkTeamHelper.isFriendly("enemy",entity));
         assertEquals(2,MissileTrackingService.getThreatTier(entity));
     }
-    @Test public void disabledStrategicEntitiesAndInterceptorsNeverBecomeTargets() {
+    @Test public void interceptorsNeverBecomeDefenseTargets() {
         for(MissileProfile profile:new MissileProfile[]{MissileProfile.ANTI_AIR_TIER_1,MissileProfile.ANTI_AIR_TIER_2,MissileProfile.ANTI_AIR_TIER_3})
             assertEquals(0,MissileTrackingService.getThreatTier(LegacyEntityFactory.missile(null,profile)));
-        assertFalse(StrategicFeature.isEnabled());
+        assertTrue(StrategicFeature.isEnabled());
     }
     @Test public void aircraftAlsoRecogniseLegacyCruiseFamiliesRatherThanOnlyMatchingOldClassNames() {
         for(MissileProfile profile:new MissileProfile[]{MissileProfile.CRUISE_HE,MissileProfile.TOMAHAWK,MissileProfile.KALIBR,

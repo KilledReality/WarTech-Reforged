@@ -13,7 +13,7 @@ apply plugin: 'net.minecraftforge.gradle'
 apply plugin: 'eclipse'
 apply plugin: 'maven-publish'
 
-version = '1.6.0-experimental'
+version = project.findProperty('wartechVersion') ?: '1.6.0-experimental'
 group = 'com.wartec'
 archivesBaseName = project.findProperty('archiveBaseName')
         ?: 'WarTech-Reforged-1.12.2-NTM-Extended'
@@ -168,6 +168,7 @@ if (project.hasProperty('flightQa')) {
     task flightQaJar(type: Jar) {
         from sourceSets.flightQa.output
         archiveName = 'WarTech-FlightQA-dev65.jar'
+        manifest { attributes 'FMLCorePlugin': 'com.wartec.flightqa.protection.FixturePlugin', 'FMLCorePluginContainsFMLMod': 'true' }
     }
     reobf { flightQaJar { classpath = sourceSets.flightQa.compileClasspath } }
     flightQaJar.finalizedBy('reobfFlightQaJar')

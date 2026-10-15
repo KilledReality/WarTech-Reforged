@@ -136,7 +136,7 @@ public final class BlastQa {
             }
             check(closest<30,"Pair did not exercise overlapping blast radius");
             String diagnostics=MissileChunkLoader.diagnostics(world);result.addProperty("resources",diagnostics);
-            check(diagnostics.contains("flights=0/32") && diagnostics.contains("server queue=0 chunks/0 owners"),"Loader leak");
+            check(diagnostics.contains("flights=0/") && diagnostics.contains("server queue=0 chunks/0 owners"),"Loader leak");
             result.add("impacts",impacts);result.add("failures",new Gson().toJsonTree(failures));
             Files.write(Paths.get("flightqa-report.json"),new GsonBuilder().setPrettyPrinting().create().toJson(result).getBytes(StandardCharsets.UTF_8));
             System.out.println("FLIGHTQA blast finished failures="+failures);server.initiateShutdown();MinecraftForge.EVENT_BUS.unregister(this);

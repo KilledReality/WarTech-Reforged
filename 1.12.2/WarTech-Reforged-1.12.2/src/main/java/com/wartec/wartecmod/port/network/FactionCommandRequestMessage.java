@@ -21,6 +21,7 @@ import net.minecraftforge.fml.common.network.simpleimpl.MessageContext;
 
 public final class FactionCommandRequestMessage implements IMessage {
     private int commandEntityId;
+    private double viewX,viewZ;private int radius=256;
 
     public FactionCommandRequestMessage() {
     }
@@ -29,14 +30,15 @@ public final class FactionCommandRequestMessage implements IMessage {
         this.commandEntityId = commandEntityId;
     }
 
+    public FactionCommandRequestMessage(int id,double x,double z,int radius) { commandEntityId=id;viewX=x;viewZ=z;this.radius=radius; }
     @Override
     public void fromBytes(ByteBuf buffer) {
-        commandEntityId = buffer.readInt();
+        commandEntityId = buffer.readInt();viewX=buffer.readDouble();viewZ=buffer.readDouble();radius=buffer.readInt();
     }
 
     @Override
     public void toBytes(ByteBuf buffer) {
-        buffer.writeInt(commandEntityId);
+        buffer.writeInt(commandEntityId);buffer.writeDouble(viewX);buffer.writeDouble(viewZ);buffer.writeInt(radius);
     }
 
     public static final class Handler
@@ -51,17 +53,22 @@ public final class FactionCommandRequestMessage implements IMessage {
                 EntityWarTechBase command = (EntityWarTechBase) entity;
                 if (command.getProfile() != WarTechEntityProfile.COMMAND_TRUCK
                         || command.isDead || !command.isDeployed()
-                        || player.getDistanceSq(command) > 1024.0D) {
+                        || player.getDistanceSq(command) > 1024.0D
+                        || !com.wartec.wartecmod.port.planning.PlanningAccessPolicy.same(com.wartec.wartecmod.port.planning.PlanningAccessPolicy.scope(player),com.wartec.wartecmod.port.planning.PlanningAccessPolicy.scope(command))) {
                     return;
                 }
-                WarTechNetwork.CHANNEL.sendTo(
-                        new FactionCommandSnapshotMessage(build(command)), player);
+                if(!Double.isFinite(message.viewX) || !Double.isFinite(message.viewZ) || message.radius<64 || message.radius>16384
+                        || Math.hypot(message.viewX-command.posX,message.viewZ-command.posZ)>32768) return;
+                long now=player.world.getTotalWorldTime();
+                if(player.getEntityData().hasKey("WarTechCommandMapTick") && now-player.getEntityData().getLong("WarTechCommandMapTick")<4) return;
+                player.getEntityData().setLong("WarTechCommandMapTick",now);
+                WarTechNetwork.CHANNEL.sendTo(new FactionCommandSnapshotMessage(build(command,message.viewX,message.viewZ,message.radius)), player);
             });
             return null;
         }
     }
 
-    private static FactionCommandSnapshot build(EntityWarTechBase command) {
+    public static FactionCommandSnapshot build(EntityWarTechBase command,double viewX,double viewZ,int radius) {
         WorldServer world = (WorldServer) command.world;
         MissileTrackingService.FactionSnapshot source =
                 MissileTrackingService.getFactionSnapshot(world,
@@ -76,8 +83,7 @@ public final class FactionCommandRequestMessage implements IMessage {
                 new FactionCommandSnapshot.Node[source.nodes.length];
         for (int index = 0; index < nodes.length; ++index) {
             MissileTrackingService.FactionNode node = source.nodes[index];
-            nodes[index] = new FactionCommandSnapshot.Node(node.type, node.id,
-                    node.x, node.y, node.z, node.value, node.band);
+            nodes[index] = CommandMapData.describe(world,source.team,node);
         }
         FactionCommandSnapshot.Contact[] contacts =
                 new FactionCommandSnapshot.Contact[source.contacts.length];
@@ -92,50 +98,7 @@ public final class FactionCommandRequestMessage implements IMessage {
         }
         return new FactionCommandSnapshot(source.team, source.dimension,
                 source.centerX, source.centerZ, source.generatedAt,
-                sectors, nodes, contacts);
+                sectors, nodes, contacts,CommandMapData.terrain(world,viewX,viewZ,radius));
     }
 
-    private static void addSector(
-            Map<Long, FactionCommandSnapshot.Sector> sectors, double x, double z) {
-        int sectorX = (int) Math.floor(x / 512.0D);
-        int sectorZ = (int) Math.floor(z / 512.0D);
-        long key = (long) sectorX << 32 | (long) sectorZ & 0xFFFFFFFFL;
-        sectors.put(key, new FactionCommandSnapshot.Sector(sectorX, sectorZ));
-    }
-
-    private static boolean friendly(String left, String right) {
-        return left != null && !left.isEmpty() && left.equals(right);
-    }
-
-    private static int nodeType(WarTechEntityProfile profile) {
-        if (profile == WarTechEntityProfile.RADAR_TRUCK) return 1;
-        if (profile == WarTechEntityProfile.S400_RADAR) return 2;
-        if (profile == WarTechEntityProfile.MOBILE_AIR_DEFENSE) return 3;
-        if (profile == WarTechEntityProfile.COMMAND_TRUCK) return 4;
-        return 0;
-    }
-
-    private static int contactType(Entity entity) {
-        if (entity instanceof EntityWarTechBase) {
-            WarTechEntityProfile profile = ((EntityWarTechBase) entity).getProfile();
-            if (profile == WarTechEntityProfile.KINETIC_ROD) return 6;
-            if (profile == WarTechEntityProfile.MQ_9_REAPER
-                    || profile == WarTechEntityProfile.GERAN_2) return 5;
-            if (profile.getType() == WarTechEntityType.AIRCRAFT) {
-                return profile == WarTechEntityProfile.TU_95 ? 3 : 2;
-            }
-            if (profile.getType() == WarTechEntityType.ORDNANCE) return 4;
-        }
-        return 1;
-    }
-
-    private static int threatTier(IRadarDetectable.RadarTargetType type) {
-        String name = type == null ? "" : type.name();
-        int marker = name.indexOf("TIER");
-        if (marker >= 0 && marker + 4 < name.length()) {
-            char value = name.charAt(marker + 4);
-            if (value >= '0' && value <= '4') return value - '0';
-        }
-        return 1;
-    }
 }

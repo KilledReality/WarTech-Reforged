@@ -1,7 +1,7 @@
-# WarTech Reforged: player guide
+# WarTech Reforged 2.0.0: player guide
 
 Edition for **Minecraft 1.12.2 / NTM Community Edition 2.6.1.0**,
-Modular Warfare Update; checked against candidate dev79, October 9, 2026.
+October 15, 2026 edition: implemented CE features through dev114 and release 2.0.0.
 [Русский](GUIDE.ru.md) · [Release notes](CHANGELOG.en.md) · [Documentation index](README.md)
 
 This manual covers the current experimental CE branch, not the 1.7.10 or
@@ -26,6 +26,15 @@ take precedence over the upper limits quoted for a class.
 13. [Artillery, legacy missiles and satellites](#13-artillery-legacy-missiles-and-satellites)
 14. [Long flights and servers](#14-long-flights-and-servers)
 15. [Troubleshooting](#15-troubleshooting)
+16. [Headquarters, maps and combined operations](#16-headquarters-maps-and-combined-operations)
+17. [HBM industrial production](#17-hbm-industrial-production)
+18. [D-30 and CAESAR — gun artillery](#18-d-30-and-caesar--gun-artillery)
+19. [Topol-M, Oreshnik and Iskander-M](#19-topol-m-oreshnik-and-iskander-m)
+20. [Grad, HIMARS, Uragan and Smerch](#20-grad-himars-uragan-and-smerch)
+21. [FP-5 Flamingo, FP-7 and S8000 Banderol](#21-fp-5-flamingo-fp-7-and-s8000-banderol)
+22. [Underground silo and Zaslon-4 ABM](#22-underground-silo-and-zaslon-4-abm)
+23. [Servers, teams and recovery](#23-servers-teams-and-recovery)
+24. [Updating from 1.7.0 and validation limits](#24-updating-from-170-and-validation-limits)
 
 ## 1. Installation and getting started
 
@@ -36,9 +45,8 @@ Reforged JAR alongside this build. The server and every client must use matching
 versions.
 
 Close the game/server before replacing the JAR, and back up the world. Start
-testing in a separate Creative world. New-content recipes and complete survival
-progression are unfinished: an item being available does not mean it already
-has its final crafting recipe.
+testing in a separate Creative world. 2.0.0 includes industrial recipes for active content; see chapter 17 for
+HBM machines, production stages, ammunition and construction kits.
 
 Creative tabs separate missiles, parts, blocks, equipment, consumables, air
 defense, aviation, support, custom UAVs and custom cruise missiles. Constructor
@@ -46,7 +54,7 @@ tabs group bodies/airframes first, followed by equipment categories. A blueprint
 is a saved configuration; an assembled vehicle is the actual item. You cannot
 load a blueprint as ammunition.
 
-For a first test, choose your IFF team, take a starter missile with the correct
+For a first test, check your assigned IFF team, take a starter missile with the correct
 launch method, set one nearby—but not point-blank—target on open terrain and
 use a matching launcher. Then move on to custom builds and multi-area search.
 
@@ -61,7 +69,7 @@ movement and takeoff.
 |---|---|
 | Open stationary equipment interface | RMB; held items can change the action |
 | Drive a folded ground vehicle | W/S, A/D to steer; Shift to leave |
-| Deploy/retract a mobile ground installation | Shift+RMB, when its state permits |
+| Deploy/retract a mobile ground installation | RMB opens the panel; use Deploy/Stow or Drive |
 | Enter Remote Pilot | Pilot button; on a custom UAV, also empty-hand Shift+RMB |
 | Steer in flight | Mouse; A/D for yaw |
 | Increase/decrease throttle | W/S |
@@ -87,17 +95,16 @@ other mods' key settings; this manual uses the default layout.
 
 ### Identification friend or foe
 
-RMB with the IFF Configurator and choose ALPHA, BRAVO, CHARLIE, DELTA or
-PERSONAL. This determines the friendly network and equipment relations.
-PERSONAL provides personal affiliation. Vanilla scoreboard teams are also
-supported; `!wtteam status` reports your status.
+A level-2 operator assigns a team with `/wtteam join blue PlayerName` and
+clears it with `/wtteam clear PlayerName`. Regular players can use `/wtteam status`.
+The configurator shows affiliation and binds accessible owned equipment; it
+does not permit joining an opposing side. Without a team, ownership is personal.
+See chapter 23 for server rules.
 
-New equipment records affiliation when placed. **Changing the player's team
-does not automatically transfer previously placed equipment.** Use
-Shift+RMB with the configurator on existing equipment to rebind it, then check
-its status. For an air-defense test, the missile and defense must actually
-belong to opposing sides—not merely have been placed before and after the
-same player changed teams.
+Placed equipment retains its affiliation. Changing team revokes old-side access,
+including the previous owner's UUID; it does not transfer the equipment.
+Rebinding requires current server authorization. Allied IFF grants no foreign
+map, intelligence or weapon control.
 
 IFF is not general invulnerability: friendly explosions can still harm people
 and buildings. Protecting incoming allied missiles from chain detonation is
@@ -563,8 +570,8 @@ matching the band is stronger, while wideband is weaker but covers more
 possibilities. Jamming degrades communication/radar detection and can create
 false contacts; it does not confer complete immunity to weapons.
 
-Shift+RMB toggles an EW unit; RMB a jammer or decoy emitter to cycle bands,
-and RMB with a compatible battery to charge it. Passive ESM detects active
+RMB opens the EW panel with enable/disable and band controls.
+RMB with a compatible battery charges it. Passive ESM detects active
 emitters to 900 blocks; RMB checks detections. ESM does not replace an ordinary
 tracking radar. A decoy emitter can distract anti-radiation missiles.
 
@@ -579,12 +586,13 @@ not map-wide detection of switched-off radars.
 ### HEMTT
 
 RMB an empty platform with a **Greg** or **Henry** turret block to install one
-weapon module. They are mutually exclusive. Drive while folded; Shift+RMB
-deploys the platform, and RMB while deployed opens the native HBM turret
+weapon module. They are mutually exclusive. Drive while folded; RMB opens
+the controls with deployment/driving buttons and the installed artillery
 interface. Load the matching ammunition and power.
 
-RMB with a designator to transfer coordinates; the standard artillery rangefinder
-uses its normal HBM artillery link. Watch heading and obstructions. Henry
+Sneak-RMB the deployed platform with the artillery designator to link it;
+RMB terrain for one shot. Saved missile-designator coordinates can also be
+transferred. Watch heading and obstructions. Henry
 227 mm rockets are class-1 air threats; 610 mm rockets are class 2. Greg shells
 are available to defense only over a short range, up to 220 blocks. Ordinary
 bullets do not become universal radar contacts.
@@ -680,3 +688,395 @@ For an unexplained repeatable failure, record exact versions, build components,
 launch type, coordinates/dimension, both sides' affiliation and error text.
 For server cases, include `latest.log` and `/wtflight status`; remove personal
 addresses/tokens before sharing logs. Test on a copy of the world.
+
+
+## 16. Headquarters, maps and combined operations
+
+The Planning Terminal and deployed command truck open your headquarters for the
+current dimension. Team members share their own data; a private headquarters uses
+the actual owner and their radar stations. The computer links separate friendly
+command posts; it still requires physical radar, power, communications and stores.
+
+### Your first combined attack
+
+1. Open **Attack**. Use **New** for a separate operation; save existing edits before
+   changing operations. Press **Add strike: wizard**.
+2. **Equipment**: select your launcher, aircraft or armed UAV. Search by name;
+   Next equipment page fetches the next server page. An unarmed reconnaissance UAV
+   is assigned through Headquarters > Reconnaissance instead.
+3. **Weapon**: select a loaded type with its name/icon. Available stock subtracts
+   other tasks in this draft. Batteries, designators and flares are excluded.
+   Different MLRS payload variants are separate choices; slots are assigned for you.
+4. **Target**: enter X/Y/Z, paste three integers, or import a designator. Insert
+   the device in the opened inventory and Apply target; the wizard resumes with
+   the received coordinates. To pick on the map, right-click a point then Continue
+   wizard. Y is impact height, not flight altitude; check unknown terrain yourself.
+5. **Timing**: name the operation, choose quantity and delays in seconds. A unit's
+   first task starts after the T0 delay; later tasks wait for its prior assignment
+   to finish. Shot pauses follow completion of the previous step. Deployment,
+   reload and flight can extend these minimum delays. Reusable carriers may return.
+6. **Add to plan** creates editable steps without launching anything. Add other
+   launchers and carriers the same way, then **Save > Check > Start**.
+   The server checks authority, actual ammunition, range, coordinates and conflicts.
+   Headquarters > Timing > Preflight gives a report for every step.
+
+Example: two Grad HE shots with delay 0, an aircraft strike with delay 20, and an
+Oreshnik silo task with delay 40 form one combined operation. Required deployment
+and takeoff are inserted automatically. These delays start task chains, not
+guaranteed impacts. Use the precise editor to link another unit's actual release.
+MLRS quantities become individual releases from exact loaded tubes. A one-way UAV
+has one built-in warhead and no return. A vanished store is never silently replaced.
+
+### Precise editing and saved plans
+
+**+ Step** opens the manual editor for specialized actions such as observation
+or transit. **Edit** changes a selected existing step. Pages contain target/name,
+timing, route, weapon and conditions. Slot numbers are one-based; 0 means automatic.
+A specific MLRS tube fires once. Quantity must be supported by the actual carrier.
+
+Dependencies wait for acceptance, actual release or completion of another step.
+Select actual release for precise launch coordination. Cycles are rejected.
+Arrival time is an estimate. Conditions include fresh target-area intelligence,
+readiness of a named group and communications. Deadlines and error policies can
+wait, skip, stop a branch or pause the operation. Native flight limits remain.
+
+**Operations** lists named saved plans. **Copy** creates a new draft with new IDs
+and cleared outcomes. Running plans cannot be edited. **Pause** stops subsequent
+dispatch while accepted orders continue. Timing > Revoke orders cancels unreleased
+orders, with an optional reusable-carrier return. Already released missiles fly on.
+An uncertain launch pauses the plan without automatically consuming another store.
+Check the source and log, explicitly resolve the step, then resume. Stale edits
+after another operator's change are rejected; reload the fields.
+
+### Three maps
+
+| Map | Information and actions |
+|---|---|
+| Defense | Your batteries, radars, command posts, relays, sirens and interceptors; stock, power, network state, real contacts, assignments and interception results. |
+| Attack | Your MLRS, strategic TELs, strike silos, launch points, aircraft and armed UAVs; stock/readiness and operation creation/check/execution. |
+| Reconnaissance | Saved friendly UAV observations, coordinates, age, quality, sensor and terrain. Updates require another actual survey; enemy movement does not silently refresh history. |
+
+Pan and zoom the map; select equipment for details, hover for full names and
+right-click to choose a strike point. Friendly maps mark the computer itself.
+Coverage/visibility circles are estimates from loaded or observed data, not a
+guarantee of interception behind terrain. Unknown terrain remains unknown.
+An allied IFF relationship does not open another team's reconnaissance map.
+
+### Nine headquarters workspaces
+
+| Workspace | Operator's task |
+|---|---|
+| Overview | Check readiness, threats, empty stores, power/link loss, damage and old intelligence. Select a notice to reveal its observed location or acknowledge it. An unchanged problem stays acknowledged. |
+| Diagnostics | Choose a real network contact. Read each battery's reason for waiting: tier, reach, radar, charge, channels, assignment, reload, reserve, district or obstruction. Scroll details and battery pages. |
+| Timing | Examine per-unit stages and actual release markers. Drag to move time, Shift/edge to resize a series, right-click two steps to link, Shift-right-click to unlink. Preflight checks every step. Save/start/pause/revoke controls are here. |
+| Districts | Create named circles with center/radius and assign batteries. Districts use known impact points, otherwise projected course. |
+| Reconnaissance | Examine age and observation history. Select your scout and Survey again to create a saved takeoff/observation/return operation; check and start it. |
+| Supply | Compare actual slots with this plan's requirements. Create tasks with a support group and target quantity. Players deliver supplies; the computer does not create ammunition or drive trucks. |
+| Battle review | Replay recorded raids, detections, releases, trajectories and confirmed outcomes. Lost contact is not a confirmed kill. |
+| Equipment | Give units useful names/groups. Ctrl-click selects multiple units. Save districts, priority and missile reserves. Reload fields refreshes the editable configuration version. |
+| Access | Commanders assign roles and allied teams. Operators issue orders; observers read data. Other teams cannot inspect your reconnaissance. |
+
+### Defense, allies and reports
+
+S-400/Patriot and silo ABM require an external friendly network radar. Batteries
+need compatible stores, power, deployment and automatic fire; command trucks and
+relays need power too. Diagnose an actual observed target. Headquarters settings
+do not let a lower tier intercept an unsupported threat. Zaslon-4 ABM targets any
+Topol-M/Oreshnik and their warheads regardless of launch origin; it is not an MLRS
+interceptor. Commanders manage allied IFF teams through the Defense allies list;
+their weapons are not hostile targets, without sharing private intelligence.
+
+Reports distinguish detection, interception attempt, actual launch, confirmed
+kill, failure, breakthrough and unknown outcome. A battery's own kills are separate
+from assistance; one target is not counted repeatedly. Target interception rate
+differs from interceptor ammunition efficiency. A mass raid can exhaust physical
+channels or stores; Diagnostics explains the limitation. Losing a radar does not
+turn an old contact into a fresh observation.
+
+### Service, authority and persistence
+
+Supply tasks close manually or after actual replenishment to the requested goal,
+repair or return. Existing stock does not count as a delivery. Aircraft fuel may
+require checking the carrier's own interface. Settings follow stable unit IDs;
+chunk unload is not destruction. The first headquarters owner is commander;
+others initially observe. The last commander cannot be demoted. Revoking an
+author's authority pauses their operation, and changing teams does not retain
+command of the previous headquarters. Server checks remain authoritative.
+
+World saves retain plans and logs, including completed expenditure. Unknown
+releases are not automatically retried after restart. Timings use game ticks;
+lower TPS stretches wall-clock seconds. The source must be loaded and physically
+available, not merely present in old telemetry. Limits include 256 plan steps,
+512 equipment settings, 64 districts/roles and 128 notices/tasks per headquarters.
+Each intelligence contact retains 12 observations. Logs and trajectories are
+bounded records of the observed network, not the entire world.
+
+## 17. HBM industrial production
+
+Dev112 gives active content industrial recipes. Use R in JEI for recipes and U
+for uses. Tooltips show the machine and production stage. Production stages do
+not change combat tiers or interception capabilities.
+
+Control boards I–IV use the HBM Soldering Station with actual PCB, components,
+solder and higher-stage process fluid. Guidance I–VI, fire control, links,
+radars, optics, engines, warheads, chassis, aircraft and vehicles use the HBM
+Assembly Machine. Armor steel uses the Blast Furnace; U-238 plates use a Press
+with a PLATE stamp. Packs of 100 cannon rounds use the Ammo Press. Simple
+blueprints, manuals, flags and basic materials use the crafting table.
+Custom missiles and UAVs retain their constructors and paid module inputs.
+
+Select the product in the Assembly Machine's ordinary recipe list; no random
+unlock or copy of the finished product is required. Feed HBM process fluid to
+the machine. Its input tank grows for the selected recipe, including long-range
+fuel modules. Normal HBM machine upgrades apply.
+
+Progression follows basic mechanisms/board I, precision equipment/board II,
+advanced sensors/avionics/board III and strategic equipment/board IV. Ammunition
+variants have distinct inputs. Existing HBM nuclear and chemical manufacturing
+chains supply complete game components; flags no longer replace electronics.
+
+Factory vehicles contain no free ammunition or power. Supply stores and a
+battery separately. Wrench recovery preserves remaining power and health;
+Henry also retains the actual number of rockets already loaded. Upgrading a
+basic truck requires an undamaged unused chassis with no retained stores.
+Existing world vehicles are not reset by an update.
+
+A Pantsir belt contains 600 rounds, assembled from six 100-round packs. Refill
+partly used belts on a crafting table: 350 + 200 produces 550. Overfilling is
+rejected rather than wasting rounds. MLRS missiles still stack to 16; production
+batch size depends on the missile family.
+
+The silo module includes one paid full construction kit. Placing the module
+and starting construction spends that credit. Moving an unbuilt module keeps
+its credit. Intact renovation reuses existing materials; missing or harvested
+structure blocks require another complete construction kit in player inventory.
+The mast includes six sections and the strategic radar 3672 shell panels;
+its 33x33 supporting foundation is built separately. Internal structure blocks
+are not standalone crafting outputs.
+
+The animated hatch is assembled by upgrading the native large HBM hatch.
+A decorative missile packages a real weapon 1:1, retaining its NBT through
+placement and recovery. An unpaid old display cannot unpack into a weapon.
+Recon reports require real observations and one sheet of paper per download.
+
+## 18. D-30 and CAESAR — gun artillery
+
+| Parameter | D-30 | CAESAR |
+|---|---:|---:|
+| Range | 80–1200 blocks | 120–2200 blocks |
+| Reload | 7 s | 5 s |
+| Deployment | 5 s | 3 s |
+| Stores | Four 16-round slots | Four 16-round slots |
+| Expenditure | One shell + 500 HE | One shell + 500 HE |
+
+Both accept all 12 existing Greg shell types and retain their original effects.
+Henry/MLRS rockets are incompatible. Paid Assembly Machine recipes produce
+unarmed equipment without free energy.
+
+1. RMB your gun for controls. Load Greg ammunition, an HBM battery and optionally
+   a saved designator in its dedicated slot.
+2. Select ammunition with 1–4. An empty selected slot prevents firing;
+   the gun never switches payload type automatically.
+3. Stop on solid ground, deploy and wait for preparation.
+4. Enter/apply XYZ or import the slotted target. Range is horizontal; elevation
+   enters the ballistic solution. Hover status for full reasons and parameters.
+5. Fire once. The gun smoothly aims, then emits a real shell at MuzzleSocket
+   with recoil, flash, smoke and sound. Only successful physical spawn spends
+   the ammunition and energy.
+6. Wait for reload. Cancel affects only a command that has not emitted a shell.
+
+Sneak-RMB a deployed gun with the artillery designator to bind its UUID.
+RMB terrain then requests one target/one shot. Carry the tool toward distant
+terrain if needed; manual XYZ is not limited by the tool's 500-block ray.
+Repeated aiming/reload clicks do not duplicate ammunition expenditure.
+
+D-30 has no engine; move it with the salvage wrench. CAESAR can be driven
+after stowing and returning the barrel. Recovery preserves energy, damage,
+target and remaining reload; ammunition drops separately. Moving does not
+accelerate the next shot.
+
+The shell is unguided: initial velocity and gravity determine its arc, and
+terrain can obstruct it. An impossible elevation/angle or blocked muzzle
+reports a reason without spending a blocked shot. Headquarters supports
+preparation and single shots; use separate stages with intervals for a sequence.
+Pending commands survive restart. Recall cancels unissued orders, not airborne shells.
+
+## 19. Topol-M, Oreshnik and Iskander-M
+
+| System | Stores | Command range | Payload |
+|---|---|---|---|
+| Topol-M | One dedicated missile | 200–48,000 blocks | One nuclear reentry vehicle |
+| Oreshnik | One dedicated missile | 200–18,000 blocks | Seven conventional reentry vehicles, including center |
+| Iskander-M | Two dedicated missiles | 80–8,000 blocks | Two separate shots with independent targets |
+
+These are game distances. Yars remains reserved and disabled. FP-7 is not
+loaded into the Iskander vehicle; see chapter 21 for its launch platform.
+
+1. Place your vehicle on level open terrain. RMB opens controls; drive while stowed.
+2. Load the matching missiles before deployment. Erected or moving launch
+   equipment locks servicing. Missiles from other systems are not interchangeable.
+3. Enter XYZ or import a saved designator. Select the left/right Iskander missile
+   and verify its independent target.
+4. Stop, leave the cab, deploy and wait for erection to finish.
+5. Request launch. Topol/Oreshnik eject before igniting their engines; Iskander
+   uses its own physical release sequence.
+6. Wait for release to finish, stow and service. Closing controls does not return
+   an emitted missile.
+
+The long strategic middle leg uses a persisted flight model rather than generating
+every chunk to the target. Launch and reentry vehicles are physical entities;
+the system does not keep the entire route loaded. Oreshnik distributes impacts
+around its target and adds a central hit. Topol's nuclear effect depends on HBM.
+Headquarters uses separate PREPARE and LAUNCH stages and an actual loaded slot.
+Use another stage/target for the second Iskander shot; a simultaneous two-missile
+release from one button is not promised.
+
+## 20. Grad, HIMARS, Uragan and Smerch
+
+| Launcher | Tubes | Command range | Threat tier |
+|---|---:|---:|---:|
+| Grad | 40 | 100–1800 | 1 |
+| HIMARS | 6 | 200–5000 | 2 |
+| Uragan | 12 | 150–2800 | 1 |
+| Smerch | 12 | 200–4000 | 1 |
+
+Use the matching rocket family. Item stacks of 16 do not place 16 rockets in
+one tube: each tube holds one. The ammunition item selects its warhead;
+consult JEI/the catalog for the family's available variants.
+
+1. Load tubes, a battery and optionally a designator while stowed.
+2. Enter/import a target and supported area radius. HIMARS has per-tube targets;
+   other launchers use a shared target with supported area distribution.
+3. Stop on solid ground, deploy and wait for preparation and reload. Each actual
+   rocket release costs 2500 HE.
+4. Select a single shot, a limited salvo or the available full rack. The real
+   queue aims the launcher and releases rockets from their own tubes.
+5. Cancel to discard the unissued remainder. Airborne rockets continue.
+   Stowing returns the package to travel position.
+
+Sneak-RMB with the artillery designator links your launcher. RMB terrain reserves
+one free loaded tube. Already-reserved tubes cannot create duplicate expenditure.
+Recovering and placing a vehicle does not refill its power or ammunition.
+
+## 21. FP-5 Flamingo, FP-7 and S8000 Banderol
+
+| Ammunition | Command range | Compatible launch path |
+|---|---:|---|
+| FP-5 Flamingo | 300–12,000 | Geran platform |
+| FP-7 | 300–6000 | Standalone Iskander ballistic launcher, not the vehicle |
+| S8000 Banderol | 150–4000 | Cruise launcher and compatible aircraft/UAVs |
+
+On the ground, load matching ammunition, power and a saved target, then issue
+a separate start/detonator command. Airborne compatibility depends on the carrier
+and hardpoint. A free slot does not admit every weapon. Check the stated rejection
+reason, range, exit direction and clearance. Each family has its own model,
+trajectory and combat profile.
+
+## 22. Underground silo and Zaslon-4 ABM
+
+### Construction and layout
+
+Manufacture the construction module and its paid complete kit through HBM.
+Place it at the surface; Y=33–234 suits a normal world. The site is 17×17 and
+32 blocks deep, with a 3×3, 20-block clear launch channel above the hatch.
+The hatch center is six blocks behind the module; controls show its coordinates.
+The work area must be loaded and permitted by the server.
+
+**Build silo removes obstructing blocks and container contents in its work
+volume without mining drops.** Choose an empty site. Construction runs in batches,
+checks rights and saves progress. The owner must be present to resume building
+after restart. Starting consumes the kit credit; moving the console does not
+produce a second paid kit.
+
+The entrance joins a continuous ladder and levels at −5/−11/−17/−23/−29.
+The console moves into the upper underground room; the launch block is at −26.
+Doors, levers, galleries, hidden cabling and inset lights are included. The HBM
+hatch has its own animation, sound and collision. The concealed power inlet is
+under the deck (local X=−5, Y=−1, Z=+2); a battery can charge the same buffer.
+
+Update silo rebuilds its work volume, removes modifications inside it and
+preserves the launch block's identity/state. Intact structures reuse materials;
+missing blocks require a new complete kit. Active launch/cooling blocks renovation,
+and renovation locks inventory servicing.
+
+### Strike launch
+
+Load Topol-M or Oreshnik in slot one, a designator in the middle and a battery
+at the right. Buffer: 1,200,000 HE; actual launch: 75,000 HE. Enter XYZ or import
+a target. For X/Z-only items the server resolves elevation first; an old target
+cannot fire while that request is pending.
+
+Launch readiness enables smoke, alarms and flashing lights while retaining the
+missile behind the closed hatch without launch expenditure. Readiness survives
+restart but never fires automatically. Launch opens the hatch, ejects the missile
+and ignites its engine after the tail clears the lid. The hatch then closes and
+cooling runs. There is one missile/channel, without automatic spare-well transfer.
+
+Sneak-RMB a native HBM detonator on the console/launch block to link it.
+Headquarters PREPARE → LAUNCH separates readiness and physical release.
+Hatch opening contributes delay; emitted confirmation comes from the actual
+missile. Blocks, liquids or entities in the channel can prevent launch.
+
+### Interception
+
+Load Zaslon-4 in the same first slot. Supply 200,000 HE per actual release,
+enable ABM duty and provide fresh contacts from a friendly external radar.
+The silo has no independent all-seeing radar. After checking a possible meeting,
+it reserves the target, opens its hatch and cold-launches. Losing the target
+before release closes the hatch without consuming the missile.
+
+Eligible threats are hostile Topol-M/Oreshnik missiles and their reentry vehicles,
+from mobile or silo launches. Their threat tier is 4; tiers 1–3 cannot intercept
+them. Iskander, MLRS, aircraft, UAVs and debris are not Zaslon-4 targets.
+Meeting range is up to 1600 blocks. Radar range/height/visibility, hatch time,
+power and ammunition constrain the outcome. The defense map reports actual
+readiness/outcomes. Loading a strike missile moves the silo back to the attack map.
+Coordinate LAUNCH/detonator commands do not operate ABM mode.
+
+## 23. Servers, teams and recovery
+
+Use exactly the same **2.0.0** JAR on every client and the dedicated server.
+CE and Extended use incompatible APIs. Public servers should keep
+`online-mode=true`; normal remote flight needs `allow-flight=true`.
+Acceptance offline mode was confined to an isolated loopback fixture.
+
+Level-2 operators assign and clear teams:
+
+```text
+/wtteam join blue PlayerName
+/wtteam clear PlayerName
+/wtteam status
+```
+
+Status is available to regular players. A team change revokes access to old-side
+equipment/HQ even for its former owner. Allied IFF excludes friendly defense targets
+but grants no foreign control/intelligence. Container, packet, role and affiliation
+checks run on the server; stale open windows cannot retain revoked rights.
+
+Plans support 256 stages, up to 192 KiB total and 24 KiB per part. Headquarters
+responses are limited to 768 KiB in a packet and 4 MiB unpacked; excess produces
+an error rather than disconnecting. Uncertain releases pause the operation and
+are not automatically spent again. Pause/recall cannot teleport airborne missiles back.
+
+Flight budget: up to 48 active flights, including at most 24 offensive and 24
+defensive, with up to 16 modular flights. Remote activity uses bounded chunk windows
+and a loading queue. Remote defense can load a visibility corridor toward the nearest
+hostile missile up to 1024 blocks/128 chunks; this does not increase radar range.
+A stopped server simulates nothing; low TPS stretches real-time seconds.
+
+## 24. Updating from 1.7.0 and validation limits
+
+1. Stop the game/server normally. Back up the complete world and configuration.
+2. Remove the old WarTech JAR from active mods and install exactly one 2.0.0.
+   Keep dependencies; do not combine CE and Extended.
+3. Open a world copy first. Check items, ownership, vehicles, saved plans, power,
+   stocks and silos. Do not automatically press silo update: it rebuilds the volume.
+4. Check JEI and server logs, then perform one safe conventional shot. Preserve
+   crash reports and latest.log when reporting a problem.
+
+The changelog lists implemented features. It does not guarantee every modpack
+or absence of bugs. Unit, native, connected MP and visual acceptance have explicitly
+bounded coverage. Complete ore-to-equipment survival, a long campaign, full-modpack
+load and comprehensive migration of an old user world remain unverified.
+Yars, automatic delivery, full detailed cabins and polygonal areas are not claimed.
+[Validation scope](VALIDATION.md).

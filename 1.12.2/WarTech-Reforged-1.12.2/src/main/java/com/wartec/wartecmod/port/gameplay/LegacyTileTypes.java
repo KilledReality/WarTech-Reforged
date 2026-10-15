@@ -35,6 +35,8 @@ public final class LegacyTileTypes {
     }
 
     public static void registerAll() {
+        GameRegistry.registerTileEntity(TileEntityMissileSilo.class,new ResourceLocation(MODID,"missile_silo"));
+        GameRegistry.registerTileEntity(TileEntityPlanningTerminal.class,new ResourceLocation(MODID,"planning_terminal"));
         GameRegistry.registerTileEntity(TileEntityWarTechMachine.class,
                 new ResourceLocation(MODID, "wartech_machine"));
         GameRegistry.registerTileEntity(TileEntityWarTechVisual.class,

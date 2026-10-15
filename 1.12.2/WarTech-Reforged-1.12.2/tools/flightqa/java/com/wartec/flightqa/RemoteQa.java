@@ -187,12 +187,13 @@ public final class RemoteQa {
             check("unobserved_defense_woke_and_fired",shots>0,"shots="+shots+" loaded="+(world.getEntityFromUuid(defenseId)!=null)
                 +" incoming="+(incoming==null?"missing":incoming.getPositionVector()+" dead="+incoming.isDead));
             check("unobserved_static_defense_woke",staticAwake,"VLS ticket/loaded tile without players; not a full S400 network firing test");
-            EntityCustomCruise target=new EntityCustomCruise(world);target.setPosition(100,25,100);target.configure(missile(CruisePartDefinition.BODY_LIGHT,new Vec3d(100,3,0),true),player);world.spawnEntity(target);
+            EntityCustomCruise target=new EntityCustomCruise(world);target.setPosition(100,25,100);target.configure(missile(CruisePartDefinition.BODY_LIGHT,new Vec3d(100,3,-500),true),player);area(target.getPosition());check("retry_probe_admitted",MissileChunkLoader.spawnFlight(target),"real registered flight in a loaded chunk");
             combatFlights.add(target);
             MissileTrackingService.registerLaunch(target,100,25,100,100,0,"red");MissileTrackingService.deferTarget(world,target.getEntityId());
             check("deferred_target_blocks_immediate_retry",!MissileTrackingService.tryReserve(world,target.getEntityId(),73),"cooldown active");retryId=target.getEntityId();
         }
         if(tick==965) {
+            check("retry_probe_alive",world.getEntityByID(retryId)!=null && !world.getEntityByID(retryId).isDead,"probe must survive while its cooldown is checked");
             check("retry_available_within_65_ticks",MissileTrackingService.tryReserve(world,retryId,73),"bounded retry; no immediate oversalvo");
             for(Entity e:new ArrayList<Entity>(world.loadedEntityList)) if(MissileChunkLoader.needsFlight(e)) e.setDead();
             for(Entity e:combatFlights) e.setDead();

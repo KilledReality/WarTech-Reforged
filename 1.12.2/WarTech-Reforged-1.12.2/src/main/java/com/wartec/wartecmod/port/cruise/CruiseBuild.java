@@ -13,6 +13,20 @@ public final class CruiseBuild {
     private final EnumMap<CruiseSlot,CruisePartDefinition> parts = new EnumMap<>(CruiseSlot.class);
     private String name="Custom Cruise Missile";
     private boolean malformed;
+    private boolean s8000;
+    public boolean isS8000() { return s8000; }
+    public static boolean isStore(ItemStack stack) {
+        return !stack.isEmpty() && (stack.getItem()==com.wartec.wartecmod.port.content.WarTechContent.ASSEMBLED_CRUISE
+                || stack.getItem()==com.wartec.wartecmod.port.content.WarTechContent.S8000_MISSILE);
+    }
+    public static CruiseBuild banderol() {
+        CruiseBuild build=starter(CruisePartDefinition.BODY_CLASSIC);
+        build.s8000=true;build.setName("S8000 Banderol");
+        build.set(CruiseSlot.LAUNCH,CruisePartDefinition.LAUNCH_AIR);
+        build.set(CruiseSlot.NAVIGATION,CruisePartDefinition.NAV_COORDINATE);
+        build.set(CruiseSlot.WINGS,CruisePartDefinition.WINGS_COMPACT);
+        return build;
+    }
     public CruisePartDefinition get(CruiseSlot slot) { return parts.get(slot); }
     public CruisePartDefinition getAirframe() { return get(CruiseSlot.BODY); }
     public void set(CruiseSlot slot, CruisePartDefinition part) {
@@ -36,6 +50,7 @@ public final class CruiseBuild {
         return hash;
     }
     public CruiseStats calculateStats() {
+        if(s8000) return new CruiseStats(170,700,1.9,4560,3.5,new ArrayList<String>());
         List<String> errors=new ArrayList<>();
         if(malformed) errors.add("corrupt_build");
         double mass=0;
@@ -77,11 +92,17 @@ public final class CruiseBuild {
     }
     public NBTTagCompound write() {
         NBTTagCompound tag=new NBTTagCompound(); tag.setInteger("Schema",1); tag.setString("Name",name);
+        if(s8000) tag.setString("FactoryMissile","s8000");
         for(CruiseSlot slot:CruiseSlot.values()) if(get(slot)!=null) tag.setString(slot.name(),get(slot).getId());
         if(malformed) tag.setBoolean("Corrupt",true);
         return tag;
     }
     public static CruiseBuild read(NBTTagCompound tag) {
+        if("s8000".equals(tag.getString("FactoryMissile"))) {
+            CruiseBuild build=banderol();
+            if(CruisePartDefinition.LAUNCH_BOOSTER.getId().equals(tag.getString("LAUNCH"))) build.set(CruiseSlot.LAUNCH,CruisePartDefinition.LAUNCH_BOOSTER);
+            return build;
+        }
         CruiseBuild result=new CruiseBuild(); result.setName(tag.getString("Name"));
         result.malformed=tag.getBoolean("Corrupt") || tag.getInteger("Schema")!=1;
         for(CruiseSlot slot:CruiseSlot.values()) if(tag.hasKey(slot.name())) {
@@ -97,6 +118,10 @@ public final class CruiseBuild {
         stack.getTagCompound().setTag(TAG,write());
     }
     public static CruiseBuild fromStack(ItemStack stack) {
+        if(!stack.isEmpty() && stack.getItem() instanceof com.wartec.wartecmod.port.content.MissileItem
+                && ((com.wartec.wartecmod.port.content.MissileItem)stack.getItem()).getProfile()==com.wartec.wartecmod.port.content.MissileProfile.S8000) {
+            return banderol();
+        }
         return !stack.isEmpty() && stack.hasTagCompound() && stack.getTagCompound().hasKey(TAG,10)
                 ?read(stack.getTagCompound().getCompoundTag(TAG)):new CruiseBuild();
     }
